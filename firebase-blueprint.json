@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "A pending or completed task item",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "deadline": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+        "category": { "type": "string", "enum": ["curriculum", "school", "parent", "student", "project"] },
+        "status": { "type": "string", "enum": ["pending", "done", "cancelled"] },
+        "source": { "type": "string", "enum": ["auto", "manual"] },
+        "createdAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["title", "priority", "category", "status", "userId"]
+    },
+    "CalendarEvent": {
+      "title": "Calendar Event",
+      "description": "A scheduled event in the timetable",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "start": { "type": "string" },
+        "end": { "type": "string" },
+        "location": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["title", "start", "end", "userId"]
+    },
+    "MemoryItem": {
+      "title": "Memory Item",
+      "description": "A piece of information remembered by the AI",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "maxLength": 100 },
+        "value": { "type": "string", "maxLength": 1000 },
+        "category": { "type": "string", "enum": ["general", "people", "preferences", "subjects"] },
+        "createdAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["key", "value", "category", "userId"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message in the chat history",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string", "maxLength": 10000 },
+        "timestamp": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["role", "content", "timestamp", "userId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/tasks": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tasks belonging to a user"
+    },
+    "users/{userId}/calendarEvents": {
+      "schema": { "$ref": "#/entities/CalendarEvent" },
+      "description": "Calendar events belonging to a user"
+    },
+    "users/{userId}/memoryItems": {
+      "schema": { "$ref": "#/entities/MemoryItem" },
+      "description": "Memory items for the AI assistant context belonging to a user"
+    },
+    "users/{userId}/chatMessages": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Chat log history belonging to a user"
+    }
+  }
+}

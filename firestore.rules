@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      // In this environment, Google Sign-in always has email_verified == true
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTask(data, userId) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.priority in ['low', 'medium', 'high', 'urgent'] &&
+             data.category in ['curriculum', 'school', 'parent', 'student', 'project'] &&
+             data.status in ['pending', 'done', 'cancelled'] &&
+             data.userId == userId;
+    }
+
+    function isValidCalendarEvent(data, userId) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.start is string && data.start.size() <= 100 &&
+             data.end is string && data.end.size() <= 100 &&
+             data.userId == userId;
+    }
+
+    function isValidMemoryItem(data, userId) {
+      return data.key is string && data.key.size() <= 100 &&
+             data.value is string && data.value.size() <= 1000 &&
+             data.category in ['general', 'people', 'preferences', 'subjects'] &&
+             data.userId == userId;
+    }
+
+    function isValidChatMessage(data, userId) {
+      return data.role in ['user', 'assistant'] &&
+             data.content is string && data.content.size() <= 10000 &&
+             data.timestamp is string && data.timestamp.size() <= 100 &&
+             data.userId == userId;
+    }
+
+    match /users/{userId}/tasks/{taskId} {
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId) && isValidId(taskId);
+      allow create: if isOwner(userId) && isValidId(taskId) && isValidTask(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(taskId) && isValidTask(incoming(), userId);
+    }
+
+    match /users/{userId}/calendarEvents/{eventId} {
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId) && isValidId(eventId);
+      allow create: if isOwner(userId) && isValidId(eventId) && isValidCalendarEvent(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(eventId) && isValidCalendarEvent(incoming(), userId);
+    }
+
+    match /users/{userId}/memoryItems/{memoryId} {
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId) && isValidId(memoryId);
+      allow create: if isOwner(userId) && isValidId(memoryId) && isValidMemoryItem(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(memoryId) && isValidMemoryItem(incoming(), userId);
+    }
+
+    match /users/{userId}/chatMessages/{messageId} {
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId) && isValidId(messageId);
+      allow create: if isOwner(userId) && isValidId(messageId) && isValidChatMessage(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(messageId) && isValidChatMessage(incoming(), userId);
+    }
+  }
+}

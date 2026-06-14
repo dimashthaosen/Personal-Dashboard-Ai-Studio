@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-paper-0: #f8f5f0;
+  --color-paper-1: #f2ede5;
+  --color-paper-2: #ece6db;
+  --color-paper-3: #e5dfd4;
+
+  --color-ink-900: #1a1612;
+  --color-ink-700: #4a4540;
+  --color-ink-500: #7a756f;
+  --color-ink-300: #a5a09a;
+
+  --color-chalk-600: #2d5a4a;
+  --color-chalk-500: #3a7560;
+  --color-chalk-100: #e8f0ec;
+
+  --color-inkblue: #2c4a7c;
+  --color-woodamber: #b8860b;
+  --color-redpen: #b83232;
+  --color-pencil: #6b6560;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+body {
+  background-color: #f8f5f0;
+  color: #1a1612;
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Notebook lines mimicking a paper journal or planner */
+.notebook-lines {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 29px,
+    rgba(26, 22, 18, 0.05) 29px,
+    rgba(26, 22, 18, 0.05) 30px
+  );
+  background-position: 0 10px;
+  line-height: 30px;
+}
+
+/* priority levels styles matching specs */
+.priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.priority-dot.urgent { background-color: #b83232; }
+.priority-dot.high { background-color: #b8860b; }
+.priority-dot.medium { background-color: #2d5a4a; }
+.priority-dot.low { background-color: #6b6560; }
+
+/* interactive card - lift gently on hover */
+.card-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgab(26, 22, 18, 0.08);
+}
+
+/* fine custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(26, 22, 18, 0.1);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 22, 18, 0.23);
+}
+
+/* Custom fade up transition stagger sequence */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shimmer Skeletion Effects */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shimmer-skeleton {
+  background: linear-gradient(
+    90deg,
+    #f2ede5 25%,
+    #ece6db 50%,
+    #f2ede5 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* Markdown Brief Styles */
+.markdown-brief {
+  font-size: 13px;
+}
+.markdown-brief h1, .markdown-brief h2, .markdown-brief h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--color-ink-900);
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+.markdown-brief h1 { font-size: 1.25rem; }
+.markdown-brief h2 { font-size: 1.1rem; }
+.markdown-brief h3 { font-size: 1rem; }
+.markdown-brief p {
+  margin-bottom: 0.75em;
+}
+.markdown-brief ul, .markdown-brief ol {
+  margin-bottom: 0.75em;
+  padding-left: 1.5em;
+}
+.markdown-brief ul { list-style-type: disc; }
+.markdown-brief ol { list-style-type: decimal; }
+.markdown-brief li {
+  margin-bottom: 0.25em;
+}
+.markdown-brief input[type="checkbox"] {
+  margin-right: 0.5em;
+  cursor: pointer;
+}
+.markdown-brief strong {
+  font-weight: 600;
+  color: var(--color-ink-900);
+}
+.markdown-brief a {
+  color: var(--color-inkblue);
+  text-decoration: underline;
+}

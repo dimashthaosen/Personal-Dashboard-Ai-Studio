@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Teacher Assistant",
+  "description": "A context-aware paper-planner style personal assistant for school teachers at Vasant Valley School, Delhi, managing tasks, email, schedule, and notes with server-side Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
