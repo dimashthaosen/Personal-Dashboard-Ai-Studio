@@ -39,7 +39,10 @@ export default function App() {
   useEffect(() => {
     // Detect server API status (AI-Enabled vs Demo mode)
     fetch("/api/health")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Server error");
+        return res.json();
+      })
       .then((data) => {
         if (data.mode === "AI-Enabled") {
           setApiMode("AI-Enabled");

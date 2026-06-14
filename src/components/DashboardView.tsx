@@ -34,8 +34,14 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
       const res = await fetch("/api/emails", { headers });
-      const data = await res.json();
-      setEmails(data);
+      if (!res.ok) throw new Error("API failed");
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        setEmails(data);
+      } catch (e) {
+        throw new Error("Invalid format");
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -59,8 +65,14 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contextData })
       });
-      const data = await res.json();
-      setDailyPlan(data.plan);
+      if (!res.ok) throw new Error("API failed");
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        setDailyPlan(data.plan);
+      } catch (e) {
+        throw new Error("Invalid response");
+      }
     } catch (err) {
       console.error(err);
     } finally {

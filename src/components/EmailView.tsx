@@ -26,7 +26,14 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
       const res = await fetch("/api/emails", { headers });
-      const data = await res.json();
+      if (!res.ok) throw new Error("API failed");
+      const text = await res.text();
+      let data = [];
+      try {
+        data = JSON.parse(text);
+      } catch(e) {
+        throw new Error("Invalid response");
+      }
       setEmails(data);
       if (data.length > 0) {
         setSelectedEmail(data[0]);
@@ -45,7 +52,9 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
     setSummaryOutput("");
     try {
       const res = await fetch(`/api/emails/${id}/summarise`, { method: "POST" });
-      const data = await res.json();
+      if (!res.ok) throw new Error("API failed");
+      const text = await res.text();
+      const data = JSON.parse(text);
       setSummaryOutput(data.summary);
     } catch (err) {
       console.error(err);
@@ -60,7 +69,9 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
     setReplyDraft("");
     try {
       const res = await fetch(`/api/emails/${id}/reply`, { method: "POST" });
-      const data = await res.json();
+      if (!res.ok) throw new Error("API failed");
+      const text = await res.text();
+      const data = JSON.parse(text);
       setReplyDraft(data.reply);
     } catch (err) {
       console.error(err);

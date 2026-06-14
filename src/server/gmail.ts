@@ -12,9 +12,9 @@ export interface GmailEmail {
 
 export async function fetchGmailEmails(accessToken: string): Promise<GmailEmail[]> {
   try {
-    // Fetch last 10 messages from inbox
+    // Fetch last messages from inbox
     const listRes = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=newer_than:1d+-in:draft+-category:promotions+-category:social",
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=newer_than:14d+-in:draft+-category:promotions+-category:social",
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
