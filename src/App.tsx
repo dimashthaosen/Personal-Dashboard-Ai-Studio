@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TeacherUser, Email } from "./types";
 import DashboardView from "./components/DashboardView";
+import LessonPlannerView from "./components/LessonPlannerView";
 import TasksView from "./components/TasksView";
 import ChatView from "./components/ChatView";
 import EmailView from "./components/EmailView";
@@ -171,6 +172,7 @@ export default function App() {
     {
       label: "Organise",
       items: [
+        { id: "lessons", label: "Lesson Planner", icon: <BookOpen className="w-4 h-4" /> },
         { id: "projects", label: "Projects", icon: <FolderKanban className="w-4 h-4" /> },
         { id: "memory", label: "Memory Bio", icon: <Brain className="w-4 h-4" /> },
       ],
@@ -322,6 +324,8 @@ export default function App() {
         return <CalendarView userId={currentUser?.userId} />;
       case "memory":
         return <MemoryView userId={currentUser?.userId} />;
+      case "lessons":
+        return <LessonPlannerView userId={currentUser?.userId} />;
       case "projects":
         return <ProjectsView userId={currentUser?.userId} />;
       case "settings":

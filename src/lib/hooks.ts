@@ -104,3 +104,28 @@ export function useFirestoreChat(userId: string | undefined) {
 
   return { messages, loading };
 }
+
+export function useFirestoreLessonPlans(userId: string | undefined) {
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setPlans([]);
+      setLoading(false);
+      return;
+    }
+    const q = query(collection(db, `users/${userId}/lessonPlans`), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPlans(data);
+      setLoading(false);
+    }, (error) => {
+      console.error(error);
+      setLoading(false);
+    });
+    return unsub;
+  }, [userId]);
+
+  return { plans, loading };
+}

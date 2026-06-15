@@ -52,7 +52,7 @@ Strict Rules of Persona:
 async function fetchWithRetryAndFallback<T>(
   action: (modelName: string) => Promise<T>
 ): Promise<T> {
-  const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
@@ -159,6 +159,75 @@ export async function* streamContentText(prompt: string, customSystemInstruction
   } catch (error: any) {
     console.error("Gemini Streaming API error during consumption:", error);
     yield ` [I experienced a connection interruption in streaming: ${error?.message || "Internal network issue"}]`;
+  }
+}
+
+export async function generateLessonPlan(prompt: string): Promise<string> {
+  const hasKey = process.env.GEMINI_API_KEY;
+  if (!hasKey) {
+    return "# Week X: Demo Lesson Plan\n\n**Learning Objective:** Understand the value of preparation.\n\n**Skills:** Synthesis, Reading.\n\n---\n\n## Lesson 1: Introduction\n\n**Concept:** The basics\n\n**Process:** This lesson introduces students to the anatomy of an argument by analyzing a short op-ed on climate change. Students work in pairs to highlight the main claim in yellow, the supporting reasons in green, and the conclusion in blue. Through a guided class discussion, they evaluate whether the reasons logically support the conclusion. The lesson closes with an exit slip where students must identify a hidden assumption in the author's reasoning.\n\n**Tools/Resources:** Projector\n\n**Assessment/Differentiation:** Exit slip.\n\n---\n### Reflection\n**What went really well:**\n**What could be improved:**\n**What have I learned about students that will inform next lesson:**\n";
+  }
+
+  try {
+    const ai = getGemini();
+    const response = await fetchWithRetryAndFallback(async (modelName) => {
+      return await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+      });
+    });
+    return response.text || "No output generated.";
+  } catch (error: any) {
+    console.error("Gemini API error generating lesson plan:", error);
+    throw new Error(`Failed to generate lesson plan: ${error?.message}`);
+  }
+}
+
+export async function generateLessonPacing(prompt: string): Promise<any> {
+  const hasKey = process.env.GEMINI_API_KEY;
+  if (!hasKey) {
+    return {
+      recommendedCount: 3,
+      difficulty: "Medium Complexity",
+      reasoning: "A good balance of concepts.",
+      breakdown2: { focus: ["Part A", "Part B"] },
+      breakdown3: { focus: ["Intro", "Deep Dive", "Review"] },
+      breakdown4: { focus: ["Intro", "Part A", "Part B", "Review"] },
+      breakdown5: { focus: ["Intro", "Part A", "Part B", "Activity", "Review"] },
+      breakdown6: { focus: ["Intro", "Part A", "Part B", "Part C", "Activity", "Review"] }
+    };
+  }
+
+  try {
+    const ai = getGemini();
+    const response = await fetchWithRetryAndFallback(async (modelName) => {
+      // Must use a structured format, we define basic schema on the call
+      return await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              recommendedCount: { type: "integer", description: "Between 2 and 6" },
+              difficulty: { type: "string", description: "Introductory, Medium Complexity, or High Complexity" },
+              reasoning: { type: "string", description: "Brief reasoning for recommendation" },
+              breakdown2: { type: "object", properties: { focus: { type: "array", items: { type: "string" } } }, required: ["focus"] },
+              breakdown3: { type: "object", properties: { focus: { type: "array", items: { type: "string" } } }, required: ["focus"] },
+              breakdown4: { type: "object", properties: { focus: { type: "array", items: { type: "string" } } }, required: ["focus"] },
+              breakdown5: { type: "object", properties: { focus: { type: "array", items: { type: "string" } } }, required: ["focus"] },
+              breakdown6: { type: "object", properties: { focus: { type: "array", items: { type: "string" } } }, required: ["focus"] }
+            },
+            required: ["recommendedCount", "difficulty", "reasoning", "breakdown2", "breakdown3", "breakdown4", "breakdown5", "breakdown6"]
+          }
+        }
+      });
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (error: any) {
+    console.error("Gemini API error generating pacing:", error);
+    throw new Error(`Failed to generate lesson pacing: ${error?.message}`);
   }
 }
 

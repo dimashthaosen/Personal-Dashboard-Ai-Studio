@@ -50,6 +50,12 @@ service cloud.firestore {
              data.userId == userId;
     }
 
+    function isValidLessonPlan(data, userId) {
+      return data.courseId is string &&
+             data.markdown is string &&
+             data.userId == userId;
+    }
+
     match /users/{userId}/tasks/{taskId} {
       allow read: if isOwner(userId);
       allow delete: if isOwner(userId) && isValidId(taskId);
@@ -76,6 +82,13 @@ service cloud.firestore {
       allow delete: if isOwner(userId) && isValidId(messageId);
       allow create: if isOwner(userId) && isValidId(messageId) && isValidChatMessage(incoming(), userId);
       allow update: if isOwner(userId) && isValidId(messageId) && isValidChatMessage(incoming(), userId);
+    }
+
+    match /users/{userId}/lessonPlans/{planId} {
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId) && isValidId(planId);
+      allow create: if isOwner(userId) && isValidId(planId) && isValidLessonPlan(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(planId) && isValidLessonPlan(incoming(), userId);
     }
   }
 }

@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { db } from "./src/server/db";
-import { generateContentText, streamContentText, TEACHER_SYSTEM_INSTRUCTION } from "./src/server/ai";
+import { generateContentText, streamContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION } from "./src/server/ai";
 import { fetchGmailEmails } from "./src/server/gmail";
 
 async function startServer() {
@@ -301,6 +301,32 @@ ${contextStr}
     }
   });
 
+  // Lesson Planner API
+  app.post("/api/lessons/generate", async (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "No prompt provided" });
+
+    try {
+      const markdown = await generateLessonPlan(prompt);
+      res.json({ markdown });
+    } catch (err: any) {
+      console.error("Generate lesson failed:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/lessons/pacing", async (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "No prompt provided" });
+
+    try {
+      const pacing = await generateLessonPacing(prompt);
+      res.json(pacing);
+    } catch (err: any) {
+      console.error("Generate pacing failed:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // === 2. VITE MIDDLEWARE SETUP ===
 
