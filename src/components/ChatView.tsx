@@ -4,6 +4,7 @@ import { Send, Sparkles, Trash2, ArrowUpCircle, Check } from "lucide-react";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreChat } from "../lib/hooks";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import ReactMarkdown from "react-markdown";
 
 function cleanContentForDisplay(content: string) {
   if (!content) return "";
@@ -13,6 +14,20 @@ function cleanContentForDisplay(content: string) {
     .replace(/\[CREATE_MEMORY:\s*([^\]]+)\]/g, "")
     .trim();
 }
+
+const renderers = {
+  p: ({ children }: any) => <p className="mb-2 last:mb-0 leading-relaxed font-serif text-sm text-[#2c2724]">{children}</p>,
+  strong: ({ children }: any) => <strong className="font-serif font-bold text-[#1a1612] bg-[#ece6db]/45 px-1 py-0.2 rounded-sm">{children}</strong>,
+  ul: ({ children }: any) => <ul className="list-disc pl-5 mb-2.5 space-y-1 text-[#2c2724]">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal pl-5 mb-2.5 space-y-1 text-[#2c2724]">{children}</ol>,
+  li: ({ children }: any) => <li className="text-sm font-serif text-[#2c2724] leading-relaxed mb-0.5">{children}</li>,
+  h1: ({ children }: any) => <h1 className="text-base font-serif font-bold text-[#1a1612] mt-2.5 mb-1">{children}</h1>,
+  h2: ({ children }: any) => <h2 className="text-sm font-serif font-bold text-[#1a1612] mt-2 mb-1">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-[#7a756f] mt-2 mb-1">{children}</h3>,
+  a: ({ href, children }: any) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#2d5a4a] hover:underline font-mono text-xs font-bold">{children}</a>,
+  em: ({ children }: any) => <em className="italic text-[#4a4540]">{children}</em>,
+  code: ({ children }: any) => <code className="bg-[#ece6db]/60 px-1 py-0.5 rounded font-mono text-[11px] font-medium text-[#2d5a4a]">{children}</code>
+};
 
 export default function ChatView({ userId }: { userId?: string }) {
   const { messages: firestoreMessages } = useFirestoreChat(userId);
@@ -287,9 +302,17 @@ export default function ChatView({ userId }: { userId?: string }) {
                       : "bg-[#f3ede2] border-[#e1d8c6] text-[#2c2724] font-serif text-sm leading-relaxed"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap leading-relaxed">
-                    {msg.role === "user" ? msg.content : cleanContentForDisplay(msg.content)}
-                  </p>
+                  {msg.role === "user" ? (
+                    <p className="whitespace-pre-wrap leading-relaxed">
+                      {msg.content}
+                    </p>
+                  ) : (
+                    <div className="markdown-body">
+                      <ReactMarkdown components={renderers}>
+                        {cleanContentForDisplay(msg.content)}
+                      </ReactMarkdown>
+                    </div>
+                  )}
 
                   {(hasTaskAction || hasEventAction || hasMemoryAction) && (
                     <div className="mt-2.5 pt-2 border-t border-[#e2dacb] flex flex-wrap gap-1.5 animate-fadeIn">
@@ -327,8 +350,12 @@ export default function ChatView({ userId }: { userId?: string }) {
           {activeStreamingReply && (
             <div className="flex justify-start">
               <div className="max-w-[85%] rounded-[14px] px-4 py-3 shadow-sm border bg-[#f3ede2] border-[#e1d8c6] text-[#2c2724] font-serif text-sm leading-relaxed">
-                <p className="whitespace-pre-wrap leading-relaxed">{cleanContentForDisplay(activeStreamingReply)}</p>
-                <span className="inline-block w-1.5 h-3.5 bg-[#2d5a4a] animate-pulse ml-0.5" />
+                <div className="markdown-body">
+                  <ReactMarkdown components={renderers}>
+                    {cleanContentForDisplay(activeStreamingReply)}
+                  </ReactMarkdown>
+                </div>
+                <span className="inline-block w-1.5 h-3.5 bg-[#2d5a4a] animate-pulse ml-0.5 mt-1" />
               </div>
             </div>
           )}
