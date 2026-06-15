@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, where, orderBy } from "firebase/firestore";
 import { db } from "./firebase";
 import { Task, CalendarEvent, MemoryItem, ChatMessage } from "../types";
+import { schoolEvents } from "../data/schoolEvents";
 
 export function useFirestoreTasks(userId: string | undefined) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -34,14 +35,15 @@ export function useFirestoreEvents(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) {
-      setEvents([]);
+      setEvents(schoolEvents);
       setLoading(false);
       return;
     }
     const q = query(collection(db, `users/${userId}/calendarEvents`), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CalendarEvent));
-      setEvents(data);
+      // Merge official school events with user's custom calendar events
+      setEvents([...data, ...schoolEvents]);
       setLoading(false);
     }, (error) => {
       console.error(error);

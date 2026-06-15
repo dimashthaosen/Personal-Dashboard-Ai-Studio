@@ -10,17 +10,34 @@ export interface GmailEmail {
   category: string;
 }
 
+// Fetch helper with AbortController timeout to prevent hangs
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 3000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return res;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function fetchGmailEmails(accessToken: string): Promise<GmailEmail[]> {
   try {
-    // Fetch last messages from inbox
-    const listRes = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=newer_than:14d+-in:draft+-category:promotions+-category:social",
+    // Fetch last messages from inbox (30 days to cover past weeks completely, without aggressive category filtering)
+    const searchQuery = "newer_than:30d -in:draft";
+    const listRes = await fetchWithTimeout(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${encodeURIComponent(searchQuery)}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: "application/json",
         },
-      }
+      },
+      8000 // 8 seconds timeout for the list request
     );
 
     if (!listRes.ok) {
@@ -32,83 +49,99 @@ export async function fetchGmailEmails(accessToken: string): Promise<GmailEmail[
     const listData = (await listRes.json()) as { messages?: { id: string }[] };
     const messages = listData.messages || [];
 
-    const emailPromises = messages.map(async (msg) => {
-      try {
-        const detailRes = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: "application/json",
-            },
-          }
-        );
+    // To prevent connection exhaustion & ConnectTimeoutError, fetch details in chunks with concurrency logic.
+    // Batch size of 10 gives great performance while avoiding undici connection timeouts.
+    const results: GmailEmail[] = [];
+    const batchSize = 10;
 
-        if (!detailRes.ok) {
+    for (let i = 0; i < messages.length; i += batchSize) {
+      const batch = messages.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (msg) => {
+        try {
+          const detailRes = await fetchWithTimeout(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/json",
+              },
+            },
+            3000 // 3 seconds timeout for individual message retrieval
+          );
+
+          if (!detailRes.ok) {
+            return null;
+          }
+
+          const detail = await detailRes.json();
+          const headers = detail.payload?.headers || [];
+          
+          const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === "subject");
+          const fromHeader = headers.find((h: any) => h.name.toLowerCase() === "from");
+          const dateHeader = headers.find((h: any) => h.name.toLowerCase() === "date");
+
+          const subject = subjectHeader ? subjectHeader.value : "No Subject";
+          const fromStr = fromHeader ? fromHeader.value : "Unknown Sender";
+          
+          // Parse fromName and fromEmail from something like "Anita Sharma <colleague@vasantvalley.edu.in>"
+          let fromName = fromStr;
+          let fromEmail = "";
+          const match = fromStr.match(/(.*)<(.*)>/);
+          if (match) {
+            fromName = match[1].trim();
+            fromEmail = match[2].trim();
+          } else if (fromStr.includes("@")) {
+            fromName = fromStr.split("@")[0];
+            fromEmail = fromStr.trim();
+          }
+
+          const dateStr = dateHeader ? dateHeader.value : new Date(parseInt(detail.internalDate)).toUTCString();
+          const snippet = detail.snippet || "";
+
+          // Determine if it needs reply based on subject, snippet, or just any unread message
+          // Let's check if the thread is unread
+          const labelIds = detail.labelIds || [];
+          const isUnread = labelIds.includes("UNREAD");
+          const needsReply = isUnread && (
+            subject.toLowerCase().includes("question") || 
+            subject.toLowerCase().includes("assessment") || 
+            subject.toLowerCase().includes("syllabus") ||
+            subject.toLowerCase().includes("worksheet") ||
+            subject.toLowerCase().includes("please") ||
+            snippet.toLowerCase().includes("please") ||
+            snippet.toLowerCase().includes("could you") ||
+            snippet.toLowerCase().includes("would you")
+          ) || isUnread; // default to needs reply if unread for this assistant's visibility
+
+          return {
+            id: msg.id,
+            subject,
+            from: fromStr,
+            fromName,
+            fromEmail,
+            snippet,
+            date: new Date(dateStr).toISOString(),
+            needsReply,
+            category: subject.toLowerCase().includes("colleague") ? "school" : "parents",
+          } as GmailEmail;
+        } catch (err) {
+          console.error(`Error fetching email detail for ID ${msg.id}:`, err);
           return null;
         }
+      });
 
-        const detail = await detailRes.json();
-        const headers = detail.payload?.headers || [];
-        
-        const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === "subject");
-        const fromHeader = headers.find((h: any) => h.name.toLowerCase() === "from");
-        const dateHeader = headers.find((h: any) => h.name.toLowerCase() === "date");
-
-        const subject = subjectHeader ? subjectHeader.value : "No Subject";
-        const fromStr = fromHeader ? fromHeader.value : "Unknown Sender";
-        
-        // Parse fromName and fromEmail from something like "Anita Sharma <colleague@vasantvalley.edu.in>"
-        let fromName = fromStr;
-        let fromEmail = "";
-        const match = fromStr.match(/(.*)<(.*)>/);
-        if (match) {
-          fromName = match[1].trim();
-          fromEmail = match[2].trim();
-        } else if (fromStr.includes("@")) {
-          fromName = fromStr.split("@")[0];
-          fromEmail = fromStr.trim();
+      const chunkResults = await Promise.all(batchPromises);
+      for (const item of chunkResults) {
+        if (item) {
+          results.push(item);
         }
-
-        const dateStr = dateHeader ? dateHeader.value : new Date(parseInt(detail.internalDate)).toUTCString();
-        const snippet = detail.snippet || "";
-
-        // Determine if it needs reply based on subject, snippet, or just any unread message
-        // Let's check if the thread is unread
-        const labelIds = detail.labelIds || [];
-        const isUnread = labelIds.includes("UNREAD");
-        const needsReply = isUnread && (
-          subject.toLowerCase().includes("question") || 
-          subject.toLowerCase().includes("assessment") || 
-          subject.toLowerCase().includes("syllabus") ||
-          subject.toLowerCase().includes("worksheet") ||
-          subject.toLowerCase().includes("please") ||
-          snippet.toLowerCase().includes("please") ||
-          snippet.toLowerCase().includes("could you") ||
-          snippet.toLowerCase().includes("would you")
-        ) || isUnread; // default to needs reply if unread for this assistant's visibility
-
-        return {
-          id: msg.id,
-          subject,
-          from: fromStr,
-          fromName,
-          fromEmail,
-          snippet,
-          date: new Date(dateStr).toISOString(),
-          needsReply,
-          category: subject.toLowerCase().includes("colleague") ? "school" : "parents",
-        } as GmailEmail;
-      } catch (err) {
-        console.error(`Error fetching email detail for ID ${msg.id}:`, err);
-        return null;
       }
-    });
+    }
 
-    const results = await Promise.all(emailPromises);
-    return results.filter((item): item is GmailEmail => item !== null);
+    return results;
   } catch (err) {
     console.error("fetchGmailEmails root error:", err);
     throw err;
   }
 }
+

@@ -66,85 +66,87 @@ export default function ProjectsView({ userId }: { userId?: string }) {
   const completedProjects = projects.filter((p) => p.status === "done");
 
   return (
-    <div className="animate-fade-up max-w-4xl mx-auto space-y-6">
+    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-paper-3 pb-4 gap-4">
+      {/* Header bar */}
+      <div className="flex items-center justify-between border-b border-paper-3 pb-4">
         <div>
-          <p className="font-mono text-xs tracking-wider text-ink-500 uppercase">Long-term Objectives</p>
-          <h2 className="font-serif text-2xl font-semibold text-ink-950 mt-1">Syllabus Projects ({activeProjects.length} Active)</h2>
+          <h2 className="font-serif text-2xl font-normal text-[#1a1612]">Syllabus Projects ({activeProjects.length} Active)</h2>
+          <p className="font-serif italic text-xs text-ink-405 mt-1 pl-0.5">
+            Long-term objectives, curriculum design, institutional alignment, and milestone checkmarks.
+          </p>
         </div>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="bg-chalk-600 hover:bg-chalk-500 text-white font-mono text-xs px-4 py-2 rounded shadow-sm transition-all flex items-center justify-center gap-1.5 focus:outline-none align-self-start sm:align-self-auto"
+          className="bg-[#2d5a4a] hover:bg-[#3a7560] font-mono text-[11px] font-bold text-[#fcf9f3] px-4 py-2.5 rounded-[8px] transition-all focus:outline-none cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
         >
-          <Plus className="w-4 h-4" />
+          <Folder className="w-4 h-4 text-white" />
           {showCreate ? "Cancel Project" : "Log Project"}
         </button>
       </div>
 
       {/* Create Project Panel */}
       {showCreate && (
-        <form onSubmit={handleCreateProject} className="bg-paper-1 border border-paper-2 rounded-lg p-5 shadow-sm space-y-4 animate-fade-up">
-          <h3 className="font-serif font-semibold text-sm text-ink-950 flex items-center gap-1.5">
-            <Folder className="w-4 h-4 text-chalk-600" />
+        <form onSubmit={handleCreateProject} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 animate-fade-up">
+          <h3 className="font-serif font-bold text-sm text-[#1a1612] pb-2 border-b border-[#ece6db] flex items-center gap-2">
+            <Folder className="w-4 h-4 text-[#2d5a4a]" />
             Launch Long-term Objective Project
           </h3>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="block text-xs font-mono text-ink-700 uppercase tracking-wider mb-1">Project Objective *</label>
+              <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Project Objective *</label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Cambridge Class 11 Syllabus Outline Prep"
-                className="w-full text-sm px-3.5 py-2.5 rounded border border-paper-2 bg-paper-0 text-ink-900 focus:outline-none focus:border-chalk-600"
+                placeholder="e.g. Cambridge Class 11 Syllabus Outline Prep..."
+                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus:border-[#2d5a4a] placeholder:italic"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-ink-700 uppercase tracking-wider mb-1">Objective Milestones / Steps</label>
+              <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Objective Milestones / Steps</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Define key milestone checkpoints or expected syllabus outputs..."
-                rows={2.5}
-                className="w-full text-sm px-3.5 py-2.5 rounded border border-paper-2 bg-paper-0 text-ink-900 focus:outline-none focus:border-chalk-600 resize-none font-serif"
+                rows={3}
+                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus:border-[#2d5a4a] resize-none font-serif placeholder:italic"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono text-ink-700 uppercase tracking-wider mb-1">Target Assessment Date</label>
+                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Target Assessment Date</label>
                 <input
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full text-sm px-3.5 py-2.5 rounded border border-paper-2 bg-paper-0 text-ink-900 focus:outline-none focus:border-chalk-600"
+                  className="w-full text-xs px-3.5 py-2 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-ink-700 uppercase tracking-wider mb-1">Project Domain</label>
+                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Project Domain</label>
                 <select
                   value={projectCat}
                   onChange={(e) => setProjectCat(e.target.value)}
-                  className="w-full text-sm px-3.5 py-2.5 rounded border border-paper-2 bg-paper-0 text-ink-900 focus:outline-none"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none"
                 >
-                  <option value="school">School Curricula</option>
-                  <option value="personal">Teacher Leisure / Progress</option>
-                  <option value="admin">Institutional Alignment</option>
+                  <option value="school">SCHOOL CURRICULA</option>
+                  <option value="personal">TEACHER LEISURE / PROGRESS</option>
+                  <option value="admin">INSTITUTIONAL ALIGNMENT</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 border-t border-[#ece6db]">
             <button
               type="submit"
-              className="bg-chalk-600 hover:bg-chalk-500 text-white font-mono text-xs px-5 py-2.5 rounded shadow-sm focus:outline-none"
+              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[10px] font-bold px-5 py-2.5 rounded-md uppercase tracking-wider shadow-sm focus:outline-none"
             >
               Log Project Objective
             </button>
@@ -163,46 +165,48 @@ export default function ProjectsView({ userId }: { userId?: string }) {
           <>
             {/* Active section */}
             <div className="space-y-4">
-              <h3 className="font-mono text-[10px] text-chalk-600 font-bold uppercase tracking-wider pl-1">In progress & On hold</h3>
+              <h3 className="font-mono text-[9px] text-[#2d5a4a] font-bold uppercase tracking-widest pl-1">IN PROGRESS & ON HOLD</h3>
               {activeProjects.length === 0 ? (
-                <div className="bg-paper-1 border border-paper-2 rounded-lg p-8 text-center font-serif text-sm italic text-ink-500">
+                <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-8 text-center font-serif text-sm italic text-[#8b857b]">
                   No active long-term curriculum projects logged.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {activeProjects.map((p) => (
-                    <div key={p.id} className="bg-paper-1 border border-paper-2 p-5 rounded-lg shadow-none flex flex-col justify-between space-y-4 hover:border-paper-3 transition-colors group relative">
+                    <div key={p.id} className="bg-[#fcf9f3] border border-[#e1d8c6] p-5 rounded-[18px] shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] flex flex-col justify-between space-y-4 hover:border-chalk-600 transition-colors group relative">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-serif font-bold text-sm text-ink-950 flex-1 leading-snug">{p.title}</h4>
+                          <h4 className="font-serif font-bold text-sm text-[#1a1612] flex-1 leading-snug">{p.title}</h4>
                           <button
+                            type="button"
                             onClick={() => handleDeleteProject(p.id)}
-                            className="text-ink-300 hover:text-redpen hover:bg-paper-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
+                            className="text-[#8b857b] hover:text-[#b83232] p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
                             title="Wipe project"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         {p.description && (
-                          <p className="text-xs text-ink-700 leading-relaxed font-serif pr-2 line-clamp-3">
+                          <p className="text-xs text-[#4a4540] leading-relaxed font-serif pr-2 line-clamp-3">
                             {p.description}
                           </p>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-paper-2 mt-auto">
-                        <div className="flex items-center gap-1.5 font-mono text-[9px] text-ink-500">
+                      <div className="flex items-center justify-between pt-2 border-t border-[#ece6db] mt-auto">
+                        <div className="flex items-center gap-1.5 font-mono text-[9px] text-[#8b857b] uppercase">
                           <Calendar className="w-3.5 h-3.5" />
                           <span>
                             {p.deadline
-                              ? new Date(p.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
-                              : "No dead-line"}
+                              ? new Date(p.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                              : "NO DEADLINE"}
                           </span>
                         </div>
                         
                         <button
+                          type="button"
                           onClick={() => handleUpdateProjectStatus(p.id, p.status)}
-                          className="font-mono text-[10px] text-chalk-600 bg-paper-2 hover:bg-chalk-100 border border-paper-3 px-2 py-1 rounded transition-colors focus:outline-none"
+                          className="font-mono text-[9px] font-bold text-[#2d5a4a] bg-[#e8f0ec] hover:bg-[#d2e3da] border border-[#d2e3da] px-2.5 py-1 rounded-md transition-colors focus:outline-none uppercase"
                         >
                           Complete →
                         </button>
@@ -216,25 +220,27 @@ export default function ProjectsView({ userId }: { userId?: string }) {
             {/* Completed section */}
             {completedProjects.length > 0 && (
               <div className="space-y-3 pt-2">
-                <h3 className="font-mono text-[10px] text-pencil font-bold uppercase tracking-wider pl-1">Fulfilled Milestones</h3>
-                <div className="bg-paper-1 border border-paper-2 rounded-lg divide-y divide-paper-2 shadow-sm">
+                <h3 className="font-mono text-[9px] text-[#8b857b] font-bold uppercase tracking-widest pl-1">FULFILLED MILESTONES</h3>
+                <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] divide-y divide-[#ece6db] overflow-hidden shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)]">
                   {completedProjects.map((p) => (
-                    <div key={p.id} className="p-4 flex items-center justify-between gap-4 group">
+                    <div key={p.id} className="p-4 flex items-center justify-between gap-4 group hover:bg-[#f5f1e8]/30 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-serif text-sm font-semibold text-ink-300 line-through truncate leading-normal">
+                        <h4 className="font-serif text-sm font-semibold text-[#8b857b]/75 line-through truncate leading-normal italic">
                           {p.title}
                         </h4>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => handleUpdateProjectStatus(p.id, p.status)}
-                          className="font-mono text-[9px] text-ink-500 hover:text-chalk-600 px-2 py-0.5"
+                          className="font-mono text-[9px] text-[#2d5a4a] hover:text-[#3a7560] px-2.5 py-1 bg-[#e8f0ec] hover:bg-[#d2e3da] border border-[#d2e3da] rounded-md transition-colors focus:outline-none uppercase tracking-wide font-bold"
                         >
                           Revive
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleDeleteProject(p.id)}
-                          className="text-ink-300 hover:text-redpen p-1 bg-paper-0 group-hover:opacity-100 transition-opacity"
+                          className="text-[#8b857b] hover:text-redpen p-1 bg-[#fcf9f3] rounded border border-[#e1d8c6] hover:border-red-300 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

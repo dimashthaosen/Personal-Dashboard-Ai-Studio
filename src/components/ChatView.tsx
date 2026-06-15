@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "../types";
-import { Send, Sparkles, Trash2, ArrowUpCircle } from "lucide-react";
+import { Send, Sparkles, Trash2, ArrowUpCircle, Check } from "lucide-react";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreChat } from "../lib/hooks";
-import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+
+function cleanContentForDisplay(content: string) {
+  if (!content) return "";
+  return content
+    .replace(/\[CREATE_TASK:\s*([^\]]+)\]/g, "")
+    .replace(/\[CREATE_EVENT:\s*([^\]]+)\]/g, "")
+    .replace(/\[CREATE_MEMORY:\s*([^\]]+)\]/g, "")
+    .trim();
+}
 
 export default function ChatView({ userId }: { userId?: string }) {
   const { messages: firestoreMessages } = useFirestoreChat(userId);
@@ -35,8 +44,6 @@ export default function ChatView({ userId }: { userId?: string }) {
   const handleClearHistory = async () => {
     if (!userId) return;
     try {
-      // In a real app we'd delete them individually or batched from firestore. 
-      // For this prototype, we'll just ignore for now or you can implement delete.
       setMessages([]);
       setActiveStreamingReply("");
     } catch (err) {
@@ -108,6 +115,79 @@ export default function ChatView({ userId }: { userId?: string }) {
         setActiveStreamingReply(completedOutput);
       }
 
+      // Parse and execute potential database trigger tokens
+      const taskRegex = /\[CREATE_TASK:\s*([^\]]+)\]/g;
+      const eventRegex = /\[CREATE_EVENT:\s*([^\]]+)\]/g;
+      const memoryRegex = /\[CREATE_MEMORY:\s*([^\]]+)\]/g;
+
+      let match;
+      while ((match = taskRegex.exec(completedOutput)) !== null) {
+        const parts = match[1].split("|").map(p => p.trim());
+        const title = parts[0] || "New Activity";
+        const description = parts[1] || "";
+        const category = parts[2] || "school";
+        const priority = parts[3] || "medium";
+        const deadline = parts[4] || "";
+
+        try {
+          await addDoc(collection(db, `users/${userId}/tasks`), {
+            title,
+            description,
+            category,
+            priority,
+            deadline,
+            status: "pending",
+            source: "assistant",
+            createdAt: new Date().toISOString(),
+            userId
+          });
+        } catch (e) {
+          console.error("Firestore automatic Task creation failed:", e);
+        }
+      }
+
+      while ((match = eventRegex.exec(completedOutput)) !== null) {
+        const parts = match[1].split("|").map(p => p.trim());
+        const title = parts[0] || "New Event";
+        const description = parts[1] || "";
+        const location = parts[2] || "Vasant Valley School";
+        const start = parts[3] || new Date().toISOString();
+        const end = parts[4] || new Date(Date.now() + 3600000).toISOString();
+
+        try {
+          await addDoc(collection(db, `users/${userId}/calendarEvents`), {
+            title,
+            description,
+            location,
+            start,
+            end,
+            createdAt: new Date().toISOString(),
+            userId
+          });
+        } catch (e) {
+          console.error("Firestore automatic Event creation failed:", e);
+        }
+      }
+
+      while ((match = memoryRegex.exec(completedOutput)) !== null) {
+        const parts = match[1].split("|").map(p => p.trim());
+        const key = parts[0] || "Reminder";
+        const value = parts[1] || "";
+        const category = parts[2] || "general";
+
+        try {
+          await addDoc(collection(db, `users/${userId}/memoryItems`), {
+            key,
+            value,
+            category,
+            createdAt: new Date().toISOString(),
+            userId
+          });
+        } catch (e) {
+          console.error("Firestore automatic Memory Item creation failed:", e);
+        }
+      }
+
       // Add assistant message to Firestore
       await addDoc(collection(db, `users/${userId}/chatMessages`), {
         role: "assistant",
@@ -119,7 +199,6 @@ export default function ChatView({ userId }: { userId?: string }) {
       setActiveStreamingReply("");
     } catch (err: any) {
       console.error("Stream reader error:", err);
-      // Fallback
       setMessages((prev) => [
         ...prev,
         {
@@ -136,22 +215,23 @@ export default function ChatView({ userId }: { userId?: string }) {
   };
 
   return (
-    <div className="animate-fade-up max-w-4xl mx-auto h-[78vh] flex flex-col bg-paper-1 border border-paper-2 rounded-lg shadow-sm relative overflow-hidden">
+    <div className="animate-fade-up max-w-[1050px] mx-auto h-[78vh] flex flex-col bg-[#fcf9f3] border border-[#e1d8c6] rounded-[20px] shadow-[0_4px_24px_-10px_rgba(26,22,18,0.1)] relative overflow-hidden">
       
       {/* Header bar */}
-      <div className="p-4 border-b border-paper-2 bg-paper-1 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-chalk-600" />
+      <div className="p-4 border-b border-[#ece6db] bg-[#fcf9f3] flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Sparkles className="w-5 h-5 text-[#2d5a4a]" />
           <div>
-            <h3 className="font-serif font-semibold text-sm text-ink-950">Active Assistant Terminal</h3>
-            <p className="font-mono text-[9px] text-ink-300 uppercase">Context Synchronous (Grounded)</p>
+            <h3 className="font-serif font-bold text-sm text-[#1a1612]">Active Assistant Terminal</h3>
+            <p className="font-mono text-[8px] text-[#2d5a4a] uppercase tracking-wider font-bold">Context Synchronous (Grounded)</p>
           </div>
         </div>
         
         {messages.length > 0 && (
           <button
+            type="button"
             onClick={handleClearHistory}
-            className="text-ink-500 hover:text-redpen hover:bg-paper-2 p-2 rounded transition-all focus:outline-none"
+            className="text-[#8b857b] hover:text-[#b83232] hover:bg-[#f5f1e8] p-2 rounded-lg transition-all focus:outline-none cursor-pointer"
             title="Wipe conversation log"
           >
             <Trash2 className="w-4 h-4" />
@@ -162,12 +242,12 @@ export default function ChatView({ userId }: { userId?: string }) {
       {/* Suggested chips if log is empty */}
       {messages.length === 0 && !activeStreamingReply && (
         <div className="flex-1 overflow-y-auto p-6 flex flex-col justify-center items-center text-center space-y-6">
-          <div className="w-12 h-12 bg-chalk-100 rounded-full flex items-center justify-center text-chalk-600">
+          <div className="w-12 h-12 bg-[#e8f0ec] rounded-full border border-[#d2e3da] flex items-center justify-center text-[#2d5a4a]">
             <Sparkles className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-serif font-semibold text-base text-ink-950">Inquire Session Context</h4>
-            <p className="font-serif italic text-xs text-ink-500 max-w-sm mt-1">
+            <h4 className="font-serif font-semibold text-base text-[#1a1612]">Inquire Session Context</h4>
+            <p className="font-serif italic text-xs text-[#8b857b] max-w-sm mt-1 leading-relaxed">
               Connect school curriculum notes, unread teacher emails, and pending task lists directly in standard British English.
             </p>
           </div>
@@ -175,9 +255,10 @@ export default function ChatView({ userId }: { userId?: string }) {
           <div className="w-full max-w-lg grid grid-cols-1 md:grid-cols-2 gap-2 text-left">
             {suggestionChips.map((chip, idx) => (
               <button
+                type="button"
                 key={idx}
                 onClick={() => handleSendMessage(chip)}
-                className="p-3 bg-paper-0 border border-paper-2 hover:border-chalk-600 rounded text-xs text-ink-700 font-sans font-medium text-left leading-normal hover:bg-paper-1 hover:text-chalk-600 transition-all focus:outline-none"
+                className="p-3.5 bg-[#fcf9f3] border border-[#e1d8c6] hover:border-[#2d5a4a] rounded-lg text-xs text-[#4a4540] font-serif italic text-left leading-normal hover:bg-[#f3ede2] hover:text-[#2d5a4a] transition-all focus:outline-none cursor-pointer"
               >
                 {chip}
               </button>
@@ -188,38 +269,66 @@ export default function ChatView({ userId }: { userId?: string }) {
 
       {/* Chat scroll box */}
       {(messages.length > 0 || activeStreamingReply) && (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start animate-fadeIn"}`}
-            >
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-[#fcf9f3]/40">
+          {messages.map((msg) => {
+            const hasTaskAction = msg.role === "assistant" && msg.content.includes("[CREATE_TASK:");
+            const hasEventAction = msg.role === "assistant" && msg.content.includes("[CREATE_EVENT:");
+            const hasMemoryAction = msg.role === "assistant" && msg.content.includes("[CREATE_MEMORY:");
+
+            return (
               <div
-                className={`max-w-[85%] rounded-lg px-4 py-3 shadow-none border ${
-                  msg.role === "user"
-                    ? "bg-chalk-600 border-chalk-500 text-white font-sans text-sm"
-                    : "bg-paper-2 border-paper-3 text-ink-900 font-sans text-sm leading-relaxed"
-                }`}
+                key={msg.id}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start animate-fadeIn"}`}
               >
-                {/* Format paragraphs or points */}
-                <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                 <div
-                  className={`text-[9px] font-mono mt-1 ${
-                    msg.role === "user" ? "text-chalk-100" : "text-ink-500"
+                  className={`max-w-[85%] rounded-[14px] px-4 py-3 shadow-[0_1px_2px_rgba(26,22,18,0.02)] border ${
+                    msg.role === "user"
+                      ? "bg-[#2d5a4a] border-[#2d5a4a] text-[#fcf9f3] font-sans text-xs"
+                      : "bg-[#f3ede2] border-[#e1d8c6] text-[#2c2724] font-serif text-sm leading-relaxed"
                   }`}
                 >
-                  {new Date(msg.timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {msg.role === "user" ? msg.content : cleanContentForDisplay(msg.content)}
+                  </p>
+
+                  {(hasTaskAction || hasEventAction || hasMemoryAction) && (
+                    <div className="mt-2.5 pt-2 border-t border-[#e2dacb] flex flex-wrap gap-1.5 animate-fadeIn">
+                      {hasTaskAction && (
+                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d1e2da] px-1.5 py-0.5 rounded uppercase tracking-wide">
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Registered on Blackboard (Task)
+                        </span>
+                      )}
+                      {hasEventAction && (
+                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-sky-800 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Booked on Calendar (Event)
+                        </span>
+                      )}
+                      {hasMemoryAction && (
+                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-purple-800 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Saved to Assistant Memory
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div
+                    className={`text-[8px] font-mono mt-1.5 uppercase ${
+                      msg.role === "user" ? "text-[#e8f0ec]" : "text-[#8b857b]"
+                    }`}
+                  >
+                    {new Date(msg.timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Active Streaming Chunk Display */}
           {activeStreamingReply && (
             <div className="flex justify-start">
-              <div className="max-w-[85%] rounded-lg px-4 py-3 shadow-none border bg-paper-2 border-paper-3 text-ink-900 font-sans text-sm leading-relaxed">
-                <p className="whitespace-pre-wrap leading-relaxed">{activeStreamingReply}</p>
-                <span className="inline-block w-1.5 h-3 bg-chalk-600 animate-pulse ml-0.5" />
+              <div className="max-w-[85%] rounded-[14px] px-4 py-3 shadow-sm border bg-[#f3ede2] border-[#e1d8c6] text-[#2c2724] font-serif text-sm leading-relaxed">
+                <p className="whitespace-pre-wrap leading-relaxed">{cleanContentForDisplay(activeStreamingReply)}</p>
+                <span className="inline-block w-1.5 h-3.5 bg-[#2d5a4a] animate-pulse ml-0.5" />
               </div>
             </div>
           )}
@@ -227,10 +336,10 @@ export default function ChatView({ userId }: { userId?: string }) {
           {/* Loading bubble status */}
           {loading && !activeStreamingReply && (
             <div className="flex justify-start">
-              <div className="bg-paper-2 border border-paper-3 rounded-lg px-4 py-3 flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-ink-300 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="w-1.5 h-1.5 rounded-full bg-ink-300 animate-bounce" style={{ animationDelay: "1500ms" }}></div>
-                <div className="w-1.5 h-1.5 rounded-full bg-ink-300 animate-bounce" style={{ animationDelay: "3000ms" }}></div>
+              <div className="bg-[#f3ede2] border border-[#e1d8c6] rounded-[14px] px-4 py-3 flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#8b857b] animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-[#8b857b] animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-[#8b857b] animate-bounce" style={{ animationDelay: "300ms" }}></div>
               </div>
             </div>
           )}
@@ -239,23 +348,8 @@ export default function ChatView({ userId }: { userId?: string }) {
         </div>
       )}
 
-      {/* Suggestion row above input if there are active chats */}
-      {(messages.length > 0 || activeStreamingReply) && (
-        <div className="px-4 py-2 bg-paper-1/50 border-t border-paper-2 flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-thin">
-          {suggestionChips.slice(0, 2).map((chip, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSendMessage(chip)}
-              className="text-[10px] font-mono border border-paper-3 rounded bg-paper-0 px-2.5 py-1 text-ink-500 hover:text-chalk-600 hover:border-chalk-600 transition-all focus:outline-none"
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Input bar */}
-      <div className="p-3 border-t border-paper-2 bg-paper-1">
+      <div className="p-3 border-t border-[#ece6db] bg-[#fcf9f3]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -269,14 +363,14 @@ export default function ChatView({ userId }: { userId?: string }) {
             onChange={(e) => setUserInput(e.target.value)}
             disabled={loading}
             placeholder={loading ? "AI Assistant thinking..." : "Inquire syllabus worksheet logs..."}
-            className="flex-1 text-sm bg-paper-0 border border-paper-2 rounded-md px-3.5 py-2.5 text-ink-950 focus:outline-none focus:border-chalk-600 disabled:opacity-50 transition-colors placeholder:italic"
+            className="flex-1 text-xs bg-[#f3ede2] border border-[#e1d8c6] rounded-md px-3.5 py-3 text-[#1a1612] focus:outline-none focus:border-[#2d5a4a] disabled:opacity-50 transition-colors placeholder:italic placeholder:text-[#8b857b]/60"
           />
           <button
             type="submit"
             disabled={!userInput.trim() || loading}
-            className="text-chalk-600 hover:text-chalk-500 disabled:opacity-45 p-2 rounded focus:outline-none transition-colors"
+            className="text-[#2d5a4a] hover:text-[#3a7560] disabled:opacity-45 p-1 rounded-full focus:outline-none transition-colors cursor-pointer"
           >
-            <ArrowUpCircle className="w-7 h-7 stroke-[1.5]" />
+            <ArrowUpCircle className="w-8 h-8 stroke-[1.5]" />
           </button>
         </form>
       </div>

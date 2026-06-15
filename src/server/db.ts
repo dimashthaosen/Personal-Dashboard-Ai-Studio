@@ -205,44 +205,7 @@ class ServerDB {
     ];
 
     // Emails Seed
-    this.data.emails = [
-      {
-        id: "email-1",
-        subject: "Global Perspectives worksheet for Friday",
-        from: "Anita Sharma <colleague@vasantvalley.edu.in>",
-        fromName: "Anita Sharma",
-        fromEmail: "colleague@vasantvalley.edu.in",
-        snippet: "Could you please share the updated GP worksheet before Friday's class? We also need to align the assessment criteria.",
-        date: todayAt(8, 15),
-        needsReply: true,
-        summary: "Anita needs the updated GP worksheet before Friday and wants to align the assessment criteria.",
-        category: "school",
-      },
-      {
-        id: "email-2",
-        subject: "Class 8 museum visit permission slips",
-        from: "School Office <admin@vasantvalley.edu.in>",
-        fromName: "School Office",
-        fromEmail: "admin@vasantvalley.edu.in",
-        snippet: "A reminder that permission slips for the Class 8 museum visit should be checked by Wednesday afternoon.",
-        date: todayAt(10, 5),
-        needsReply: false,
-        summary: "Check Class 8 museum visit permission slips by Wednesday afternoon.",
-        category: "admin",
-      },
-      {
-        id: "email-3",
-        subject: "Recommendation letter request",
-        from: "Riya Mehta <student@example.com>",
-        fromName: "Riya Mehta",
-        fromEmail: "student@example.com",
-        snippet: "Ma'am, would it be possible for you to write a recommendation letter for my summer programme application?",
-        date: todayAt(12, 20),
-        needsReply: true,
-        summary: "Riya is requesting a academic recommendation letter for a summer programme application.",
-        category: "students",
-      },
-    ];
+    this.data.emails = [];
 
     // Calendar Events Seed
     this.data.calendarEvents = [

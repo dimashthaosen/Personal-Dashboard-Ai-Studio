@@ -196,8 +196,8 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
     const prompt = `
 Summarise my day.
 
-Pull recent Gmail threads from the past 14 days (use the query
-"newer_than:14d -in:draft -category:promotions -category:social") and
+Pull recent Gmail threads from the past 30 days (use the query
+"newer_than:30d -in:draft") and
 structure the brief with these sections:
 
 - 🏫 School & Admin (meetings, substitutions, student issues, dispersal

@@ -1,40 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300..800;1,300..800&family=Spectral:ital,wght@0,200..800;1,200..800&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-paper-0: #f8f5f0;
-  --color-paper-1: #f2ede5;
+  --color-paper-0: #f5f1e8;
+  --color-paper-1: #fcf9f3;
   --color-paper-2: #ece6db;
-  --color-paper-3: #e5dfd4;
+  --color-paper-3: #e1d8c6;
+  --color-inset: #f3ede2;
+  --color-secondary-inset: #ece6db;
 
   --color-ink-900: #1a1612;
-  --color-ink-700: #4a4540;
-  --color-ink-500: #7a756f;
-  --color-ink-300: #a5a09a;
+  --color-ink-700: #2a2520;
+  --color-ink-500: #4a4540;
+  --color-ink-400: #7a756f;
+  --color-ink-300: #8b857b;
+  --color-ink-200: #928d85;
 
   --color-chalk-600: #2d5a4a;
   --color-chalk-500: #3a7560;
+  --color-chalk-700: #234a3d;
   --color-chalk-100: #e8f0ec;
+  --color-chalk-200: #d2e3da;
 
   --color-inkblue: #2c4a7c;
+  --color-inkblue-light: #e8eef7;
   --color-woodamber: #b8860b;
   --color-redpen: #b83232;
+  --color-redpen-light: #f7e4e1;
+  --color-redpen-border: #e3c4be;
   --color-pencil: #6b6560;
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", Georgia, serif;
+  --font-serif: "Spectral", "Georgia", "Palatino", serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  --radius-sm: 6px;
+  --radius-sm: 8px;
   --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-lg: 18px;
 }
 
 body {
-  background-color: #f8f5f0;
+  background-color: #f5f1e8;
   color: #1a1612;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Selection background color styling */
+::selection {
+  background-color: #d6e4dc;
 }
 
 /* Notebook lines mimicking a paper journal or planner */
@@ -42,8 +56,8 @@ body {
   background-image: repeating-linear-gradient(
     transparent,
     transparent 29px,
-    rgba(26, 22, 18, 0.05) 29px,
-    rgba(26, 22, 18, 0.05) 30px
+    rgba(26, 22, 18, 0.04) 29px,
+    rgba(26, 22, 18, 0.04) 30px
   );
   background-position: 0 10px;
   line-height: 30px;
@@ -51,8 +65,8 @@ body {
 
 /* priority levels styles matching specs */
 .priority-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 9999px;
   display: inline-block;
   flex-shrink: 0;
@@ -68,30 +82,30 @@ body {
 }
 .card-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgab(26, 22, 18, 0.08);
+  box-shadow: 0 6px 24px -10px rgba(26,22,18,0.12), 0 1px 2px rgba(26,22,18,0.04);
 }
 
-/* fine custom scrollbars */
+/* fine custom scrollbars matching paper look */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(26, 22, 18, 0.1);
+  background: rgba(26, 22, 18, 0.15);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(26, 22, 18, 0.23);
+  background: rgba(26, 22, 18, 0.25);
 }
 
 /* Custom fade up transition stagger sequence */
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -99,7 +113,7 @@ body {
   }
 }
 .animate-fade-up {
-  animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Shimmer Skeletion Effects */
@@ -114,9 +128,9 @@ body {
 .shimmer-skeleton {
   background: linear-gradient(
     90deg,
-    #f2ede5 25%,
+    #f3ede2 25%,
     #ece6db 50%,
-    #f2ede5 75%
+    #f3ede2 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
@@ -129,7 +143,7 @@ body {
 .markdown-brief h1, .markdown-brief h2, .markdown-brief h3 {
   font-family: var(--font-serif);
   font-weight: 600;
-  color: var(--color-ink-900);
+  color: #1a1612;
   margin-top: 1.25em;
   margin-bottom: 0.5em;
 }
@@ -153,10 +167,10 @@ body {
   cursor: pointer;
 }
 .markdown-brief strong {
-  font-weight: 600;
-  color: var(--color-ink-900);
+  font-weight: 650;
+  color: #1a1612;
 }
 .markdown-brief a {
-  color: var(--color-inkblue);
+  color: #2c4a7c;
   text-decoration: underline;
 }
