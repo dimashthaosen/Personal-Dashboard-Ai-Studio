@@ -9,8 +9,8 @@
         "description": { "type": "string", "maxLength": 1000 },
         "deadline": { "type": "string" },
         "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
-        "category": { "type": "string", "enum": ["curriculum", "school", "parent", "student", "project"] },
-        "status": { "type": "string", "enum": ["pending", "done", "cancelled"] },
+        "category": { "type": "string", "enum": ["school", "personal", "followup", "project", "email", "admin"] },
+        "status": { "type": "string", "enum": ["pending", "in_progress", "done", "waiting", "cancelled"] },
         "source": { "type": "string", "enum": ["auto", "manual"] },
         "createdAt": { "type": "string" },
         "userId": { "type": "string" }
@@ -39,7 +39,7 @@
       "properties": {
         "key": { "type": "string", "maxLength": 100 },
         "value": { "type": "string", "maxLength": 1000 },
-        "category": { "type": "string", "enum": ["general", "people", "preferences", "subjects"] },
+        "category": { "type": "string", "enum": ["general", "preferences", "people", "school", "patterns"] },
         "createdAt": { "type": "string" },
         "userId": { "type": "string" }
       },

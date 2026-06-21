@@ -26,11 +26,12 @@ export default function MemoryView({ userId }: { userId?: string }) {
     if (!newKey.trim() || !newValue.trim() || !userId) return;
 
     try {
-      await addDoc(collection(db, `users/${userId}/memory`), {
+      await addDoc(collection(db, `users/${userId}/memoryItems`), {
         key: newKey,
         value: newValue,
         category: newCategory,
         updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         userId
       });
 
@@ -51,7 +52,7 @@ export default function MemoryView({ userId }: { userId?: string }) {
   const handleSaveEdit = async (id: string) => {
     if (!editValue.trim() || !userId) return;
     try {
-      await updateDoc(doc(db, `users/${userId}/memory`, id), { value: editValue, updatedAt: new Date().toISOString() });
+      await updateDoc(doc(db, `users/${userId}/memoryItems`, id), { value: editValue, updatedAt: new Date().toISOString() });
       setEditingId(null);
       setEditValue("");
     } catch (err) {
@@ -62,7 +63,7 @@ export default function MemoryView({ userId }: { userId?: string }) {
   const handleDeleteMemory = async (id: string) => {
     if (!userId) return;
     try {
-      await deleteDoc(doc(db, `users/${userId}/memory`, id));
+      await deleteDoc(doc(db, `users/${userId}/memoryItems`, id));
     } catch (err) {
       console.error(err);
     }

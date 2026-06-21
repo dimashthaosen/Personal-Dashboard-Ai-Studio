@@ -20,10 +20,12 @@ export interface Email {
   fromName: string;
   fromEmail: string;
   snippet: string;
+  body?: string;
   date: string;
   needsReply: boolean;
   summary?: string;
   category: string;
+  type?: "inbox" | "sent";
 }
 
 export interface CalendarEvent {
@@ -205,7 +207,60 @@ class ServerDB {
     ];
 
     // Emails Seed
-    this.data.emails = [];
+    this.data.emails = [
+      {
+        id: "mock-1",
+        subject: "Re: Class 11 Sociology Curriculum Mapping",
+        fromName: "Anita Sharma",
+        fromEmail: "anita.s@vasantvalley.edu.in",
+        from: "Anita Sharma <anita.s@vasantvalley.edu.in>",
+        snippet: "Hi, I have reviewed the chapter mappings for next month. Could you take a look at the attached revisions?",
+        body: "Hi,\n\nI have reviewed the chapter mapping revisions for Class 11 Sociology for the next academic month. We need to make sure we align all recommended case studies with our final unit timetable.\n\nCould you take a look at the attached revisions and let me know if they align with your plan so we can present this at the Humanities Department meeting on Friday?\n\nBest regards,\nAnita Sharma\nSenior Sociology Instructor",
+        date: todayAt(8, 15),
+        needsReply: true,
+        category: "school",
+        type: "inbox"
+      },
+      {
+        id: "mock-2",
+        subject: "Student Project Submission Guidelines",
+        fromName: "Principal Office",
+        fromEmail: "admin@vasantvalley.edu.in",
+        from: "Principal Office <admin@vasantvalley.edu.in>",
+        snippet: "Please ensure all Class 12 sociology projects are submitted by the final deadline in the shared drive.",
+        body: "Dear Faculty,\n\nAs we approach the end of the term, please ensure all Class 12 Sociology student research projects, along with their marks sheets and external evaluator rubrics, are successfully uploaded to the central school drive by the final deadline of June 25th.\n\nFailure to submit on time will delay board processing. If any students require extensions parent consent slips must be filed with the department head.\n\nWarm regards,\nOffice of the Principal\nVasant Valley School",
+        date: todayAt(9, 30),
+        needsReply: false,
+        category: "student",
+        type: "inbox"
+      },
+      {
+        id: "mock-3",
+        subject: "Mid-Term Exam Feedback",
+        fromName: "Me",
+        fromEmail: "me@vasantvalley.edu.in",
+        from: "Me <me@vasantvalley.edu.in>",
+        snippet: "Dear parents, I'm writing to share some feedback regarding the recent mid-term examinations for Sociology...",
+        body: "Dear Parents,\n\nI am writing to share some key feedback regarding the recent Sociology mid-term examinations for Class 11 and Class 12.\n\nGenerally, the performance was quite high, reflecting strong comprehension of sociological theories, specifically structural-functionalism and conflict models. However, some students struggled with application-based essay questions, specifically in constructing coherent case-study arguments.\n\nIn the coming weeks, we will hold daily structured writing feedback clinics to support students ahead of final board evaluations.\n\nSincerely,\nYour Class Sociology Teacher",
+        date: todayAt(10, 45),
+        needsReply: false,
+        category: "parent",
+        type: "sent"
+      },
+      {
+        id: "mock-4",
+        subject: "Re: Department Meeting Agenda",
+        fromName: "Me",
+        fromEmail: "me@vasantvalley.edu.in",
+        from: "Me <me@vasantvalley.edu.in>",
+        snippet: "Sounds good, I will prepare the quarterly performance review slides for our meeting tomorrow.",
+        body: "Hi Anita,\n\nThat sounds like an excellent plan. I will prepare the quarterly Class 11 performance review slides and complete our draft agenda for tomorrow's meeting.\n\nLet's meet 10 minutes beforehand to coordinate.\n\nBest,\nMe",
+        date: todayAt(11, 20),
+        needsReply: false,
+        category: "school",
+        type: "sent"
+      }
+    ];
 
     // Calendar Events Seed
     this.data.calendarEvents = [
@@ -312,19 +367,22 @@ class ServerDB {
   }
 
   // Emails Methods
-  getEmails() {
-    return this.data.emails;
+  getEmails(type: "inbox" | "sent" = "inbox") {
+    return this.data.emails.filter(e => (e.type || "inbox") === type).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
   getEmailById(id: string) {
     return this.data.emails.find((e) => e.id === id) || null;
   }
 
-  syncGmailEmails(gmailEmails: Email[]) {
+  syncGmailEmails(gmailEmails: Email[], type: "inbox" | "sent" = "inbox") {
     // Merge real fetched emails into the array while preserving local summaries if any
     const existingMap = new Map(this.data.emails.map(e => [e.id, e]));
     
+    const otherTypeEmails = this.data.emails.filter(e => (e.type || "inbox") !== type);
+    
     const merged = gmailEmails.map(ne => {
+      ne.type = type;
       const existing = existingMap.get(ne.id);
       return {
         ...ne,
@@ -332,7 +390,7 @@ class ServerDB {
       };
     });
 
-    this.data.emails = merged;
+    this.data.emails = [...otherTypeEmails, ...merged];
     this.save();
   }
 

@@ -73,19 +73,20 @@ async function startServer() {
 
   // Emails API
   app.get("/api/emails", async (req, res) => {
+    const type = (req.query.type as "inbox" | "sent") || "inbox";
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
       if (token && token !== "undefined" && token !== "null") {
         try {
-          const gmailEmails = await fetchGmailEmails(token);
-          db.syncGmailEmails(gmailEmails);
+          const gmailEmails = await fetchGmailEmails(token, type);
+          db.syncGmailEmails(gmailEmails, type);
         } catch (err) {
           console.error("Failed to fetch Google Gmail emails, using cached/mock fallback:", err);
         }
       }
     }
-    res.json(db.getEmails());
+    res.json(db.getEmails(type));
   });
 
   app.post("/api/emails/:id/summarise", async (req, res) => {

@@ -88,6 +88,26 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
   // Filter emails needing reply
   const unreadReplies = emails.filter((e) => e.needsReply);
 
+  // Hybrid Needs Attention list (up to 5 items: urgent/high tasks + reply-needed emails)
+  const needsAttentionList = [
+    ...pendingUrgent.map((t) => ({
+      id: `task-${t.id}`,
+      type: "task" as const,
+      title: t.title,
+      badge: t.priority.toUpperCase(),
+      subtitle: `Task • ${t.category.toUpperCase()}`,
+      badgeBg: t.priority === "urgent" ? "bg-[#f7e4e1] text-[#b83232] border-[#e3c4be]" : "bg-[#fcf3e8] text-[#b8860b] border-[#eed8b3]",
+    })),
+    ...unreadReplies.map((e) => ({
+      id: `email-${e.id}`,
+      type: "email" as const,
+      title: e.subject,
+      badge: "REPLY NEEDED",
+      subtitle: `Email from • ${e.fromName}`,
+      badgeBg: "bg-[#e8f0ec] text-[#2d5a4a] border-[#d2e3da]",
+    }))
+  ].slice(0, 5); // STRICTLY limit to 4-5 important ones
+
   // Active tasks (any task that is not done)
   const activeTasks = tasks.filter((t) => t.status !== "done");
 
@@ -135,25 +155,32 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
               Needs Attention
             </h3>
             <span className="font-mono text-[9px] text-[#b83232] font-bold uppercase tracking-[0.12em] bg-[#f7e4e1] border border-[#e3c4be] px-2 py-0.5 rounded-full leading-none">
-              {unreadReplies.length} {unreadReplies.length === 1 ? "Alert" : "Alerts"}
+              {needsAttentionList.length} {needsAttentionList.length === 1 ? "Alert" : "Alerts"}
             </span>
           </div>
 
           <div className="space-y-3.5 pt-1 pl-2">
-            {unreadReplies.length === 0 ? (
-              <p className="font-sans italic text-xs text-[#8b857b]">All caught up. No unread emails require attention.</p>
+            {needsAttentionList.length === 0 ? (
+              <p className="font-sans italic text-xs text-[#8b857b]">All caught up. No urgent items require attention.</p>
             ) : (
-              unreadReplies.slice(0, 2).map((e) => (
-                <div key={e.id} className="space-y-0.5">
+              needsAttentionList.map((item) => (
+                <div key={item.id} className="space-y-0.5">
                   <div className="flex items-start gap-2">
-                    <span className="w-[7px] h-[7px] rounded-full bg-[#b83232] flex-shrink-0 mt-1" />
-                    <span className="font-sans font-bold text-[#1a1612] text-xs leading-normal truncate block" title={e.subject}>
-                      {e.subject}
-                    </span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${item.type === "task" ? "bg-[#b83232]" : "bg-[#2d5a4a]"} flex-shrink-0 mt-1.5`} />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-sans font-bold text-[#1a1612] text-xs leading-normal truncate block" title={item.title}>
+                        {item.title}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`font-mono text-[8px] px-1 py-0.2 rounded border uppercase font-bold leading-none ${item.badgeBg}`}>
+                          {item.badge}
+                        </span>
+                        <span className="font-mono text-[9px] text-[#8b857b] uppercase tracking-wider truncate">
+                          {item.subtitle}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="font-mono text-[9px] text-[#b83232] uppercase tracking-wider pl-[15px] truncate">
-                    FROM: {e.fromName.toUpperCase()}
-                  </p>
                 </div>
               ))
             )}
@@ -176,7 +203,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
             {unreadReplies.length === 0 ? (
               <p className="font-sans italic text-xs text-[#8b857b]">All clear! No current emails awaiting a reply.</p>
             ) : (
-              unreadReplies.slice(0, 2).map((e) => (
+              unreadReplies.slice(0, 5).map((e) => (
                 <div key={e.id} className="space-y-0.5">
                   <p className="font-sans font-bold text-[#1a1612] text-xs leading-tight truncate" title={e.subject}>
                     {e.subject}

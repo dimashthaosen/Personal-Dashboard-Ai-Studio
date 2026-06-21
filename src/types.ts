@@ -18,6 +18,7 @@ export interface Email {
   fromName: string;
   fromEmail: string;
   snippet: string;
+  body?: string;
   date: string;
   needsReply: boolean;
   summary?: string;
@@ -41,6 +42,7 @@ export interface MemoryItem {
   value: string;
   category: string;
   updatedAt: string;
+  createdAt?: string;
 }
 
 export interface ChatMessage {

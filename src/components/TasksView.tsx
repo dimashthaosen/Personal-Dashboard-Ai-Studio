@@ -154,7 +154,7 @@ export default function TasksView({ userId }: { userId?: string }) {
                   <option value="low">Low Priority</option>
                   <option value="medium">Medium Priority</option>
                   <option value="high">High Priority</option>
-                  <option value="urgent font-semibold">Urgent Alert</option>
+                  <option value="urgent" className="font-semibold">Urgent Alert</option>
                 </select>
               </div>
 

@@ -5,9 +5,44 @@ export interface GmailEmail {
   fromName: string;
   fromEmail: string;
   snippet: string;
+  body?: string;
   date: string;
   needsReply: boolean;
   category: string;
+}
+
+function getGmailMessageBody(payload: any): string {
+  if (!payload) return "";
+  if (payload.body?.data) {
+    try {
+      return Buffer.from(payload.body.data, "base64").toString("utf-8");
+    } catch (e) {
+      return "";
+    }
+  }
+  if (payload.parts) {
+    for (const part of payload.parts) {
+      if (part.mimeType === "text/plain" && part.body?.data) {
+        try {
+          return Buffer.from(part.body.data, "base64").toString("utf-8");
+        } catch (e) {}
+      }
+    }
+    for (const part of payload.parts) {
+      if (part.parts) {
+        const deepBody = getGmailMessageBody(part);
+        if (deepBody) return deepBody;
+      }
+    }
+    for (const part of payload.parts) {
+      if (part.mimeType === "text/html" && part.body?.data) {
+        try {
+          return Buffer.from(part.body.data, "base64").toString("utf-8");
+        } catch (e) {}
+      }
+    }
+  }
+  return "";
 }
 
 // Fetch helper with AbortController timeout to prevent hangs
@@ -25,10 +60,10 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 3
   }
 }
 
-export async function fetchGmailEmails(accessToken: string): Promise<GmailEmail[]> {
+export async function fetchGmailEmails(accessToken: string, type: "inbox" | "sent" = "inbox"): Promise<GmailEmail[]> {
   try {
     // Fetch last messages from inbox (30 days to cover past weeks completely, without aggressive category filtering)
-    const searchQuery = "newer_than:30d -in:draft";
+    const searchQuery = type === "sent" ? "in:sent newer_than:30d" : "newer_than:30d -in:draft -in:sent";
     const listRes = await fetchWithTimeout(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${encodeURIComponent(searchQuery)}`,
       {
@@ -77,11 +112,11 @@ export async function fetchGmailEmails(accessToken: string): Promise<GmailEmail[
           const headers = detail.payload?.headers || [];
           
           const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === "subject");
-          const fromHeader = headers.find((h: any) => h.name.toLowerCase() === "from");
+          const participantHeader = headers.find((h: any) => h.name.toLowerCase() === (type === "sent" ? "to" : "from"));
           const dateHeader = headers.find((h: any) => h.name.toLowerCase() === "date");
 
           const subject = subjectHeader ? subjectHeader.value : "No Subject";
-          const fromStr = fromHeader ? fromHeader.value : "Unknown Sender";
+          const fromStr = participantHeader ? participantHeader.value : "Unknown";
           
           // Parse fromName and fromEmail from something like "Anita Sharma <colleague@vasantvalley.edu.in>"
           let fromName = fromStr;
@@ -113,6 +148,8 @@ export async function fetchGmailEmails(accessToken: string): Promise<GmailEmail[
             snippet.toLowerCase().includes("would you")
           ) || isUnread; // default to needs reply if unread for this assistant's visibility
 
+          const body = getGmailMessageBody(detail.payload) || snippet;
+
           return {
             id: msg.id,
             subject,
@@ -120,6 +157,7 @@ export async function fetchGmailEmails(accessToken: string): Promise<GmailEmail[
             fromName,
             fromEmail,
             snippet,
+            body,
             date: new Date(dateStr).toISOString(),
             needsReply,
             category: subject.toLowerCase().includes("colleague") ? "school" : "parents",

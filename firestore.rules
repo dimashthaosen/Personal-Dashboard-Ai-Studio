@@ -24,8 +24,8 @@ service cloud.firestore {
     function isValidTask(data, userId) {
       return data.title is string && data.title.size() <= 200 &&
              data.priority in ['low', 'medium', 'high', 'urgent'] &&
-             data.category in ['curriculum', 'school', 'parent', 'student', 'project'] &&
-             data.status in ['pending', 'done', 'cancelled'] &&
+             data.category in ['school', 'personal', 'followup', 'project', 'email', 'admin'] &&
+             data.status in ['pending', 'in_progress', 'done', 'waiting', 'cancelled'] &&
              data.userId == userId;
     }
 
@@ -39,7 +39,7 @@ service cloud.firestore {
     function isValidMemoryItem(data, userId) {
       return data.key is string && data.key.size() <= 100 &&
              data.value is string && data.value.size() <= 1000 &&
-             data.category in ['general', 'people', 'preferences', 'subjects'] &&
+             data.category in ['general', 'preferences', 'people', 'school', 'patterns'] &&
              data.userId == userId;
     }
 
