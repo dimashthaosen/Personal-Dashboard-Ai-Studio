@@ -302,13 +302,14 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
               <div className="h-10 shimmer-skeleton rounded"></div>
             </div>
           ) : emails.length === 0 ? (
-            <div className="p-10 text-center text-[#8b857b] font-serif italic text-sm">
-              Your synced inbox is completely parsed.
+            <div className="p-10 text-center text-[#8b857b] font-serif italic text-sm space-y-1.5 animate-fadeIn">
+              <p>Your inbox is empty.</p>
+              <p className="text-xs font-sans not-italic text-[#a29c91]">No synchronized teacher or school emails are loaded.</p>
             </div>
           ) : filteredEmails.length === 0 ? (
-            <div className="p-10 text-center text-[#8b857b]/80 font-serif italic text-sm space-y-1">
-              <div>No matches found.</div>
-              <div className="text-[10px] font-mono non-italic text-[#8b857b]/60 uppercase tracking-wider">Try a different keyword</div>
+            <div className="p-10 text-center text-[#8b857b] font-serif italic text-sm space-y-1.5 animate-fadeIn">
+              <p>No matching emails found.</p>
+              <p className="text-xs font-sans not-italic text-[#a29c91]">Try adjusting your key phrase query or reset the search input.</p>
             </div>
           ) : (
             filteredEmails.map((email) => {

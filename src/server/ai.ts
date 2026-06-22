@@ -283,7 +283,7 @@ function simulateDemoResponse(prompt: string): string {
   const lower = prompt.toLowerCase();
   
   if (lower.includes("task") || lower.includes("todo") || lower.includes("to-do") || lower.includes("add chore") || lower.includes("create task")) {
-    return "I have registered that task for you on your Blackboard:\n\n- **Grade Class 11 Papers** (high priority, due Wednesday).\n\n[CREATE_TASK: Grade Class 11 Papers | Assess sociological stratification essays | school | high | 2026-06-18T18:00:00Z]";
+    return "I have registered that task for you on your Task Board:\n\n- **Grade Class 11 Papers** (high priority, due Wednesday).\n\n[CREATE_TASK: Grade Class 11 Papers | Assess sociological stratification essays | school | high | 2026-06-18T18:00:00Z]";
   }
   
   if (lower.includes("event") || lower.includes("schedule") || lower.includes("meeting") || lower.includes("calendar") || lower.includes("book")) {
@@ -323,5 +323,5 @@ function simulateDemoResponse(prompt: string): string {
       suggestedSchedule: "Prioritise Class 9 preparation early. Use the free afternoon block following lunch to coordinate the Global Perspectives worksheets and review pending paper permission slips."
     });
   }
-  return "I'm your assistant at Vasant Valley School. I am trained to coordinate on Classes 8, 9, 11, and 12, focusing on History, Sociology and Global Perspectives. I can directly create tasks on your blackboard, book meetings on your calendar, or remember files and style choices! What shall we inspect next?";
+  return "I'm your assistant at Vasant Valley School. I am trained to coordinate on Classes 8, 9, 11, and 12, focusing on History, Sociology and Global Perspectives. I can directly create tasks on your task board, book meetings on your calendar, or remember files and style choices! What shall we inspect next?";
 }

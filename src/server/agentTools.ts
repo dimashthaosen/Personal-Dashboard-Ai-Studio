@@ -135,16 +135,16 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "saveMemory",
-    description: "Saves reference memories or teacher preferences (e.g., student name associations, draft writing styles, class sections, repeating workflows).",
+    description: "Saves reference memories or teacher preferences (e.g., student name associations, draft writing styles, class sections, repeating workflows). Explain what you want to remember and ask for approval first.",
     parameters: {
       type: "OBJECT",
       properties: {
         key: { type: "STRING", description: "The memory key, e.g. 11A Homeroom students or Writing Style" },
-        value: { type: "STRING", description: "Detailed description or textual facts to remember" },
+        value: { type: "STRING", description: "Detailed description or textual facts to remember. Never include sensitive student/private information." },
         category: { 
           type: "STRING", 
-          description: "Optional categorization: general, preferences, people, school, patterns",
-          enum: ["general", "preferences", "people", "school", "patterns"]
+          description: "Optional categorization: writing_preferences, school_routines, class_context, recurring_tasks, personal_preferences, assistant_behaviour",
+          enum: ["writing_preferences", "school_routines", "class_context", "recurring_tasks", "personal_preferences", "assistant_behaviour"]
         }
       },
       required: ["key", "value"]
@@ -387,12 +387,17 @@ export async function executeTool(userId: string, name: string, args: any, acces
         
         const key = String(args.key || "general").substring(0, 100);
         const value = String(args.value || "").substring(0, 1000);
-        let category = String(args.category || "general").toLowerCase();
-        if (category === "pref" || category === "preference") category = "preferences";
-        if (category === "person") category = "people";
-        if (category === "assignment" || category === "class") category = "school";
-        if (!["general", "preferences", "people", "school", "patterns"].includes(category)) {
-          category = "general";
+        let category = String(args.category || "school_routines").toLowerCase();
+        
+        // Map old/shorthand categories
+        if (category === "general" || category === "patterns") category = "school_routines";
+        if (category === "preferences" || category === "writing") category = "writing_preferences";
+        if (category === "people" || category === "person") category = "class_context";
+        if (category === "school") category = "school_routines";
+        
+        const validCategories = ["writing_preferences", "school_routines", "class_context", "recurring_tasks", "personal_preferences", "assistant_behaviour"];
+        if (!validCategories.includes(category)) {
+          category = "school_routines";
         }
 
         // Deduplicate: check if a memory with same key already exists to prevent duplicate noise
@@ -413,7 +418,10 @@ export async function executeTool(userId: string, name: string, args: any, acces
             category,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            userId
+            userId,
+            isPinned: false,
+            useInReplies: false,
+            doNotUseAutomatically: false
           });
           return { success: true, memoryId: docRef.id, message: `Memory element "${key}" saved successfully in Firestore.` };
         }

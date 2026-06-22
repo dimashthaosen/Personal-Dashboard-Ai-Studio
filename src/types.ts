@@ -43,6 +43,9 @@ export interface MemoryItem {
   category: string;
   updatedAt: string;
   createdAt?: string;
+  isPinned?: boolean;
+  useInReplies?: boolean;
+  doNotUseAutomatically?: boolean;
 }
 
 export interface ChatMessage {

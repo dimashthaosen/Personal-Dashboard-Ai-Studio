@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "../types";
-import { Send, Sparkles, Trash2, ArrowUpCircle, Check } from "lucide-react";
+import { Send, Sparkles, Trash2, ArrowUpCircle, Check, AlertTriangle, XCircle } from "lucide-react";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreChat } from "../lib/hooks";
 import { collection, addDoc, query, getDocs, writeBatch, doc, updateDoc, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -29,13 +29,37 @@ const renderers = {
   code: ({ children }: any) => <code className="bg-[#ece6db]/60 px-1 py-0.5 rounded font-mono text-[11px] font-medium text-[#2d5a4a]">{children}</code>
 };
 
-export default function ChatView({ userId, googleToken }: { userId?: string; googleToken?: string | null }) {
+export default function ChatView({ 
+  userId, 
+  googleToken, 
+  initialCommandPrompt, 
+  onClearCommandPrompt 
+}: { 
+  userId?: string; 
+  googleToken?: string | null;
+  initialCommandPrompt?: string | null;
+  onClearCommandPrompt?: () => void;
+}) {
   const { messages: firestoreMessages } = useFirestoreChat(userId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeStreamingReply, setActiveStreamingReply] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Trigger command prompt automatically from general spot bar
+  useEffect(() => {
+    if (initialCommandPrompt && userId) {
+      const promptText = initialCommandPrompt;
+      if (onClearCommandPrompt) {
+        onClearCommandPrompt();
+      }
+      // Delayed slightly to ensure component state is settled
+      setTimeout(() => {
+        handleSendMessage(promptText);
+      }, 150);
+    }
+  }, [initialCommandPrompt, userId]);
 
   // Guards against duplicate execution during async state frames
   const sendingRef = useRef(false);
@@ -415,8 +439,8 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
         <div className="flex items-center gap-2.5">
           <Sparkles className="w-5 h-5 text-[#2d5a4a]" />
           <div>
-            <h3 className="font-serif font-bold text-sm text-[#1a1612]">Active Assistant Terminal</h3>
-            <p className="font-mono text-[8px] text-[#2d5a4a] uppercase tracking-wider font-bold">Context Synchronous (Grounded)</p>
+            <h3 className="font-serif font-bold text-sm text-[#1a1612]">Assistant</h3>
+            <p className="font-sans text-[10px] text-[#2d5a4a] font-medium">Using your dashboard context</p>
           </div>
         </div>
         
@@ -425,7 +449,7 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
             type="button"
             onClick={handleClearHistory}
             className="text-[#8b857b] hover:text-[#b83232] hover:bg-[#f5f1e8] p-2 rounded-lg transition-all focus:outline-none cursor-pointer"
-            title="Wipe conversation log"
+            title="Clear Chat History"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -439,9 +463,9 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
             <Sparkles className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-serif font-semibold text-base text-[#1a1612]">Inquire Session Context</h4>
+            <h4 className="font-serif font-semibold text-base text-[#1a1612]">How can I help?</h4>
             <p className="font-serif italic text-xs text-[#8b857b] max-w-sm mt-1 leading-relaxed">
-              Connect school curriculum notes, unread teacher emails, and pending task lists directly in standard British English.
+              Find files, draft lesson materials, reference class structures, and organize tasks securely using your dashboard context.
             </p>
           </div>
 
@@ -468,6 +492,9 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
             const hasEventAction = msg.role === "assistant" && msg.content.includes("[CREATE_EVENT:");
             const hasMemoryAction = msg.role === "assistant" && msg.content.includes("[CREATE_MEMORY:");
 
+            const isError = msg.id?.toString().startsWith("err-");
+            const isCancel = msg.id?.toString().startsWith("cancel-");
+
             return (
               <div
                 key={msg.id}
@@ -477,6 +504,10 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
                   className={`max-w-[85%] rounded-[14px] px-4 py-3 shadow-[0_1px_2px_rgba(26,22,18,0.02)] border ${
                     msg.role === "user"
                       ? "bg-[#2d5a4a] border-[#2d5a4a] text-[#fcf9f3] font-sans text-xs"
+                      : isError
+                      ? "bg-[#fdf3f2] border-[#f5c6cb] text-[#842029] font-serif text-sm leading-relaxed"
+                      : isCancel
+                      ? "bg-[#f8f9fa] border-[#e9ecef] text-[#495057] font-serif text-sm leading-relaxed"
                       : "bg-[#f3ede2] border-[#e1d8c6] text-[#2c2724] font-serif text-sm leading-relaxed"
                   }`}
                 >
@@ -485,10 +516,14 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
                       {msg.content}
                     </p>
                   ) : (
-                    <div className="markdown-body">
-                      <ReactMarkdown components={renderers}>
-                        {cleanContentForDisplay(msg.content)}
-                      </ReactMarkdown>
+                    <div className="flex items-start gap-2.5">
+                      {isError && <AlertTriangle className="w-4.5 h-4.5 text-rose-600 flex-shrink-0 mt-0.5" />}
+                      {isCancel && <XCircle className="w-4.5 h-4.5 text-[#8b857b] flex-shrink-0 mt-0.5" />}
+                      <div className="markdown-body flex-1 min-w-0">
+                        <ReactMarkdown components={renderers}>
+                          {cleanContentForDisplay(msg.content)}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
 
@@ -496,17 +531,17 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
                     <div className="mt-2.5 pt-2 border-t border-[#e2dacb] flex flex-wrap gap-1.5 animate-fadeIn">
                       {hasTaskAction && (
                         <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d1e2da] px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Registered on Blackboard (Task)
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Added to Tasks
                         </span>
                       )}
                       {hasEventAction && (
                         <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-sky-800 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Booked on Calendar (Event)
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Booked on Calendar
                         </span>
                       )}
                       {hasMemoryAction && (
                         <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-purple-800 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Saved to Assistant Memory
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Saved to Memory
                         </span>
                       )}
                     </div>
@@ -551,19 +586,20 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
 
           {/* Render server-side executed tools log */}
           {executedTools.length > 0 && (
-            <div className="p-3 bg-[#e8f0ec]/80 border border-[#d1e2da] rounded-xl text-xs space-y-1 max-w-[480px] my-1.5 animate-fadeIn">
-              <p className="font-mono text-[9px] font-bold text-[#2d5a4a] uppercase tracking-wider mb-1">
-                ⚡ Server-Side Actions Executed:
+            <div className="p-3 bg-[#e8f0ec]/80 border border-[#d1e2da] rounded-xl text-xs space-y-1.5 max-w-[480px] my-1.5 animate-fadeIn">
+              <p className="font-sans text-[10px] font-bold text-[#2d5a4a] uppercase tracking-wider mb-1 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2d5a4a] animate-pulse" />
+                Checked actual data sources:
               </p>
               {executedTools.map((tool, idx) => (
-                <div key={idx} className="flex items-center gap-1.5 text-[#2d5a4a] text-xs font-serif italic">
-                  <span className="w-1 h-1 rounded-full bg-[#2d5a4a]" />
+                <div key={idx} className="flex items-center gap-1.5 text-[#2d5a4a] text-xs font-serif leading-relaxed">
+                  <span className="text-[#2d5a4a] font-bold">✓</span>
                   <span>
-                    {tool.name === "searchCalendar" ? "Searched school schedule database" :
+                    {tool.name === "searchCalendar" ? "Swept school schedule database" :
                      tool.name === "searchTasks" ? "Analyzed pending tasks and workloads" :
-                     tool.name === "searchMemory" ? "Scanned Dimash's preferences & historical profiles" :
-                     tool.name === "summariseEmails" ? "Retrieved and synthesised recent Gmail messages" :
-                     `Executed server action: ${tool.name}`}
+                     tool.name === "searchMemory" ? "Scanned remembered preferences and styles" :
+                     tool.name === "summariseEmails" ? "Retrieved and synthesized unread Gmail messages" :
+                     `Verified verification for: ${tool.name}`}
                   </span>
                 </div>
               ))}
@@ -576,7 +612,7 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 text-[#2d5a4a]" />
                 <span className="font-sans font-bold text-xs text-[#2d5a4a] uppercase tracking-wide">
-                  Pending Verification
+                  Approval Required
                 </span>
               </div>
               
@@ -635,7 +671,7 @@ export default function ChatView({ userId, googleToken }: { userId?: string; goo
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             disabled={loading}
-            placeholder={loading ? "AI Assistant thinking..." : "Inquire syllabus worksheet logs..."}
+            placeholder={loading ? "Thinking..." : "Ask a question or request an action..."}
             className="flex-1 text-xs bg-[#f3ede2] border border-[#e1d8c6] rounded-md px-3.5 py-3 text-[#1a1612] focus:outline-none focus:border-[#2d5a4a] disabled:opacity-50 transition-colors placeholder:italic placeholder:text-[#8b857b]/60"
           />
           <button

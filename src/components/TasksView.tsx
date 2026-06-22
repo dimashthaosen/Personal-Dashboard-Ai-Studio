@@ -261,19 +261,30 @@ export default function TasksView({ userId }: { userId?: string }) {
             <div className="h-6 w-4/5 shimmer-skeleton rounded" />
           </div>
         ) : tasks.length === 0 ? (
-          <div className="p-12 text-center text-[#8b857b] font-serif italic text-sm">
-            No active syllabus tasks found in ledger database.
+          <div className="p-12 text-center text-[#8b857b] font-serif italic text-sm space-y-1.5">
+            <p>Your task list is clear. No active tasks found.</p>
+            <p className="text-xs font-sans not-italic text-[#a29c91]">Plan and add a task above, or ask the Assistant to draft action items.</p>
           </div>
-        ) : (
-          <div className="divide-y divide-[#ece6db]">
-            {tasks
-              .filter((task) => {
-                const matchesStatus = !statusFilter || task.status === statusFilter;
-                const matchesPriority = !priorityFilter || task.priority === priorityFilter;
-                const matchesCategory = !categoryFilter || task.category === categoryFilter;
-                return matchesStatus && matchesPriority && matchesCategory;
-              })
-              .map((task) => {
+        ) : (() => {
+          const filtered = tasks.filter((task) => {
+            const matchesStatus = !statusFilter || task.status === statusFilter;
+            const matchesPriority = !priorityFilter || task.priority === priorityFilter;
+            const matchesCategory = !categoryFilter || task.category === categoryFilter;
+            return matchesStatus && matchesPriority && matchesCategory;
+          });
+
+          if (filtered.length === 0) {
+            return (
+              <div className="p-12 text-center text-[#8b857b] font-serif italic text-sm space-y-1">
+                <p>No tasks match the active filters.</p>
+                <p className="text-xs font-sans not-italic text-[#a29c91]">Adjust or clear your filters to display other items.</p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="divide-y divide-[#ece6db]">
+              {filtered.map((task) => {
                 const isCompleted = task.status === "done";
                 return (
                   <div
@@ -360,8 +371,9 @@ export default function TasksView({ userId }: { userId?: string }) {
                   </div>
                 );
               })}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

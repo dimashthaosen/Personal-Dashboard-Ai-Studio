@@ -1,18 +1,35 @@
 import React, { useState } from "react";
 import { CalendarEvent } from "../types";
-import { Calendar, Plus, Clock, MapPin, ChevronLeft, ChevronRight, CalendarDays, Eye, Info } from "lucide-react";
-import { useFirestoreEvents } from "../lib/hooks";
+import { 
+  Calendar, 
+  Plus, 
+  Clock, 
+  MapPin, 
+  ChevronLeft, 
+  ChevronRight, 
+  CalendarDays, 
+  Eye, 
+  Info,
+  Sparkles,
+  AlertTriangle,
+  ShieldCheck,
+  Zap,
+  Activity
+} from "lucide-react";
+import { useFirestoreEvents, useFirestoreTasks } from "../lib/hooks";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function CalendarView({ userId }: { userId?: string }) {
   const { events, loading } = useFirestoreEvents(userId);
+  const { tasks } = useFirestoreTasks(userId);
 
   // Calendar View Mode: 'month' | 'week' | 'day'
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<"agenda" | "intelligence">("agenda");
 
   // Create event State
   const [eventTitle, setEventTitle] = useState("");
@@ -335,8 +352,9 @@ export default function CalendarView({ userId }: { userId?: string }) {
                   <div className="h-14 bg-[#ece6db]/50 rounded-[8px] animate-pulse"></div>
                 </div>
               ) : filteredEventsForDay.length === 0 ? (
-                <div className="text-center py-20 text-[#8b857b] font-serif italic text-sm">
-                  No active periods scheduled for this date.
+                <div className="text-center py-16 text-[#8b857b] font-serif italic text-sm space-y-1 animate-fadeIn">
+                  <p>Your calendar is clear for this date.</p>
+                  <p className="text-xs font-sans not-italic text-[#a29c91]">Click &ldquo;Book Session&rdquo; above to schedule a lesson, meeting, or event.</p>
                 </div>
               ) : (
                 <div className="relative border-l border-[#e1d8c6] pl-6 ml-3 space-y-6">
@@ -613,82 +631,345 @@ export default function CalendarView({ userId }: { userId?: string }) {
                 </div>
               </div>
 
-              {/* Right Pane: Day Planner details (takes col-span-1) */}
-              <div className="lg:col-span-1 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-4">
-                <div className="border-b border-[#ece6db] pb-3">
-                  <span className="font-mono text-[9px] font-bold text-[#8b857b] uppercase tracking-widest block">
-                    Focus Day Agenda
-                  </span>
-                  <h3 className="font-serif font-bold text-base text-[#1a1612] mt-0.5">
-                    {selectedDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long" })}
-                  </h3>
+              {/* Right Pane: Day Planner details & Intelligence (takes col-span-1) */}
+              <div className="lg:col-span-1 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] flex flex-col space-y-4">
+                
+                {/* Segmented Tab Selector */}
+                <div className="flex bg-[#f3ede2] border border-[#e1d8c6] rounded-xl p-1 select-none">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSidebarTab("agenda")}
+                    className={`flex-1 py-1.5 text-center font-mono text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                      activeSidebarTab === "agenda"
+                        ? "bg-[#2d5a4a] text-white shadow-sm"
+                        : "text-[#7a756f] hover:text-[#1a1612]"
+                    }`}
+                  >
+                    Day Agenda
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSidebarTab("intelligence")}
+                    className={`flex-1 py-1.5 text-center font-mono text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      activeSidebarTab === "intelligence"
+                        ? "bg-[#2d5a4a] text-white shadow-sm"
+                        : "text-[#7a756f] hover:text-[#1a1612]"
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    Insights
+                  </button>
                 </div>
 
-                <div className="space-y-3">
-                  {filteredEventsForDay.length === 0 ? (
-                    <div className="border-2 border-dashed border-[#ece6db] rounded-xl p-6 text-center text-[#8b857b] font-serif italic text-xs">
-                      No sessions planned. Free period.
+                {activeSidebarTab === "agenda" ? (
+                  <div className="space-y-4 flex flex-col flex-1">
+                    <div className="border-b border-[#ece6db] pb-2">
+                      <span className="font-mono text-[9px] font-bold text-[#8b857b] uppercase tracking-widest block">
+                        Focus Day Agenda
+                      </span>
+                      <h3 className="font-serif font-bold text-base text-[#1a1612] mt-0.5">
+                        {selectedDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long" })}
+                      </h3>
                     </div>
-                  ) : (
-                    <div className="space-y-2 max-h-[280px] overflow-y-auto pristine-scrollbar pr-1">
-                      {filteredEventsForDay.map((evt) => {
-                        const startStr = new Date(evt.start).toLocaleTimeString("en-GB", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        });
-                        const endStr = new Date(evt.end).toLocaleTimeString("en-GB", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        });
 
-                        return (
-                          <div
-                            key={evt.id}
-                            className="p-3 rounded-xl bg-[#f5efe4] border border-[#e1d8c6] hover:border-[#2d5a4a]/40 transition-all space-y-1.5"
-                          >
-                            <span className="font-mono text-[8px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1.5 py-0.5 rounded uppercase tracking-wider block w-max">
-                              {startStr} – {endStr}
-                            </span>
-                            <h4 className="font-sans font-bold text-xs text-[#1a1612] leading-tight">
-                              {evt.title}
-                            </h4>
-                            {evt.location && (
-                              <span className="font-mono text-[8px] text-[#8b857b] flex items-center gap-0.5">
-                                <MapPin className="w-2.5 h-2.5" />
-                                {evt.location}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="space-y-3 flex-1">
+                      {filteredEventsForDay.length === 0 ? (
+                        <div className="border border-dashed border-[#ece6db] rounded-xl p-6 text-center text-[#8b857b] font-serif italic text-xs space-y-1 animate-fadeIn">
+                          <p>No classes or sessions scheduled.</p>
+                          <p className="text-[10px] font-sans not-italic text-[#a29c91]">Click &ldquo;Book Event&rdquo; below to reserve a slot.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-[320px] overflow-y-auto pristine-scrollbar pr-1">
+                          {filteredEventsForDay.map((evt) => {
+                            const startStr = new Date(evt.start).toLocaleTimeString("en-GB", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                            const endStr = new Date(evt.end).toLocaleTimeString("en-GB", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+
+                            return (
+                              <div
+                                key={evt.id}
+                                className="p-3 rounded-xl bg-[#f5efe4] border border-[#e1d8c6] hover:border-[#2d5a4a]/40 transition-all space-y-1.5"
+                              >
+                                <span className="font-mono text-[8px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1.5 py-0.5 rounded uppercase tracking-wider block w-max">
+                                  {startStr} – {endStr}
+                                </span>
+                                <h4 className="font-sans font-bold text-xs text-[#1a1612] leading-tight">
+                                  {evt.title}
+                                </h4>
+                                {evt.location && (
+                                  <span className="font-mono text-[8px] text-[#8b857b] flex items-center gap-0.5">
+                                    <MapPin className="w-2.5 h-2.5" />
+                                    {evt.location}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Booking Trigger Button Zones */}
+                      <div className="pt-3 border-t border-[#ece6db] flex flex-col gap-2">
+                        <button
+                          type="button"
+                          id="btn-trigger-booking"
+                          onClick={() => {
+                            setEventTitle("");
+                            setEventStart("");
+                            setEventEnd("");
+                            setEventLoc("");
+                            setEventDesc("");
+                            setShowCreateForm(true);
+                          }}
+                          className="w-full bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[10px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Book Event
+                        </button>
+
+                        <button
+                          type="button"
+                          id="btn-goto-day-mode"
+                          onClick={() => setViewMode("day")}
+                          className="w-full border border-[#e1d8c6] bg-white hover:bg-[#faf7f2] text-ink-950 font-mono text-[10px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Detailed Timeline View
+                        </button>
+                      </div>
                     </div>
-                  )}
-
-                  {/* Booking Trigger Button */}
-                  <div className="pt-2 border-t border-[#ece6db] flex flex-col gap-2">
-                    <button
-                      type="button"
-                      id="btn-trigger-booking"
-                      onClick={() => setShowCreateForm(true)}
-                      className="w-full bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[10px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Book Event
-                    </button>
-
-                    <button
-                      type="button"
-                      id="btn-goto-day-mode"
-                      onClick={() => setViewMode("day")}
-                      className="w-full border border-[#e1d8c6] bg-white hover:bg-[#faf7f2] text-ink-950 font-mono text-[10px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      Detailed Timeline View
-                    </button>
                   </div>
-                </div>
+                ) : (
+                  // CALENDAR INTELLIGENCE INSIGHTS LAYER
+                  <div className="space-y-4 flex flex-col flex-1 animate-fadeIn">
+                    <div className="border-b border-[#ece6db] pb-2">
+                      <span className="font-mono text-[9px] font-bold text-[#2d5a4a] uppercase tracking-widest block">
+                        Schedule intelligence
+                      </span>
+                      <h3 className="font-serif font-bold text-sm text-[#1a1612] mt-0.5 flex items-center gap-1">
+                        <Activity className="w-4 h-4 text-[#2d5a4a]" />
+                        <span>Workload & Gaps</span>
+                      </h3>
+                    </div>
+
+                    <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 pristine-scrollbar">
+                      
+                      {/* Section 1: Conflict Detection */}
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
+                          Conflict analysis
+                        </span>
+                        {(() => {
+                          const conflictsList: Array<{ eventA: CalendarEvent; eventB: CalendarEvent }> = [];
+                          for (let i = 0; i < filteredEventsForDay.length; i++) {
+                            for (let j = i + 1; j < filteredEventsForDay.length; j++) {
+                              const evA = filteredEventsForDay[i];
+                              const evB = filteredEventsForDay[j];
+                              const startA = new Date(evA.start);
+                              const endA = new Date(evA.end);
+                              const startB = new Date(evB.start);
+                              const endB = new Date(evB.end);
+                              if (startA < endB && startB < endA) {
+                                conflictsList.push({ eventA: evA, eventB: evB });
+                              }
+                            }
+                          }
+
+                          if (conflictsList.length === 0) {
+                            return (
+                              <div className="p-2.5 rounded-lg bg-[#e8f0ec] border border-[#d2e3da] flex items-center gap-2 text-[#2d5a4a] text-xs">
+                                <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+                                <span className="font-serif italic text-[11px]">No timetable overlaps found today.</span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-1.5">
+                              {conflictsList.map((conflict, idx) => (
+                                <div key={idx} className="p-2.5 rounded-lg bg-redpen/10 border border-redpen/20 flex flex-col gap-1 text-redpen text-xs">
+                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[9px] tracking-wide uppercase">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    <span>Time Collision Detected</span>
+                                  </div>
+                                  <p className="font-serif text-[11px] leading-snug">
+                                    &ldquo;{conflict.eventA.title}&rdquo; conflicts with &ldquo;{conflict.eventB.title}&rdquo;.
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Section 2: Free Block Detection & Task Suggestion */}
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
+                          Today&rsquo;s Free Periods
+                        </span>
+                        {(() => {
+                          const standardPeriods = [
+                            { name: "L1", start: "08:30", end: "09:10" },
+                            { name: "L2", start: "09:20", end: "10:00" },
+                            { name: "L3", start: "10:10", end: "10:50" },
+                            { name: "Break", start: "10:50", end: "11:10" },
+                            { name: "L4", start: "11:10", end: "11:50" },
+                            { name: "L5", start: "12:00", end: "12:40" },
+                            { name: "L6", start: "12:50", end: "13:30" },
+                          ];
+
+                          const parseTimeOnDate = (date: Date, hhmm: string) => {
+                            const result = new Date(date);
+                            const [hh, mm] = hhmm.split(":");
+                            result.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
+                            return result;
+                          };
+
+                          const freePeriods = standardPeriods.filter((period) => {
+                            const pStart = parseTimeOnDate(selectedDate, period.start);
+                            const pEnd = parseTimeOnDate(selectedDate, period.end);
+
+                            const overlapping = filteredEventsForDay.filter((evt) => {
+                              const evtStart = new Date(evt.start);
+                              const evtEnd = new Date(evt.end);
+                              return evtStart < pEnd && pStart < evtEnd;
+                            });
+                            return overlapping.length === 0;
+                          });
+
+                          if (freePeriods.length === 0) {
+                            return (
+                              <p className="text-[11px] font-serif italic text-[#8b857b] p-1">
+                                Fully booked today. No free teaching slots.
+                              </p>
+                            );
+                          }
+
+                          // High priority non-done task suggestion
+                          const highPrioritySuggest = tasks
+                            .filter((t) => t.status !== "done" && t.priority === "high")
+                            .slice(0, 1);
+
+                          return (
+                            <div className="space-y-2">
+                              {/* Horizontal items */}
+                              <div className="flex flex-wrap gap-1">
+                                {freePeriods.map((fp) => (
+                                  <span
+                                    key={fp.name}
+                                    title={`${fp.start} - ${fp.end}`}
+                                    className="px-2 py-1 text-[9px] font-mono font-bold text-[#2d5a4a] bg-[#e8f0ec] rounded border border-[#d2e3da]"
+                                  >
+                                    {fp.name === "Break" ? "Break ☕" : `${fp.name} Period`}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {highPrioritySuggest.map((task) => {
+                                // Match task to first free period if available
+                                const slot = freePeriods[0];
+                                return (
+                                  <div key={task.id} className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                                    <div className="flex items-start gap-1.5">
+                                      <Zap className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0 animate-bounce" />
+                                      <div className="space-y-0.5">
+                                        <p className="font-mono text-[8px] font-bold text-amber-800 uppercase tracking-wide">
+                                          Suggested Fit in {slot.name} ({slot.start} - {slot.end})
+                                        </p>
+                                        <p className="text-xs font-serif font-bold text-[#1a1612] leading-tight text-left">
+                                          Allocate free time to complete: &ldquo;{task.title}&rdquo;
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEventTitle(`Focus Slot: ${task.title}`);
+                                        setEventStart(slot.start);
+                                        setEventEnd(slot.end);
+                                        setEventLoc("Classroom / Staff Room");
+                                        setEventDesc(`Block allocated to finish task: ${task.title}`);
+                                        setShowCreateForm(true);
+                                      }}
+                                      className="w-full text-center py-1 bg-amber-600 hover:bg-amber-700 text-white font-mono text-[8px] font-bold uppercase tracking-wider rounded-md cursor-pointer transition-colors"
+                                    >
+                                      Pre-populate slot in booker
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Section 3: Weekly Burden / Burnout Index */}
+                      <div className="space-y-2 pt-1">
+                        <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
+                          Weekly Workload Burden
+                        </span>
+                        {(() => {
+                          const daysOfWeek = getDaysOfWeek(selectedDate);
+                          const metrics = daysOfWeek.map((day) => {
+                            const dayEvents = events.filter((evt) => isSameDay(new Date(evt.start), day));
+                            let totalMinutes = 0;
+                            dayEvents.forEach((evt) => {
+                              const s = new Date(evt.start);
+                              const e = new Date(evt.end);
+                              const diff = (e.getTime() - s.getTime()) / (1000 * 60);
+                              totalMinutes += Math.max(0, diff);
+                            });
+                            return {
+                              dayName: day.toLocaleDateString("en-GB", { weekday: "short" }),
+                              dateNum: day.getDate(),
+                              hours: totalMinutes / 60,
+                              isTarget: isSameDay(day, selectedDate),
+                            };
+                          });
+
+                          return (
+                            <div className="space-y-2 bg-[#f5efe4] border border-[#e1d8c6] rounded-xl p-3">
+                              {metrics.slice(0, 5).map((m, mIdx) => {
+                                const roundedHours = parseFloat(m.hours.toFixed(1));
+                                // max hours scale representation: 6 hours
+                                const percentage = Math.min(100, Math.max(4, (m.hours / 6) * 100));
+                                const isHeavy = m.hours > 4;
+                                const barColor = isHeavy ? "bg-redpen" : "bg-[#2d5a4a]";
+
+                                return (
+                                  <div key={mIdx} className="space-y-1">
+                                    <div className="flex items-center justify-between text-[9px] font-mono select-none">
+                                      <span className={`font-bold ${m.isTarget ? "text-[#2d5a4a] underline decoration-wavy pl-0.5" : "text-[#4a4540]"}`}>
+                                        {m.dayName.toUpperCase()} {m.dateNum}
+                                      </span>
+                                      <span className={`font-bold uppercase ${isHeavy ? "text-redpen" : "text-[#2d5a4a]"}`}>
+                                        {roundedHours} hrs {isHeavy ? "🔥 High" : "Balanced"}
+                                      </span>
+                                    </div>
+                                    {/* Progress meter gutter */}
+                                    <div className="w-full h-2 bg-[#ece6db] rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full rounded-full transition-all duration-350 ${barColor}`}
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                    </div>
+                  </div>
+                )}
               </div>
-              
             </div>
           )}
 

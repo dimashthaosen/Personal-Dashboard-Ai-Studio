@@ -9,6 +9,7 @@ import CalendarView from "./components/CalendarView";
 import MemoryView from "./components/MemoryView";
 import ProjectsView from "./components/ProjectsView";
 import SettingsView from "./components/SettingsView";
+import CommandBar from "./components/CommandBar";
 import { initAuth, googleSignIn, firebaseLogout } from "./lib/firebase";
 import {
   Menu,
@@ -24,6 +25,8 @@ import {
   LogOut,
   Cog,
   CheckCircle2,
+  Search,
+  Check,
 } from "lucide-react";
 
 export default function App() {
@@ -50,6 +53,24 @@ export default function App() {
   const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [emails, setEmails] = useState<Email[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isCommandBarOpen, setIsCommandBarOpen] = useState(false);
+  const [proposedActionPrompt, setProposedActionPrompt] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setIsCommandBarOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleSendAssistantPrompt = (prompt: string) => {
+    setProposedActionPrompt(prompt);
+    setCurrentTab("chat");
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -198,97 +219,97 @@ export default function App() {
       day: "numeric",
       month: "long",
       year: "numeric",
-    }).toUpperCase();
+    });
 
     return (
       <div className="min-h-screen bg-paper-0 flex items-center justify-center p-4 sm:p-6 font-sans">
-        <div className="max-w-[940px] w-full animate-fade-up bg-paper-1 border border-paper-3 rounded-[24px] shadow-[0_10px_32px_-12px_rgba(26,22,18,0.14)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
+        <div className="max-w-[1000px] w-full animate-fade-up bg-[#fcf9f3] border border-paper-3 rounded-[32px] shadow-[0_12px_40px_-16px_rgba(26,22,18,0.12)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px]">
           
           {/* Left Column — deep-green brand panel */}
-          <div className="md:col-span-6 bg-gradient-to-br from-[#2d5a4a] to-[#234a3d] p-8 sm:p-10 flex flex-col justify-between text-[#fcf9f3] relative overflow-hidden select-none">
-            {/* Radial Sheen */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-white/[0.035] rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+          <div className="md:col-span-6 bg-[#2d5a4a] p-10 sm:p-12 flex flex-col justify-between text-[#fcf9f3] relative overflow-hidden select-none">
+            {/* Soft background glow */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/[0.025] rounded-full blur-3xl pointer-events-none -mr-16 -mt-16 bg-gradient-to-br from-white/10 to-transparent"></div>
 
             {/* Logo and school header */}
-            <div className="space-y-4 relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-[42px] h-[42px] bg-[#fcf9f3] rounded-lg flex items-center justify-center text-[#2d5a4a] text-xl font-bold font-serif shadow-sm">
+            <div className="space-y-6 relative z-10">
+              <div className="flex items-start gap-4">
+                <div className="w-[44px] h-[44px] bg-[#fcf9f3] rounded-[10px] flex items-center justify-center text-[#2d5a4a] text-[22px] font-bold font-serif shadow-sm">
                   V
                 </div>
-                <div>
-                  <p className="font-mono text-[9px] text-[#fcf9f3]/70 uppercase tracking-[0.16em] font-medium leading-none">
+                <div className="space-y-0.5">
+                  <p className="font-mono text-[9px] text-[#fcf9f3]/70 uppercase tracking-[0.16em] font-semibold leading-none pt-0.5">
                     VASANT VALLEY SCHOOL
                   </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="font-serif font-semibold text-lg text-[#fcf9f3] tracking-tight leading-normal mt-0.5">
-                      Faculty Planner
-                    </h1>
-                    <span className="bg-emerald-500/20 text-[#d1fae5] border border-emerald-500/30 px-2 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></span>
-                      Firestore Online
-                    </span>
-                  </div>
+                  <h1 className="font-serif font-semibold text-lg text-[#fcf9f3] tracking-tight">
+                    Faculty Planner
+                  </h1>
                 </div>
               </div>
-              <p className="font-mono text-[10px] text-[#fcf9f3]/65 uppercase tracking-[0.12em]">
-                {loginTodayMono}
-              </p>
             </div>
 
             {/* Display message */}
-            <div className="my-8 relative z-10 space-y-2.5">
-              <h2 className="font-serif text-3xl font-normal leading-tight text-[#fcf9f3] tracking-tight">
+            <div className="my-10 relative z-10 space-y-4">
+              <p className="font-mono text-[10px] text-[#fcf9f3]/65 uppercase tracking-[0.12em] font-medium">
+                {loginTodayMono}
+              </p>
+              <h2 className="font-serif text-[38px] leading-[1.1] font-normal text-[#fcf9f3] tracking-tight">
                 Your day, gathered<br />before the bell.
               </h2>
-              <p className="font-serif italic text-sm text-[#fcf9f3]/80 leading-relaxed font-light">
-                “Preparation is the silent half of teaching.”
+              <p className="font-serif italic text-sm text-[#fcf9f3]/80 leading-relaxed max-w-sm">
+                A quiet desk for lessons, mail and meetings — grounded in your own curriculum notes.
               </p>
             </div>
 
-            {/* Features check rows */}
-            <div className="space-y-4 relative z-10 pt-4 border-t border-white/10">
-              <div className="flex items-start gap-3 text-xs text-[#fcf9f3]/90">
-                <div className="w-5 h-5 rounded-full bg-[#fcf9f3]/10 flex items-center justify-center text-[#fcf9f3] font-bold text-[10px] select-none mt-0.5 flex-shrink-0">
-                  ✓
+            {/* Features check rows with elegant circular check marks */}
+            <div className="space-y-4 relative z-10 pt-6 border-t border-white/10">
+              <div className="flex items-start gap-3.5 text-[13px] text-[#fcf9f3]/95">
+                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[#fcf9f3] font-bold mt-0.5 flex-shrink-0">
+                  <Check className="w-3 h-3 stroke-[2.5]" />
                 </div>
-                <span className="leading-relaxed">Analyse unread parent syllabus messages and prepare responder drafts instantly.</span>
+                <span className="leading-relaxed">Read unread parent mail and prepare measured reply drafts.</span>
               </div>
-              <div className="flex items-start gap-3 text-xs text-[#fcf9f3]/90">
-                <div className="w-5 h-5 rounded-full bg-[#fcf9f3]/10 flex items-center justify-center text-[#fcf9f3] font-bold text-[10px] select-none mt-0.5 flex-shrink-0">
-                  ✓
+              <div className="flex items-start gap-3.5 text-[13px] text-[#fcf9f3]/95">
+                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[#fcf9f3] font-bold mt-0.5 flex-shrink-0">
+                  <Check className="w-3 h-3 stroke-[2.5]" />
                 </div>
-                <span className="leading-relaxed">Log point-wise timetable sessions directly from curriculum syllabus notes.</span>
+                <span className="leading-relaxed">Compose point-wise day plans from syllabus and timetable.</span>
               </div>
-              <div className="flex items-start gap-3 text-xs text-[#fcf9f3]/90">
-                <div className="w-5 h-5 rounded-full bg-[#fcf9f3]/10 flex items-center justify-center text-[#fcf9f3] font-bold text-[10px] select-none mt-0.5 flex-shrink-0">
-                  ✓
+              <div className="flex items-start gap-3.5 text-[13px] text-[#fcf9f3]/95">
+                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[#fcf9f3] font-bold mt-0.5 flex-shrink-0">
+                  <Check className="w-3 h-3 stroke-[2.5]" />
                 </div>
-                <span className="leading-relaxed">Protect institutional records in secure sandboxed local database contexts.</span>
+                <span className="leading-relaxed">Everything stays on a sandboxed local memory.</span>
               </div>
             </div>
-                {/* Right Column — sign-in panel */}
-          <div className="md:col-span-6 p-8 sm:p-10 flex flex-col justify-center bg-[#fcf9f3] relative">
-            <div className="max-w-xs w-full mx-auto space-y-6">
-              
-              <div className="space-y-1.5">
+          </div>
+
+          {/* Right Column — sign-in panel */}
+          <div className="md:col-span-6 p-10 sm:p-12 flex flex-col justify-between bg-[#fcf9f3] relative select-none">
+            {/* Top spacer to balance formatting */}
+            <div className="hidden md:block"></div>
+
+            <div className="max-w-xs w-full mx-auto space-y-8 my-auto">
+              <div className="space-y-2">
                 <p className="font-mono text-[9px] text-[#7a756f] tracking-[0.16em] uppercase font-bold leading-none">
                   STAFFROOM ENTRANCE
                 </p>
-                <h3 className="font-serif text-2xl font-medium text-[#1a1612]">
+                <h3 className="font-serif text-[32px] font-medium text-[#1a1612] tracking-tight leading-tight">
                   Welcome back.
                 </h3>
                 <p className="font-serif italic text-xs text-[#7a756f]">
-                  Sign in to compile daily lists and lessons.
+                  Sign in to open today's planner.
                 </p>
               </div>
 
-              {/* Google Button */}
-              <div className="space-y-3.5 pt-2">
+              {/* Styled horizontal dividers and the Google Sign-In button */}
+              <div className="space-y-6 pt-2">
+                <div className="border-t border-[#e2dacb] w-full"></div>
+                
                 <button
                   onClick={handleLoginGoogle}
-                  className="w-full bg-[#fcf9f3] border border-[#e1d8c6] hover:bg-[#ece6db] text-[#1a1612] font-serif text-sm font-medium py-3 rounded-[8px] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2.5 shadow-sm"
+                  className="w-full bg-[#fcf9f3] hover:bg-[#ece6db] border border-[#e1d8c6] text-[#1a1612] font-mono text-[11px] uppercase tracking-wider font-semibold py-4 rounded-[10px] transition-all duration-200 cursor-pointer flex items-center justify-center gap-3 shadow-sm active:scale-[0.99]"
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" className="flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" className="flex-shrink-0">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.11 3-.3 4.49l3.2 2.48c1.87-1.72 2.94-4.26 2.94-7.14z" />
                     <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.2-2.48c-.9.6-2.03.96-3.23.96-3.12 0-5.77-2.11-6.71-4.96h-3.3v2.55C5.51 21.05 8.52 24 12 24z" />
                     <path fill="#FBBC05" d="M5.29 14.61A7.19 7.19 0 0 1 4.9 12c0-.82.14-1.61.39-2.36V7.08h-3.3a11.94 11.94 0 0 0 0 9.84l3.3-2.31z" />
@@ -296,15 +317,15 @@ export default function App() {
                   </svg>
                   Sign in with Google
                 </button>
+
+                <div className="border-t border-[#e2dacb] w-full"></div>
               </div>
 
-              {/* Micro Caption */}
-              <p className="text-center font-serif italic text-[11px] text-[#8b857b] pt-2">
-                British English speller · Point-wise assistant
-              </p>
             </div>
-          </div>         </div>
 
+            {/* Bottom alignment spacer */}
+            <div className="hidden md:block"></div>
+          </div>
         </div>
       </div>
     );
@@ -318,7 +339,14 @@ export default function App() {
       case "tasks":
         return <TasksView userId={currentUser?.userId} />;
       case "chat":
-        return <ChatView userId={currentUser?.userId} googleToken={googleToken} />;
+        return (
+          <ChatView 
+            userId={currentUser?.userId} 
+            googleToken={googleToken} 
+            initialCommandPrompt={proposedActionPrompt}
+            onClearCommandPrompt={() => setProposedActionPrompt(null)}
+          />
+        );
       case "email":
         return <EmailView googleToken={googleToken} currentUser={currentUser} onSwitchAccount={handleLoginGoogle} />;
       case "calendar":
@@ -480,6 +508,23 @@ export default function App() {
             </div>
           </div>
 
+          {/* Spotlight Search Mimic Trigger */}
+          <div className="px-1">
+            <button
+              onClick={() => setIsCommandBarOpen(true)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-[#fcf9f3] hover:bg-[#ece6db]/50 border border-[#e1d8c6] rounded-lg text-left text-ink-405 group focus:outline-none transition-all cursor-pointer shadow-sm"
+              title="Shortcut: Ctrl+K"
+            >
+              <div className="flex items-center gap-2 text-xs">
+                <Search className="w-4 h-4 text-[#8b857b] group-hover:text-ink-600 transition-colors" />
+                <span className="font-serif italic text-[#8b857b] group-hover:text-ink-600 transition-colors">Search anything...</span>
+              </div>
+              <span className="text-[8px] font-mono font-semibold bg-[#ece6db]/60 border border-[#e1d8c6] px-1.5 py-0.5 rounded text-[#4a4540] tracking-wider">
+                Ctrl+K
+              </span>
+            </button>
+          </div>
+
           {/* Middle Navigation Grouped Nav */}
           <div className="space-y-5">
             {sections.map((sec, idx) => (
@@ -572,6 +617,15 @@ export default function App() {
           User: {currentUser?.username || "guest"}
         </span>
       </div>
+
+      {/* Global Spot Command Search Modal Bar Overlay */}
+      <CommandBar 
+        userId={currentUser?.userId}
+        isOpen={isCommandBarOpen}
+        onClose={() => setIsCommandBarOpen(false)}
+        onNavigateTab={(tab) => setCurrentTab(tab)}
+        onSendAssistantPrompt={handleSendAssistantPrompt}
+      />
 
     </div>
   );
