@@ -29,14 +29,38 @@ import {
 export default function App() {
   const [currentUser, setCurrentUser] = useState<TeacherUser | null>(() => {
     const saved = localStorage.getItem("teacher_user");
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.userId === "demo-devendra-verma" || !parsed.isGoogle)) {
+          localStorage.removeItem("teacher_user");
+          return null;
+        }
+        return parsed;
+      } catch (e) {
+        console.error("Failed to parse cached teacher_user", e);
+      }
+    }
+    return null;
   });
 
-  const [apiMode, setApiMode] = useState("Demo-Fallback");
+  const [apiMode, setApiMode] = useState("Offline-Fallback");
   const [currentTab, setCurrentTab] = useState("dashboard");
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [emails, setEmails] = useState<Email[]>([]);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchEmails = async () => {
@@ -96,18 +120,6 @@ export default function App() {
       if (typeof unsubscribe === "function") unsubscribe();
     };
   }, []);
-
-  const handleLoginDemo = () => {
-    const demoUser: TeacherUser = {
-      name: "Devendra Verma",
-      email: "dverma@vasantvalley.edu.in",
-      username: "dverma",
-      isGoogle: false,
-    };
-    localStorage.setItem("teacher_user", JSON.stringify(demoUser));
-    setCurrentUser(demoUser);
-    setCurrentTab("dashboard");
-  };
 
   const handleLoginGoogle = async () => {
     try {
@@ -207,9 +219,14 @@ export default function App() {
                   <p className="font-mono text-[9px] text-[#fcf9f3]/70 uppercase tracking-[0.16em] font-medium leading-none">
                     VASANT VALLEY SCHOOL
                   </p>
-                  <h1 className="font-serif font-semibold text-lg text-[#fcf9f3] tracking-tight leading-normal mt-0.5">
-                    Faculty Planner
-                  </h1>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="font-serif font-semibold text-lg text-[#fcf9f3] tracking-tight leading-normal mt-0.5">
+                      Faculty Planner
+                    </h1>
+                    <span className="bg-[#b83232]/25 text-[#fecaca] border border-[#b83232]/35 px-1.5 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wider">
+                      Disconnected
+                    </span>
+                  </div>
                 </div>
               </div>
               <p className="font-mono text-[10px] text-[#fcf9f3]/65 uppercase tracking-[0.12em]">
@@ -248,9 +265,7 @@ export default function App() {
                 <span className="leading-relaxed">Protect institutional records in secure sandboxed local database contexts.</span>
               </div>
             </div>
-          </div>
-
-          {/* Right Column — sign-in panel */}
+                {/* Right Column — sign-in panel */}
           <div className="md:col-span-6 p-8 sm:p-10 flex flex-col justify-center bg-[#fcf9f3] relative">
             <div className="max-w-xs w-full mx-auto space-y-6">
               
@@ -266,23 +281,8 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Enter Demo Button */}
+              {/* Google Button */}
               <div className="space-y-3.5 pt-2">
-                <button
-                  onClick={handleLoginDemo}
-                  className="w-full bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-serif text-sm font-medium py-3 rounded-[8px] transition-all duration-200 cursor-pointer shadow-sm hover:-translate-y-[1px]"
-                >
-                  Enter Demo Workspace
-                </button>
-
-                {/* Or divider */}
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-[#ece6db]"></div>
-                  <span className="flex-shrink mx-3 text-[10px] font-mono text-[#8b857b] uppercase tracking-wider">or</span>
-                  <div className="flex-grow border-t border-[#ece6db]"></div>
-                </div>
-
-                {/* Google Button */}
                 <button
                   onClick={handleLoginGoogle}
                   className="w-full bg-[#fcf9f3] border border-[#e1d8c6] hover:bg-[#ece6db] text-[#1a1612] font-serif text-sm font-medium py-3 rounded-[8px] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2.5 shadow-sm"
@@ -302,7 +302,7 @@ export default function App() {
                 British English speller · Point-wise assistant
               </p>
             </div>
-          </div>
+          </div>         </div>
 
         </div>
       </div>
@@ -352,6 +352,11 @@ export default function App() {
             <Menu className="w-5 h-5 text-ink-900" />
           </button>
           <span className="font-serif font-black text-sm text-chalk-600 uppercase tracking-tight">VVS Assistant</span>
+          {!isOnline && (
+            <span className="bg-redpen/10 text-redpen border border-redpen/20 px-1 py-0.5 rounded font-mono text-[7px] font-bold uppercase tracking-wider animate-pulse">
+              Off
+            </span>
+          )}
         </div>
         <div className="font-mono text-[10px] text-ink-500 uppercase tracking-wider">{activeTitle}</div>
       </div>
@@ -455,7 +460,14 @@ export default function App() {
                 V
               </div>
               <div className="min-w-0">
-                <h1 className="font-serif font-bold text-sm text-chalk-600 tracking-tight leading-none">Faculty Planner</h1>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h1 className="font-serif font-bold text-sm text-chalk-600 tracking-tight leading-none">Faculty Planner</h1>
+                  {!isOnline && (
+                    <span className="bg-redpen/10 text-redpen border border-redpen/20 px-1 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wider animate-pulse">
+                      Disconnected
+                    </span>
+                  )}
+                </div>
                 <p className="font-sans text-[10px] text-ink-400 mt-0.5 leading-none">Vasant Valley School</p>
               </div>
             </div>

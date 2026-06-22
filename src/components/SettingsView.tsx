@@ -19,7 +19,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
     {
       name: "Gemini 3.5 Flash Engine",
       description: "Powers chat streams, pointwise replies, and personalized schedulers.",
-      status: apiMode === "AI-Enabled" ? "Active (Grounded)" : "Demo Mode Mock active",
+      status: apiMode === "AI-Enabled" ? "Active (Grounded)" : "Offline Simulator active",
       type: apiMode === "AI-Enabled" ? "active" : "demo",
     },
   ];

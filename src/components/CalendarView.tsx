@@ -419,7 +419,7 @@ export default function CalendarView({ userId }: { userId?: string }) {
                             id={`monthly-cell-${day.getDate()}-${day.getMonth()}`}
                             onClick={() => setSelectedDate(day)}
                             onDoubleClick={() => setViewMode("day")}
-                            className={`min-h-[75px] sm:min-h-[85px] p-2 rounded-md relative cursor-pointer transition-all flex flex-col justify-between ${
+                            className={`min-h-[75px] sm:min-h-[85px] p-2 rounded-md relative cursor-pointer transition-all flex flex-col justify-between group ${
                               isSelected 
                                 ? "bg-[#2d5a4a] text-white shadow-inner scale-[1.01] z-10" 
                                 : "bg-[#fcf9f3] hover:bg-[#ece6db]/40 text-[#1a1612]"
@@ -430,9 +430,9 @@ export default function CalendarView({ userId }: { userId?: string }) {
                                 className={`text-xs font-mono font-bold ${
                                   isSelected 
                                     ? "text-white" 
-                                    : isCurrentMonth 
-                                      ? "text-[#1a1612]" 
-                                      : "text-[#c2baa9]"
+                                  : isCurrentMonth 
+                                    ? "text-[#1a1612]" 
+                                    : "text-[#c2baa9]"
                                 }`}
                               >
                                 {day.getDate()}
@@ -476,6 +476,53 @@ export default function CalendarView({ userId }: { userId?: string }) {
                                   />
                                 ))}
                               </div>
+                            </div>
+
+                            {/* Hover tooltip showing events of the day */}
+                            <div className={`absolute ${
+                              dIdx < 14 ? "top-full mt-2" : "bottom-full mb-2"
+                            } ${
+                              dIdx % 7 === 0 ? "left-0" : dIdx % 7 === 6 ? "right-0" : "left-1/2 -translate-x-1/2"
+                            } mb-2 z-50 w-56 bg-[#fcf9f3] border border-[#e1d8c6] rounded-xl shadow-xl p-3 text-[#1a1612] pointer-events-none hidden group-hover:block transition-all animate-fade-in`}>
+                              <div className="border-b border-[#ece6db] pb-1.5 mb-2">
+                                <span className="font-mono text-[8px] font-bold text-[#8b857b] uppercase tracking-wider block">
+                                  {day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                                </span>
+                                <span className="text-[10px] font-serif font-bold text-[#2d5a4a]">
+                                  {dayEvents.length === 0 ? "Free Period" : `${dayEvents.length} ${dayEvents.length === 1 ? "Event" : "Events"}`}
+                                </span>
+                              </div>
+                              {dayEvents.length === 0 ? (
+                                <p className="text-[10px] font-serif italic text-[#8b857b] leading-tight">
+                                  No sessions scheduled on this day.
+                                </p>
+                              ) : (
+                                <div className="space-y-2 max-h-40 overflow-y-auto pristine-scrollbar">
+                                  {dayEvents.map(evt => {
+                                    const sStr = new Date(evt.start).toLocaleTimeString("en-GB", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    });
+                                    return (
+                                      <div key={evt.id} className="space-y-1 text-left">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-mono text-[7px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1 rounded uppercase tracking-wide">
+                                            {sStr}
+                                          </span>
+                                        </div>
+                                        <h5 className="font-sans font-semibold text-[10px] text-[#1a1612] leading-tight whitespace-normal">
+                                          {evt.title}
+                                        </h5>
+                                        {evt.location && (
+                                          <p className="font-mono text-[7px] text-[#8b857b] truncate">
+                                            🏢 {evt.location}
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

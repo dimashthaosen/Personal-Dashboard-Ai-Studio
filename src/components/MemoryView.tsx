@@ -69,11 +69,81 @@ export default function MemoryView({ userId }: { userId?: string }) {
     }
   };
 
+  const systemMemories: MemoryItem[] = [
+    {
+      id: "system-core-identity",
+      key: "Identity & Role",
+      value: "Role: Teacher at Vasant Valley School, Delhi (email: dimasht@vasantvalley.edu.in). Subjects: Sociology (Classes 11, 12), History/Social Science (Middleschool), Cambridge IGCSE Global Perspectives (Classes 8, 9). Admin: Veracross gradebook, 11 A Homeroom attendance, substitutions. Signs emails: 'Regards, Dimash Thaosen'. Prefers practical, direct, friendly help.",
+      category: "general",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "system-background-interests",
+      key: "Background & Interests",
+      value: "Studied History (St. Stephen's) & Sociology (Delhi School of Economics). Interests: Indian society, media, AI tools, app-building, current affairs. Personal: Cars (Murciélago, LFA), Top Gear, gaming, anime. Tech projects: Dashboards, Gmail/Notion/Drive integrations, Firebase, Vercel, OCR workflows.",
+      category: "general",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "system-communication-style",
+      key: "Communication Style & Voice",
+      value: "Tone: Polite, professional, warm, clear, school-appropriate. British English formatting (e.g., 'summarise', 'programme'). Style: Bullet points preferred. Email openings: 'Good morning/afternoon...', Sign-off: 'Regards, Dimash Thaosen'. Be encouraging but clear to students; respectful and concise to colleagues/admin.",
+      category: "preferences",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "system-formatting-preferences",
+      key: "Answer & Formatting Preferences",
+      value: "Prefers immediate, practical answers without vague caveats. Use bullet points for logistics. Document needs: Clean PDFs, polished question papers, landscape 16:9 slides, readable fonts. NO random bolding, NO excessive tables (use bullets). For 'grammar fixes', only fix text without overexplaining unless asked.",
+      category: "preferences",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "system-people-contacts",
+      key: "Colleagues & Contacts",
+      value: "Frequent contacts: Mr. Trivedi, Mr. Bisht, Mudita Mubayi, Pragati Gupta, Anandita Dhawan, Avmeet Kaur Kohli, Saday Mahajan, Chandni Singh, Rashi Thakur, Drishti Nanda, Akshay Kumar, Ms. Thakur, Ms. Pattajoshi. Use 'Mr.' or 'Ms.' when known contextually. NEVER expose/invent student details without explicit context.",
+      category: "people",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "system-school-context",
+      key: "Workplace Context & Workflows",
+      value: "Tools: Veracross (attendance, gradebook, portals), Google Drive/Docs/Sheets/Gmail. Recurring workflows: Updating 11 A Homeroom attendance, checking student emails, creating project guidelines/rubrics, coordinating events (Inter-School Social Science Quiz, Laissez Faire quiz).",
+      category: "school",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "system-teaching-subjects",
+      key: "Teaching Subjects Context",
+      value: "Sociology: Thinkers (Marx, Weber, Mead, Goffman), concepts (stratification, demography), exam-oriented, structured headings, Indian examples. History/SS: Student-friendly class notes, periodisation, revolutions. GP/IGCSE: Issues, perspectives, bias, evidence, credibility. Newsletters like 'Worldwatch' for 8 IGCSE.",
+      category: "school",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "system-assistant-patterns",
+      key: "Assistant Optimization Patterns",
+      value: "Provide ready-to-use drafts, accurate teaching materials, copy-pasteable tech prompts for app-building. When coding: give step-by-step instructions. Protect privacy (never invent student info/grades). Avoid system internal talk, corporate jargon, or self-praise. Deliver straight-to-the-point functional text.",
+      category: "patterns",
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    }
+  ];
+
   const categories = ["all", "general", "preferences", "people", "school", "patterns"];
 
-  const filteredMemories = memories.filter(
+  const allMemories = [...systemMemories, ...memories];
+
+  const filteredMemories = allMemories.filter(
     (m) => categoryFilter === "all" || m.category === categoryFilter
   );
+
 
   return (
     <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
@@ -200,40 +270,42 @@ export default function MemoryView({ userId }: { userId?: string }) {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    {!isEditing ? (
-                      <>
-                        <button
-                          onClick={() => handleStartEditing(mem.id, mem.value)}
-                          className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#3a7560] p-1.5 focus:outline-none flex items-center gap-0.5"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          EDIT
-                        </button>
-                        <button
-                          onClick={() => handleDeleteMemory(mem.id)}
-                          className="font-mono text-[10px] text-ink-500 hover:text-[#b83232] p-1.5 focus:outline-none flex items-center gap-0.5"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          WIPE
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleSaveEdit(mem.id)}
-                          className="font-mono text-[10px] text-chalk-600 p-1 focus:outline-none flex items-center gap-0.5 font-bold"
-                        >
-                          <Check className="w-3.5 h-3.5 text-chalk-600" />
-                          SAVE
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="font-mono text-[10px] text-ink-500 p-1 focus:outline-none flex items-center gap-0.5"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                          CANCEL
-                        </button>
-                      </>
+                    {!mem.id.startsWith("system") && (
+                      !isEditing ? (
+                        <>
+                          <button
+                            onClick={() => handleStartEditing(mem.id, mem.value)}
+                            className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#3a7560] p-1.5 focus:outline-none flex items-center gap-0.5"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            EDIT
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMemory(mem.id)}
+                            className="font-mono text-[10px] text-ink-500 hover:text-[#b83232] p-1.5 focus:outline-none flex items-center gap-0.5"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            WIPE
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleSaveEdit(mem.id)}
+                            className="font-mono text-[10px] text-chalk-600 p-1 focus:outline-none flex items-center gap-0.5 font-bold"
+                          >
+                            <Check className="w-3.5 h-3.5 text-chalk-600" />
+                            SAVE
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="font-mono text-[10px] text-ink-500 p-1 focus:outline-none flex items-center gap-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            CANCEL
+                          </button>
+                        </>
+                      )
                     )}
                   </div>
                 </div>

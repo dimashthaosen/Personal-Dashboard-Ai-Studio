@@ -162,7 +162,7 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold tracking-wider uppercase bg-[#ece6db] text-[#4a4540] border border-[#e1d8c6]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#8b857b]" />
-              DEMO / FALLBACK INBOX
+              STANDALONE INBOX
             </span>
           )}
         </div>

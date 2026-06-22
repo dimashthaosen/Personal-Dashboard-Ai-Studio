@@ -296,6 +296,15 @@ export default function TasksView({ userId }: { userId?: string }) {
                     {/* Task details descriptions */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[8px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                          task.status === "in_progress" ? "bg-[#dbeafe] text-[#1e40af]" :
+                          task.status === "waiting" ? "bg-[#fef3c7] text-[#92400e]" :
+                          task.status === "done" ? "bg-[#d1fae5] text-[#065f46]" :
+                          task.status === "cancelled" ? "bg-[#fee2e2] text-[#991b1b]" :
+                          "bg-[#f1f5f9] text-[#475569]"
+                        }`}>
+                          {task.status.replace("_", " ")}
+                        </span>
                         <span className={`priority-dot ${task.priority}`} title={`Priority: ${task.priority}`} />
                         <span className={`font-sans text-xs text-[#1a1612] ${isCompleted ? "line-through text-[#8b857b]/75 italic" : "font-medium"}`}>
                           {task.title}

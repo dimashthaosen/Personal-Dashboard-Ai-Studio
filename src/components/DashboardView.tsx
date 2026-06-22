@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Email, DailyPlan } from "../types";
-import { AlertCircle, Calendar, Clock, Sparkles } from "lucide-react";
+import { AlertCircle, Calendar, Clock, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory } from "../lib/hooks";
@@ -80,19 +80,22 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     }
   };
 
+  const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
+
   // Filter urgent & high tasks
   const pendingUrgent = tasks.filter(
     (t) => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")
   );
 
   // Filter emails needing reply
-  const unreadReplies = emails.filter((e) => e.needsReply);
+  const unreadReplies = emails.filter((e) => e.needsReply && !dismissedAlerts.includes(`email-${e.id}`));
 
   // Hybrid Needs Attention list (up to 5 items: urgent/high tasks + reply-needed emails)
   const needsAttentionList = [
     ...pendingUrgent.map((t) => ({
       id: `task-${t.id}`,
-      type: "task" as const,
+      originalId: t.id,
+      type: "tasks" as const,
       title: t.title,
       badge: t.priority.toUpperCase(),
       subtitle: `Task • ${t.category.toUpperCase()}`,
@@ -100,13 +103,14 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     })),
     ...unreadReplies.map((e) => ({
       id: `email-${e.id}`,
-      type: "email" as const,
+      originalId: e.id,
+      type: "emails" as const,
       title: e.subject,
       badge: "REPLY NEEDED",
       subtitle: `Email from • ${e.fromName}`,
       badgeBg: "bg-[#e8f0ec] text-[#2d5a4a] border-[#d2e3da]",
     }))
-  ].slice(0, 5); // STRICTLY limit to 4-5 important ones
+  ].filter(item => !dismissedAlerts.includes(item.id)).slice(0, 5); // STRICTLY limit to 4-5 important ones
 
   // Active tasks (any task that is not done)
   const activeTasks = tasks.filter((t) => t.status !== "done");
@@ -164,11 +168,15 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
               <p className="font-sans italic text-xs text-[#8b857b]">All caught up. No urgent items require attention.</p>
             ) : (
               needsAttentionList.map((item) => (
-                <div key={item.id} className="space-y-0.5">
-                  <div className="flex items-start gap-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${item.type === "task" ? "bg-[#b83232]" : "bg-[#2d5a4a]"} flex-shrink-0 mt-1.5`} />
-                    <div className="flex-1 min-w-0">
-                      <span className="font-sans font-bold text-[#1a1612] text-xs leading-normal truncate block" title={item.title}>
+                <div 
+                  key={item.id} 
+                  className="space-y-0.5 group cursor-pointer"
+                  onClick={() => onNavigate(item.type === "tasks" ? "tasks" : "email")}
+                >
+                  <div className="flex items-start gap-2 relative">
+                    <span className={`w-1.5 h-1.5 rounded-full ${item.type === "tasks" ? "bg-[#b83232]" : "bg-[#2d5a4a]"} flex-shrink-0 mt-1.5`} />
+                    <div className="flex-1 min-w-0 pr-6">
+                      <span className="font-sans font-bold text-[#1a1612] text-xs leading-normal truncate block group-hover:text-[#2d5a4a] transition-colors" title={item.title}>
                         {item.title}
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -180,6 +188,16 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                         </span>
                       </div>
                     </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDismissedAlerts(prev => [...prev, item.id]);
+                      }}
+                      className="absolute right-0 top-0.5 opacity-0 group-hover:opacity-100 p-0.5 text-[#8b857b] hover:text-[#b83232] transition-opacity focus:outline-none"
+                      title="Dismiss"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -204,13 +222,27 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
               <p className="font-sans italic text-xs text-[#8b857b]">All clear! No current emails awaiting a reply.</p>
             ) : (
               unreadReplies.slice(0, 5).map((e) => (
-                <div key={e.id} className="space-y-0.5">
-                  <p className="font-sans font-bold text-[#1a1612] text-xs leading-tight truncate" title={e.subject}>
+                <div 
+                  key={e.id} 
+                  className="space-y-0.5 group cursor-pointer relative pr-6"
+                  onClick={() => onNavigate("email")}
+                >
+                  <p className="font-sans font-bold text-[#1a1612] text-xs leading-tight truncate group-hover:text-[#2d5a4a] transition-colors" title={e.subject}>
                     {e.subject}
                   </p>
                   <p className="font-mono text-[9px] text-[#8b857b] uppercase tracking-wider truncate">
                     FROM: {e.fromName.toUpperCase()}
                   </p>
+                  <button 
+                    onClick={(evt) => {
+                      evt.stopPropagation();
+                      setDismissedAlerts(prev => [...prev, `email-${e.id}`]);
+                    }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-0.5 text-[#8b857b] hover:text-[#b83232] transition-opacity focus:outline-none"
+                    title="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))
             )}
