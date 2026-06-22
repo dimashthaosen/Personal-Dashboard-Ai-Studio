@@ -12,14 +12,14 @@ const configPath = path.join(process.cwd(), "firebase-applet-config.json");
 const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 
 // Initialize firebase-admin only once
-if (getApps().length === 0) {
-  initializeApp({
-    projectId: firebaseConfig.projectId
-  });
-}
+const app = getApps().length === 0
+  ? initializeApp({
+      projectId: firebaseConfig.projectId
+    })
+  : getApps()[0];
 
 export const serverDb = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(firebaseConfig.firestoreDatabaseId)
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore();
 
 // Map of in-memory pending approvals to safeguard writing actions

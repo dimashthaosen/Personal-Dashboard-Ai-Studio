@@ -292,7 +292,7 @@ ${data.memory || "No memory preferences stored."}
   });
 
   app.post("/api/chat/approve", async (req, res) => {
-    const { tool, args, userId, chatHistory, contextData } = req.body;
+    const { tool, args, userId, chatHistory, contextData, clientResult } = req.body;
     if (!tool || !userId) {
       return res.status(400).json({ error: "Missing tool or userId parameters" });
     }
@@ -304,8 +304,13 @@ ${data.memory || "No memory preferences stored."}
     }
 
     try {
-      // 1. Execute the write tool with client's parameters server-side
-      const toolResult = await executeTool(userId, tool, args, accessToken);
+      // 1. If client executed write client-side, use that outcome directly. Otherwise execute server-side.
+      let toolResult: any;
+      if (clientResult) {
+        toolResult = clientResult;
+      } else {
+        toolResult = await executeTool(userId, tool, args, accessToken);
+      }
 
       // 2. Feed the write tool execution results back to Gemini for the concluding confirmation response
       const resumeMessage = `[SYSTEM: Agent executed write action "${tool}" successfully. Result outcome: ${JSON.stringify(toolResult)}]`;

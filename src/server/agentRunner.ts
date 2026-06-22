@@ -1,4 +1,4 @@
-import { getGemini, TEACHER_SYSTEM_INSTRUCTION } from "./ai.js";
+import { getGemini, TEACHER_SYSTEM_INSTRUCTION, fetchWithRetryAndFallback } from "./ai.js";
 import { executeTool, isWriteTool, TOOL_DECLARATIONS, pendingApprovalsStore, PendingApproval } from "./agentTools.js";
 
 export interface ToolCallExecuted {
@@ -74,14 +74,16 @@ ${contextStr}
   for (let step = 0; step < maxSteps; step++) {
     console.log(`Agent loop step ${step + 1} of ${maxSteps}...`);
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents,
-        config: {
-          systemInstruction: finalSystemInstruction,
-          tools: [{ functionDeclarations: TOOL_DECLARATIONS as any }],
-          temperature: 0.2 // Lower temp for precise function calling & logic
-        }
+      const response = await fetchWithRetryAndFallback(async (modelName) => {
+        return await ai.models.generateContent({
+          model: modelName,
+          contents,
+          config: {
+            systemInstruction: finalSystemInstruction,
+            tools: [{ functionDeclarations: TOOL_DECLARATIONS as any }],
+            temperature: 0.2 // Lower temp for precise function calling & logic
+          }
+        });
       });
 
       const functionCalls = response.functionCalls;

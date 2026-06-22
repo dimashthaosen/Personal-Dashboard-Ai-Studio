@@ -223,8 +223,9 @@ export default function App() {
                     <h1 className="font-serif font-semibold text-lg text-[#fcf9f3] tracking-tight leading-normal mt-0.5">
                       Faculty Planner
                     </h1>
-                    <span className="bg-[#b83232]/25 text-[#fecaca] border border-[#b83232]/35 px-1.5 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wider">
-                      Disconnected
+                    <span className="bg-emerald-500/20 text-[#d1fae5] border border-emerald-500/30 px-2 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></span>
+                      Firestore Online
                     </span>
                   </div>
                 </div>
@@ -317,7 +318,7 @@ export default function App() {
       case "tasks":
         return <TasksView userId={currentUser?.userId} />;
       case "chat":
-        return <ChatView userId={currentUser?.userId} />;
+        return <ChatView userId={currentUser?.userId} googleToken={googleToken} />;
       case "email":
         return <EmailView googleToken={googleToken} currentUser={currentUser} onSwitchAccount={handleLoginGoogle} />;
       case "calendar":

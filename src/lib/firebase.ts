@@ -17,6 +17,11 @@ provider.setCustomParameters({
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
+try {
+  cachedAccessToken = localStorage.getItem("google_access_token");
+} catch (e) {
+  console.warn("Storage limits or blocked cookies prevented accessor retrieval", e);
+}
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
@@ -31,6 +36,9 @@ export const initAuth = (
       }
     } else {
       cachedAccessToken = null;
+      try {
+        localStorage.removeItem("google_access_token");
+      } catch (e) {}
       if (onAuthFailure) onAuthFailure();
     }
   });
@@ -45,6 +53,9 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
       throw new Error("Failed to get access token from Firebase Auth");
     }
     cachedAccessToken = credential.accessToken;
+    try {
+      localStorage.setItem("google_access_token", cachedAccessToken);
+    } catch (e) {}
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error("Sign in error:", error);
@@ -61,4 +72,7 @@ export const getAccessToken = async (): Promise<string | null> => {
 export const firebaseLogout = async () => {
   await auth.signOut();
   cachedAccessToken = null;
+  try {
+    localStorage.removeItem("google_access_token");
+  } catch (e) {}
 };

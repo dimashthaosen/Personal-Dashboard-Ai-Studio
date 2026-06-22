@@ -76,10 +76,16 @@ Interests: cars (Murciélago, LFA), Top Gear, gaming, anime, technology experime
 `;
 
 // Robust fetch wrapper with retries and model fallbacks for handling transient 503/high-demand errors
-async function fetchWithRetryAndFallback<T>(
+export async function fetchWithRetryAndFallback<T>(
   action: (modelName: string) => Promise<T>
 ): Promise<T> {
-  const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
+  const modelsToTry = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.5-pro"
+  ];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
@@ -94,6 +100,21 @@ async function fetchWithRetryAndFallback<T>(
         
         const errorMsg = String(error?.message || "").toLowerCase();
         const statusCode = error?.status || error?.status_code || error?.code || 0;
+        
+        // Check for token quota or rate limit exhaustion errors
+        const isQuotaError = 
+          statusCode === 429 || 
+          errorMsg.includes("429") || 
+          errorMsg.includes("quota") || 
+          errorMsg.includes("limit") || 
+          errorMsg.includes("exhausted") || 
+          errorMsg.includes("resource_exhausted");
+
+        if (model === "gemini-3.5-flash" && isQuotaError) {
+          console.warn(`[AI Quota Exceeded for ${model}]: Shifting to gemini-3.1-flash-lite...`);
+          break; // Break the inner retry loop instantly to switch directly to the next fallback model (gemini-3.1-flash-lite)
+        }
+
         const isTransient = 
           statusCode === 503 || 
           statusCode === 429 || 

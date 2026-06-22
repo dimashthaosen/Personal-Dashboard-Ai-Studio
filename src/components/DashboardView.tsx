@@ -4,6 +4,7 @@ import { AlertCircle, Calendar, Clock, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory } from "../lib/hooks";
+import { getCachedEmails, saveCachedEmails } from "./EmailView";
 
 interface DashboardViewProps {
   onNavigate: (tab: string) => void;
@@ -16,7 +17,14 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
   const { events, loading: loadingEvents } = useFirestoreEvents(userId);
   const { memoryItems } = useFirestoreMemory(userId);
 
-  const [emails, setEmails] = useState<Email[]>([]);
+  const [emails, setEmails] = useState<Email[]>(() => {
+    try {
+      const cached = getCachedEmails("inbox");
+      return cached ? cached.data : [];
+    } catch {
+      return [];
+    }
+  });
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(() => {
     try {
       const saved = localStorage.getItem(`dailyPlan_${userId || "default"}`);
@@ -37,18 +45,34 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
   }, [googleToken]);
 
   const fetchEmails = async () => {
-    try {
+    const cached = getCachedEmails("inbox");
+    const now = Date.now();
+    const REFRESH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
+    if (cached) {
+      setEmails(cached.data);
+      setLoadingEmails(false);
+      
+      // If still fresh, skip network call completely!
+      if (now - cached.timestamp < REFRESH_COOLDOWN) {
+        return;
+      }
+    } else {
       setLoadingEmails(true);
+    }
+
+    try {
       const headers: Record<string, string> = {};
       if (googleToken) {
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
-      const res = await fetch("/api/emails", { headers });
+      const res = await fetch("/api/emails?type=inbox", { headers });
       if (!res.ok) throw new Error("API failed");
       const text = await res.text();
       try {
         const data = JSON.parse(text);
         setEmails(data);
+        saveCachedEmails("inbox", data);
       } catch (e) {
         throw new Error("Invalid format");
       }

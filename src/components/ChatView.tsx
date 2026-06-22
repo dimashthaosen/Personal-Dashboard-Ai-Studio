@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "../types";
 import { Send, Sparkles, Trash2, ArrowUpCircle, Check } from "lucide-react";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreChat } from "../lib/hooks";
-import { collection, addDoc, query, getDocs, writeBatch, doc } from "firebase/firestore";
+import { collection, addDoc, query, getDocs, writeBatch, doc, updateDoc, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import ReactMarkdown from "react-markdown";
 
@@ -29,7 +29,7 @@ const renderers = {
   code: ({ children }: any) => <code className="bg-[#ece6db]/60 px-1 py-0.5 rounded font-mono text-[11px] font-medium text-[#2d5a4a]">{children}</code>
 };
 
-export default function ChatView({ userId }: { userId?: string }) {
+export default function ChatView({ userId, googleToken }: { userId?: string; googleToken?: string | null }) {
   const { messages: firestoreMessages } = useFirestoreChat(userId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
@@ -130,9 +130,14 @@ export default function ChatView({ userId }: { userId?: string }) {
       }));
 
       // 2. Query server-side agentic runtime
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (googleToken) {
+        headers["Authorization"] = `Bearer ${googleToken}`;
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           message: userMessageText,
           contextData,
@@ -188,6 +193,135 @@ export default function ChatView({ userId }: { userId?: string }) {
     setPendingApproval(null);
 
     try {
+      // 1. Execute direct client-side Firestore writes to completely circumvent server container permission scopes
+      let clientResult: any = null;
+      try {
+        if (tool === "createTask") {
+          let priority = (args.priority || "medium").toLowerCase();
+          if (!["low", "medium", "high", "urgent"].includes(priority)) {
+            priority = "medium";
+          }
+          let category = (args.category || "school").toLowerCase();
+          if (category === "emails" || category === "drafts") category = "email";
+          if (category === "follow-up" || category === "student") category = "followup";
+          if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
+          if (category === "administration") category = "admin";
+          if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
+            category = "school";
+          }
+          const title = String(args.title || "Untitled Task").substring(0, 200);
+
+          const docRef = await addDoc(collection(db, `users/${userId}/tasks`), {
+            title,
+            description: args.description || "",
+            deadline: args.deadline || "",
+            priority,
+            category,
+            status: "pending",
+            source: "assistant",
+            createdAt: new Date().toISOString(),
+            userId
+          });
+          clientResult = { success: true, taskId: docRef.id, message: `Task "${title}" created successfully in Firestore.` };
+        } else if (tool === "updateTask") {
+          const { taskId } = args;
+          if (!taskId) throw new Error("Missing taskId for update");
+
+          const updateData: any = {};
+          if (args.title !== undefined) updateData.title = String(args.title).substring(0, 200);
+          if (args.description !== undefined) updateData.description = String(args.description);
+          if (args.deadline !== undefined) updateData.deadline = String(args.deadline);
+
+          if (args.priority !== undefined) {
+            let priority = String(args.priority).toLowerCase();
+            if (!["low", "medium", "high", "urgent"].includes(priority)) {
+              priority = "medium";
+            }
+            updateData.priority = priority;
+          }
+
+          if (args.category !== undefined) {
+            let category = String(args.category).toLowerCase();
+            if (category === "emails" || category === "drafts") category = "email";
+            if (category === "follow-up" || category === "student") category = "followup";
+            if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
+            if (category === "administration") category = "admin";
+            if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
+              category = "school";
+            }
+            updateData.category = category;
+          }
+
+          if (args.status !== undefined) {
+            let status = String(args.status).toLowerCase();
+            if (status === "in-progress" || status === "in_progress") {
+              status = "in_progress";
+            } else if (status === "completed") {
+              status = "done";
+            }
+            if (!["pending", "in_progress", "done", "waiting", "cancelled"].includes(status)) {
+              status = "pending";
+            }
+            updateData.status = status;
+          }
+
+          await updateDoc(doc(db, `users/${userId}/tasks`, taskId), updateData);
+          clientResult = { success: true, taskId, message: `Task successfully updated: ${JSON.stringify(updateData)}` };
+        } else if (tool === "createCalendarEvent") {
+          const title = String(args.title || "Untitled Event").substring(0, 200);
+          const start = String(args.start || new Date().toISOString()).substring(0, 100);
+          const end = String(args.end || new Date().toISOString()).substring(0, 100);
+          const description = String(args.description || "");
+
+          const docRef = await addDoc(collection(db, `users/${userId}/calendarEvents`), {
+            title,
+            description,
+            location: args.location || "Vasant Valley School",
+            start,
+            end,
+            createdAt: new Date().toISOString(),
+            userId
+          });
+          clientResult = { success: true, eventId: docRef.id, message: `Calendar event "${title}" created successfully in Firestore.` };
+        } else if (tool === "saveMemory") {
+          const key = String(args.key || "general").substring(0, 100);
+          const value = String(args.value || "").substring(0, 1000);
+          let category = String(args.category || "general").toLowerCase();
+          if (category === "pref" || category === "preference") category = "preferences";
+          if (category === "person") category = "people";
+          if (category === "assignment" || category === "class") category = "school";
+          if (!["general", "preferences", "people", "school", "patterns"].includes(category)) {
+            category = "general";
+          }
+
+          const memoriesRef = collection(db, `users/${userId}/memoryItems`);
+          const qMatches = query(memoriesRef, where("key", "==", key));
+          const memSnap = await getDocs(qMatches);
+
+          if (!memSnap.empty) {
+            const targetId = memSnap.docs[0].id;
+            await updateDoc(doc(db, `users/${userId}/memoryItems`, targetId), {
+              value,
+              category,
+              updatedAt: new Date().toISOString()
+            });
+            clientResult = { success: true, memoryId: targetId, message: `Updated existing memory element for "${key}".` };
+          } else {
+            const docRef = await addDoc(memoriesRef, {
+              key,
+              value,
+              category,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              userId
+            });
+            clientResult = { success: true, memoryId: docRef.id, message: `Memory element "${key}" saved successfully in Firestore.` };
+          }
+        }
+      } catch (dbErr: any) {
+        console.warn("Client-side direct Firestore write fallback warning:", dbErr);
+      }
+
       const contextData = {
         tasks: tasks.filter((t) => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"}, ID: ${t.id})`).join("\n"),
         calendar: events.map((e) => `- ${e.title} at ${e.start} - ${e.end}`).join("\n"),
@@ -199,15 +333,21 @@ export default function ChatView({ userId }: { userId?: string }) {
         content: m.content
       }));
 
+      const approveHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (googleToken) {
+        approveHeaders["Authorization"] = `Bearer ${googleToken}`;
+      }
+
       const response = await fetch("/api/chat/approve", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: approveHeaders,
         body: JSON.stringify({
           tool,
           args,
           userId,
           chatHistory: history,
-          contextData
+          contextData,
+          clientResult
         })
       });
 
@@ -217,6 +357,18 @@ export default function ChatView({ userId }: { userId?: string }) {
 
       const agentResult = await response.json();
       setExecutedTools((prev) => [...prev, ...(agentResult.toolCallsExecuted || [])]);
+
+      // If the tool is generateLessonPlan and we didn't save it server-side (or failed), we can save it client-side fallback
+      if (tool === "generateLessonPlan" && agentResult.toolCallsExecuted) {
+        const lpToolRes = agentResult.toolCallsExecuted.find((t: any) => t.name === "generateLessonPlan");
+        if (lpToolRes?.result?.fallbackData) {
+          try {
+            await addDoc(collection(db, `users/${userId}/lessonPlans`), lpToolRes.result.fallbackData);
+          } catch (lpErr) {
+            console.error("Failed to save lesson plan fallback client side:", lpErr);
+          }
+        }
+      }
 
       await addDoc(collection(db, `users/${userId}/chatMessages`), {
         role: "assistant",

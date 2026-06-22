@@ -1,12 +1,45 @@
 import React, { useState, useEffect } from "react";
 import { Email, TeacherUser } from "../types";
-import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search } from "lucide-react";
+import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+// Shared memory cache to persist emails across tab switches / component unmounts
+interface CacheEntry {
+  data: Email[];
+  timestamp: number;
+}
+export const emailCache: Record<string, CacheEntry> = {};
+
+export const getCachedEmails = (key: string): CacheEntry | null => {
+  if (emailCache[key]) return emailCache[key];
+  try {
+    const saved = localStorage.getItem(`faculty_planner_emails_${key}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      emailCache[key] = parsed; // Sync memory cache
+      return parsed;
+    }
+  } catch (e) {
+    console.warn("Error reading email cache from localStorage", e);
+  }
+  return null;
+};
+
+export const saveCachedEmails = (key: string, data: Email[]) => {
+  const entry = { data, timestamp: Date.now() };
+  emailCache[key] = entry;
+  try {
+    localStorage.setItem(`faculty_planner_emails_${key}`, JSON.stringify(entry));
+  } catch (e) {
+    console.warn("Error writing email cache to localStorage", e);
+  }
+};
 
 export default function EmailView({ googleToken, currentUser, onSwitchAccount }: { googleToken?: string | null, currentUser?: TeacherUser | null, onSwitchAccount?: () => void }) {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncingBackground, setIsSyncingBackground] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,9 +78,47 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
     }
   }, [searchQuery, emails]);
 
-  const fetchEmails = async () => {
-    try {
+  const fetchEmails = async (force = false) => {
+    const cacheKey = `${activeTab}`;
+    const cached = getCachedEmails(cacheKey);
+    const now = Date.now();
+    const REFRESH_COOLDOWN = 5 * 60 * 1000; // 5 minutes cooldown for background refresh
+
+    let triggerSyncInBg = false;
+
+    if (force) {
+      delete emailCache[cacheKey];
+      try {
+        localStorage.removeItem(`faculty_planner_emails_${cacheKey}`);
+      } catch (e) {}
       setLoading(true);
+    } else if (cached) {
+      setEmails(cached.data);
+      setLoading(false);
+
+      if (cached.data.length > 0) {
+        if (!selectedEmail || !cached.data.find(e => e.id === selectedEmail.id)) {
+          setSelectedEmail(cached.data[0]);
+        }
+      } else {
+        setSelectedEmail(null);
+      }
+
+      if (now - cached.timestamp > REFRESH_COOLDOWN) {
+        triggerSyncInBg = true;
+      } else {
+        // Cooldown period not finished. Skip API request entirely.
+        return;
+      }
+    } else {
+      setLoading(true);
+    }
+
+    if (triggerSyncInBg) {
+      setIsSyncingBackground(true);
+    }
+
+    try {
       const headers: Record<string, string> = {};
       if (googleToken) {
         headers["Authorization"] = `Bearer ${googleToken}`;
@@ -61,16 +132,23 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
       } catch(e) {
         throw new Error("Invalid response");
       }
+
+      // Save to shared memory and localStorage cache
+      saveCachedEmails(cacheKey, data);
+
       setEmails(data);
       if (data.length > 0) {
-        setSelectedEmail(data[0]);
+        if (!selectedEmail || !data.find(e => e.id === selectedEmail.id)) {
+          setSelectedEmail(data[0]);
+        }
       } else {
         setSelectedEmail(null);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load/sync emails:", err);
     } finally {
       setLoading(false);
+      setIsSyncingBackground(false);
     }
   };
 
@@ -142,28 +220,58 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {isSyncingBackground && (
+            <span className="flex items-center gap-1.5 text-[10px] font-mono font-medium text-[#2d5a4a] bg-[#e8f0ec] px-2.5 py-1.5 rounded-lg border border-[#d2e3da]/60 animate-pulse">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              Syncing...
+            </span>
+          )}
+
           {googleToken ? (
-            <div className="flex items-center gap-2.5 border border-[#d2e3da] bg-[#e8f0ec] rounded-lg pl-3 pr-1.5 py-1.5 shadow-[0_1px_2px_rgba(26,22,18,0.02)]">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2d5a4a] animate-pulse" />
+            <div className="flex items-center gap-2 border border-[#d2e3da] bg-[#e8f0ec] rounded-lg pl-3 pr-1.5 py-1 hover:shadow-[0_1px_3px_rgba(26,22,18,0.06)] transition-all">
+              <div className="flex items-center gap-1.5 pr-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
                 <span className="text-[10px] font-mono font-bold text-[#2d5a4a] uppercase tracking-wider">
-                  SYNCED: {currentUser?.email || "Gmail"}
+                  {currentUser?.email || "Gmail"}
                 </span>
               </div>
+              
+              <button 
+                type="button"
+                onClick={() => fetchEmails(true)}
+                disabled={loading || isSyncingBackground}
+                className="text-[9px] font-mono tracking-wider font-bold text-[#2d5a4a] bg-[#fcf9f3]/90 hover:bg-[#ece6db]/50 border border-[#d2e3da] px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 focus:outline-none uppercase disabled:opacity-50"
+                title="Force refresh"
+              >
+                <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+                REFRESH
+              </button>
+
               <button 
                 type="button"
                 onClick={onSwitchAccount}
-                className="text-[9px] font-mono tracking-wider font-bold text-[#2d5a4a] bg-[#fcf9f3]/80 hover:bg-[#ece6db]/50 border border-[#d2e3da] px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 focus:outline-none uppercase"
+                className="text-[9px] font-mono tracking-wider font-bold text-[#8a3324] hover:bg-[#faebe8] border border-[#f3d3cb] px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 focus:outline-none uppercase"
               >
                 <Settings className="w-3.5 h-3.5" />
                 CHANGE
               </button>
             </div>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold tracking-wider uppercase bg-[#ece6db] text-[#4a4540] border border-[#e1d8c6]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#8b857b]" />
-              STANDALONE INBOX
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold tracking-wider uppercase bg-[#ece6db] text-[#4a4540] border border-[#e1d8c6]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8b857b]" />
+                STANDALONE INBOX
+              </span>
+              <button 
+                type="button"
+                onClick={() => fetchEmails(true)}
+                disabled={loading || isSyncingBackground}
+                className="text-[9px] font-mono tracking-wider font-bold text-[#4a4540] bg-[#fcf9f3]/90 hover:bg-[#ece6db]/50 border border-[#e1d8c6] px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 focus:outline-none uppercase"
+              >
+                <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+                REFRESH
+              </button>
+            </div>
           )}
         </div>
       </div>
