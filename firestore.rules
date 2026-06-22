@@ -6,12 +6,15 @@ service cloud.firestore {
     }
 
     function isSignedIn() {
-      // In this environment, Google Sign-in always has email_verified == true
-      return request.auth != null && request.auth.token.email_verified == true;
+      return request.auth != null;
     }
 
     function isOwner(userId) {
-      return true;
+      return isSignedIn() && (
+        request.auth.uid == userId ||
+        (request.auth.token != null && "email" in request.auth.token && request.auth.token.email == "dimasht@vasantvalley.edu.in") ||
+        (request.auth.token != null && "email" in request.auth.token && request.auth.token.email == "dimash.thaosen@gmail.com")
+      );
     }
 
     function incoming() { return request.resource.data; }

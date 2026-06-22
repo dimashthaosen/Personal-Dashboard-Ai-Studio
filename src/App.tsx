@@ -103,8 +103,8 @@ export default function App() {
         setGoogleToken(token);
         const googleUser: TeacherUser = {
           name: user.displayName || "Google Scholar",
-          email: user.email || "gmail_user@vasantvalley.edu.in",
-          username: user.email ? user.email.split("@")[0] : "google_scholar",
+          email: user.email || "dimasht@vasantvalley.edu.in",
+          username: user.email ? user.email.split("@")[0] : "dimasht",
           isGoogle: true,
           userId: user.uid,
         };
@@ -128,8 +128,8 @@ export default function App() {
         const { user, accessToken } = result;
         const googleUser: TeacherUser = {
           name: user.displayName || "Google Scholar",
-          email: user.email || "gmail_user@vasantvalley.edu.in",
-          username: user.email ? user.email.split("@")[0] : "google_scholar",
+          email: user.email || "dimasht@vasantvalley.edu.in",
+          username: user.email ? user.email.split("@")[0] : "dimasht",
           isGoogle: true,
           userId: user.uid,
         };

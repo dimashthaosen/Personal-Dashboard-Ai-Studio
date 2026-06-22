@@ -17,7 +17,17 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
   const { memoryItems } = useFirestoreMemory(userId);
 
   const [emails, setEmails] = useState<Email[]>([]);
-  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
+  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(() => {
+    try {
+      const saved = localStorage.getItem(`dailyPlan_${userId || "default"}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [generatedAt, setGeneratedAt] = useState<string | null>(() => {
+    return localStorage.getItem(`dailyPlan_timestamp_${userId || "default"}`);
+  });
 
   const [loadingEmails, setLoadingEmails] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
@@ -55,7 +65,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     const contextData = {
       tasks: tasks.filter(t => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"})`).join("\n"),
       emails: emails.map((e) => `- From ${e.fromName} (${e.category}): "${e.subject}" (${e.snippet.substring(0, 100)}...) Needs reply? ${e.needsReply}`).join("\n"),
-      calendar: events.map((e) => `- ${e.title} at ${new Date(e.start).toLocaleTimeString()} - ${new Date(e.end).toLocaleTimeString()}`).join("\n"),
+      calendar: events.map((e) => `- ${e.title} at ${new Date(e.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} - ${new Date(e.end).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`).join("\n"),
       memory: memoryItems.map((m) => `- ${m.key}: ${m.value}`).join("\n"),
     };
 
@@ -70,6 +80,11 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
       try {
         const data = JSON.parse(text);
         setDailyPlan(data.plan);
+        const now = new Date();
+        const timestampStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + ", " + now.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+        setGeneratedAt(timestampStr);
+        localStorage.setItem(`dailyPlan_${userId || "default"}`, JSON.stringify(data.plan));
+        localStorage.setItem(`dailyPlan_timestamp_${userId || "default"}`, timestampStr);
       } catch (e) {
         throw new Error("Invalid response");
       }
@@ -132,7 +147,12 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     }
   };
 
-  const displayDateStr = "Monday, 15 June 2026";
+  const displayDateStr = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
 
   return (
     <div className="animate-fade-up max-w-[1100px] mx-auto space-y-7">
@@ -338,23 +358,31 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
           </div>
         </div>
 
-        {/* Your Day Plan (right ≈1.1fr -> lg:col-span-7) */}
+        {/* Today's Brief / Daily Brief (right ≈1.1fr -> lg:col-span-7) */}
         <div className="lg:col-span-7 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between border-b border-[#ece6db] pb-3">
-            <h3 className="font-serif font-bold text-base text-[#1a1612] flex items-center gap-2">
-              <Sparkles className="w-4.5 h-4.5 text-[#2d5a4a] stroke-[1.8]" />
-              Your Day Plan
-            </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#ece6db] pb-3 gap-2">
+            <div className="space-y-0.5">
+              <h3 className="font-serif font-bold text-base text-[#1a1612] flex items-center gap-2">
+                <Sparkles className="w-4.5 h-4.5 text-[#2d5a4a] stroke-[1.8]" />
+                Today's Brief
+              </h3>
+              {generatedAt && (
+                <p className="text-[10px] font-mono text-[#8b857b] lowercase">
+                  calculated at: {generatedAt}
+                </p>
+              )}
+            </div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2.5 py-0.5 rounded-full leading-none">
-                AI · grounded
+              <span className="font-mono text-[9px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2.5 py-0.5 rounded-full leading-none whitespace-nowrap">
+                {dailyPlan ? "Grounded" : "Not Built"}
               </span>
               <button
                 onClick={generatePlan}
                 disabled={generatingPlan}
-                className="font-mono text-[10px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-2.5 py-1 rounded-[8px] transition-all focus:outline-none disabled:opacity-50 inline-block"
+                className="font-mono text-[10px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-2.5 py-1 rounded-[8px] transition-all focus:outline-none disabled:opacity-50 inline-block cursor-pointer select-none"
+                title="Regenerates Today's Brief based on current live context data"
               >
-                {generatingPlan ? "Structuring..." : "Recalculate"}
+                {generatingPlan ? "Structuring..." : dailyPlan ? "Refresh Brief" : "Generate Brief"}
               </button>
             </div>
           </div>
@@ -367,10 +395,10 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                 </div>
                 <div className="space-y-1">
                   <h4 className="font-serif font-bold text-sm text-[#1a1612] animate-pulse">
-                    Structuring Pointwise Day Plan...
+                    Structuring Pointwise Daily Brief...
                   </h4>
                   <p className="font-mono text-[9px] text-[#8b857b] uppercase tracking-widest leading-none mt-1">
-                    Processing inbox, tasks, & calendar
+                    Processing inbox, active tasks, & scheduled periods
                   </p>
                 </div>
               </div>
@@ -380,8 +408,8 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                   {dailyPlan.content}
                 </ReactMarkdown>
                 <div className="pt-3 border-t border-[#ece6db] mt-4">
-                  <p className="font-serif italic text-xs text-[#8b857b]">
-                     Grounded dynamically in active parent communications and scheduled periods.
+                  <p className="font-serif italic text-[11px] text-[#8b857b]">
+                     Grounded dynamically in active parent communications and scheduled periods. Listed items are sorted chronologically where scheduled.
                   </p>
                 </div>
               </div>
@@ -392,7 +420,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                 </div>
                 <div className="space-y-1">
                   <h4 className="font-serif font-bold text-sm text-[#1a1612]">
-                    No Active Day Plan Built Yet
+                    No Active Daily Brief Built Yet
                   </h4>
                   <p className="font-sans text-xs text-[#7a756f] max-w-[320px]">
                     Process your real-time emails, active task schedules, and calendar periods into a custom POINTWISE agenda.
@@ -404,7 +432,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                   className="font-mono text-[10px] text-[#fcf9f3] bg-[#2d5a4a] hover:bg-[#3a7560] border border-transparent px-4 py-2 rounded-lg transition-all font-bold uppercase tracking-wider disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Create Day Plan
+                  Create Daily Brief
                 </button>
               </div>
             )}

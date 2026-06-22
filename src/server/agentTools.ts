@@ -1,0 +1,546 @@
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import fs from "fs";
+import path from "path";
+import { schoolEvents } from "../data/schoolEvents.js";
+import { generateContentText, generateLessonPlan as aiGenerateLessonPlan } from "./ai.js";
+import { db } from "./db.js";
+import { fetchGmailEmails } from "./gmail.js";
+
+// Load Firebase configuration
+const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+
+// Initialize firebase-admin only once
+if (getApps().length === 0) {
+  initializeApp({
+    projectId: firebaseConfig.projectId
+  });
+}
+
+export const serverDb = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(firebaseConfig.firestoreDatabaseId)
+  : getFirestore();
+
+// Map of in-memory pending approvals to safeguard writing actions
+export interface PendingApproval {
+  id: string;
+  tool: string;
+  args: any;
+  userId: string;
+  explanation: string;
+}
+
+export const pendingApprovalsStore = new Map<string, PendingApproval>();
+
+// Helper to check if a tool is a write action that requires approval
+export function isWriteTool(name: string): boolean {
+  const writeTools = ["createTask", "updateTask", "createCalendarEvent", "saveMemory", "generateLessonPlan"];
+  return writeTools.includes(name);
+}
+
+// Declarations of all 10 tools mapping to standard Gemini 2.x/3.x tool definitions
+export const TOOL_DECLARATIONS = [
+  {
+    name: "createTask",
+    description: "Drafts a new task to organize middle/senior school sociology, history, or social science assignments, assemblies, or administrative duties.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        title: { type: "STRING", description: "Title of the task to be created" },
+        description: { type: "STRING", description: "Detailed description of the task requirements, references, or links" },
+        category: { 
+          type: "STRING", 
+          description: "Task category. Must be one of: school, personal, followup, project, email, admin",
+          enum: ["school", "personal", "followup", "project", "email", "admin"]
+        },
+        priority: { 
+          type: "STRING", 
+          description: "Task priority level. Must be one of: low, medium, high, urgent",
+          enum: ["low", "medium", "high", "urgent"]
+        },
+        deadline: { type: "STRING", description: "Deadline for completion formatted as YYYY-MM-DD (or empty string)" }
+      },
+      required: ["title"]
+    }
+  },
+  {
+    name: "updateTask",
+    description: "Updates an existing task's title, description, category, priority, deadline, or completion status.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        taskId: { type: "STRING", description: "The unique ID (Firestore document id) of the task to update" },
+        title: { type: "STRING", description: "Updated title of the task" },
+        description: { type: "STRING", description: "Updated description of the task" },
+        category: { 
+          type: "STRING", 
+          description: "Category. Must be one of: school, personal, followup, project, email, admin",
+          enum: ["school", "personal", "followup", "project", "email", "admin"]
+        },
+        priority: { 
+          type: "STRING", 
+          description: "Priority. Must be one of: low, medium, high, urgent",
+          enum: ["low", "medium", "high", "urgent"]
+        },
+        deadline: { type: "STRING", description: "Deadline formatted as YYYY-MM-DD" },
+        status: { 
+          type: "STRING", 
+          description: "Updated completion status. Must be one of: pending, in_progress, done, waiting, cancelled",
+          enum: ["pending", "in_progress", "done", "waiting", "cancelled"]
+        }
+      },
+      required: ["taskId"]
+    }
+  },
+  {
+    name: "searchTasks",
+    description: "Searches or filters tasks based on search terms, status, category, or priority. (Read-only, executes automatically)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: { type: "STRING", description: "Case-insensitive substring search for task title or description" },
+        status: { type: "STRING", description: "Filter by status: pending, in_progress, done, waiting, cancelled" },
+        category: { type: "STRING", description: "Filter by category: school, personal, followup, project, email, admin" },
+        priority: { type: "STRING", description: "Filter by priority: low, medium, high, urgent" }
+      }
+    }
+  },
+  {
+    name: "createCalendarEvent",
+    description: "Drafts a new calendar event (meetings, parent-teacher briefings, quizzes, lessons).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        title: { type: "STRING", description: "Title of the calendar event" },
+        description: { type: "STRING", description: "Detailed description of the meeting or planning agenda" },
+        location: { type: "STRING", description: "Location where the event takes place, e.g. Vasant Valley School" },
+        start: { type: "STRING", description: "Start date and time in ISO format YYYY-MM-DDTHH:MM:SS" },
+        end: { type: "STRING", description: "End date and time in ISO format YYYY-MM-DDTHH:MM:SS" }
+      },
+      required: ["title", "start", "end"]
+    }
+  },
+  {
+    name: "searchCalendar",
+    description: "Searches or filters school and custom calendar events for specific topics, dates, or staff meetings. (Read-only, executes automatically)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: { type: "STRING", description: "Case-insensitive keyword to match against event title or location" },
+        startDate: { type: "STRING", description: "Start bound for filtered events formatted as YYYY-MM-DD" },
+        endDate: { type: "STRING", description: "End bound for filtered events formatted as YYYY-MM-DD" }
+      }
+    }
+  },
+  {
+    name: "saveMemory",
+    description: "Saves reference memories or teacher preferences (e.g., student name associations, draft writing styles, class sections, repeating workflows).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        key: { type: "STRING", description: "The memory key, e.g. 11A Homeroom students or Writing Style" },
+        value: { type: "STRING", description: "Detailed description or textual facts to remember" },
+        category: { 
+          type: "STRING", 
+          description: "Optional categorization: general, preferences, people, school, patterns",
+          enum: ["general", "preferences", "people", "school", "patterns"]
+        }
+      },
+      required: ["key", "value"]
+    }
+  },
+  {
+    name: "searchMemory",
+    description: "Searches the stored reference memory items or bio data for teacher preferences. (Read-only, executes automatically)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: { type: "STRING", description: "Search term to match memory key or value (case-insensitive)" }
+      }
+    }
+  },
+  {
+    name: "summariseEmails",
+    description: "Fetches and summarises recent email threads for specific topics, parent enquiries, or school communications. Needs valid token context. (Read-only, executes automatically)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        type: { type: "STRING", description: "Email box to search: inbox or sent", enum: ["inbox", "sent"] },
+        limit: { type: "INTEGER", description: "Max number of emails to retrieve from inbox (default is 10)" }
+      }
+    }
+  },
+  {
+    name: "draftEmailReply",
+    description: "Drafts a polished reply for standard parent/colleague emails using Dimash's writing profile & school guidelines.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        emailId: { type: "STRING", description: "The unique ID (Firestore document ID) of the target email" },
+        customKeyPoints: { type: "STRING", description: "Specific facts, inputs, dates, or custom terms to incorporate in reply" }
+      },
+      required: ["emailId"]
+    }
+  },
+  {
+    name: "generateLessonPlan",
+    description: "Generates a comprehensive weekly lesson plan following Vasant Valley's progressive sequence and writes it to Firestore.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        courseId: { type: "STRING", description: "Subject / Course identifier: 'asLevel' for Sociology Class 11/12, 'soc11' for Middle School, or 'gp8' for Global Perspectives Class 8", enum: ["asLevel", "soc11", "gp8"] },
+        week: { type: "INTEGER", description: "Syllabus week identifier (between 1 and 40)" },
+        lessonsPerWeek: { type: "INTEGER", description: "Number of lessons to compile for the week, between 2 and 6" },
+        pedagogicalMix: { type: "STRING", description: "Pedagogical strategy to prioritize: progressive, discussion, research, or exam", enum: ["progressive", "discussion", "research", "exam"] },
+        languageTone: { type: "STRING", description: "Style of delivery: accessible or scholarly", enum: ["accessible", "scholarly"] },
+        topic: { type: "STRING", description: "Subject topic or title of the chapter" },
+        customSourceMaterial: { type: "STRING", description: "Any custom source text, document excerpts, or references to align with" }
+      },
+      required: ["courseId", "week", "lessonsPerWeek", "pedagogicalMix", "languageTone", "topic"]
+    }
+  }
+];
+
+// Core tool executors
+export async function executeTool(userId: string, name: string, args: any, accessToken?: string): Promise<any> {
+  console.log(`Executing tool server-side: ${name} for user ${userId} with args:`, args);
+
+  try {
+    switch (name) {
+      case "createTask": {
+        let priority = (args.priority || "medium").toLowerCase();
+        if (!["low", "medium", "high", "urgent"].includes(priority)) {
+          priority = "medium";
+        }
+
+        let category = (args.category || "school").toLowerCase();
+        if (category === "emails" || category === "drafts") category = "email";
+        if (category === "follow-up" || category === "student") category = "followup";
+        if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
+        if (category === "administration") category = "admin";
+        if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
+          category = "school";
+        }
+
+        const title = String(args.title || "Untitled Task").substring(0, 200);
+
+        const docRef = await serverDb.collection(`users/${userId}/tasks`).add({
+          title,
+          description: args.description || "",
+          deadline: args.deadline || "",
+          priority,
+          category,
+          status: "pending",
+          source: "assistant",
+          createdAt: new Date().toISOString(),
+          userId
+        });
+        return { success: true, taskId: docRef.id, message: `Task "${title}" created successfully in Firestore.` };
+      }
+
+      case "updateTask": {
+        const docRef = serverDb.doc(`users/${userId}/tasks/${args.taskId}`);
+        const taskSnap = await docRef.get();
+        if (!taskSnap.exists) {
+          throw new Error(`Task with ID ${args.taskId} not found.`);
+        }
+        
+        // Build filtered update data to avoid overwriting variables with undefined
+        const updateData: any = {};
+        if (args.title !== undefined) updateData.title = String(args.title).substring(0, 200);
+        if (args.description !== undefined) updateData.description = String(args.description);
+        if (args.deadline !== undefined) updateData.deadline = String(args.deadline);
+        
+        if (args.priority !== undefined) {
+          let priority = String(args.priority).toLowerCase();
+          if (!["low", "medium", "high", "urgent"].includes(priority)) {
+            priority = "medium";
+          }
+          updateData.priority = priority;
+        }
+
+        if (args.category !== undefined) {
+          let category = String(args.category).toLowerCase();
+          if (category === "emails" || category === "drafts") category = "email";
+          if (category === "follow-up" || category === "student") category = "followup";
+          if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
+          if (category === "administration") category = "admin";
+          if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
+            category = "school";
+          }
+          updateData.category = category;
+        }
+
+        if (args.status !== undefined) {
+          let status = String(args.status).toLowerCase();
+          if (status === "in-progress" || status === "in_progress") {
+            status = "in_progress";
+          } else if (status === "completed") {
+            status = "done";
+          }
+          if (!["pending", "in_progress", "done", "waiting", "cancelled"].includes(status)) {
+            status = "pending";
+          }
+          updateData.status = status;
+        }
+
+        await docRef.update(updateData);
+        return { success: true, taskId: args.taskId, message: `Task successfully updated: ${JSON.stringify(updateData)}` };
+      }
+
+      case "searchTasks": {
+        // Query tasks from Firestore
+        const snap = await serverDb.collection(`users/${userId}/tasks`).get();
+        let tasksList = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+
+        // Filter on server side for robustness and to avoid complex composite index requirement
+        if (args.status) {
+          const mapStatus = args.status === "in-progress" ? "in_progress" : args.status;
+          tasksList = tasksList.filter(t => t.status === mapStatus);
+        }
+        if (args.priority) {
+          tasksList = tasksList.filter(t => t.priority === args.priority);
+        }
+        if (args.category) {
+          tasksList = tasksList.filter(t => t.category === args.category);
+        }
+        if (args.query) {
+          const s = args.query.toLowerCase();
+          tasksList = tasksList.filter(t => 
+            (t.title && t.title.toLowerCase().includes(s)) || 
+            (t.description && t.description.toLowerCase().includes(s))
+          );
+        }
+
+        // Return truncated attributes to keep token bounds neat
+        const results = tasksList.map(t => ({
+          id: t.id,
+          title: t.title,
+          description: t.description || "",
+          status: t.status,
+          priority: t.priority,
+          category: t.category,
+          deadline: t.deadline || "None"
+        }));
+
+        return { count: results.length, tasks: results.slice(0, 15) };
+      }
+
+      case "createCalendarEvent": {
+        const title = String(args.title || "Untitled Event").substring(0, 200);
+        const start = String(args.start || new Date().toISOString()).substring(0, 100);
+        const end = String(args.end || new Date().toISOString()).substring(0, 100);
+        const description = String(args.description || "");
+        
+        const docRef = await serverDb.collection(`users/${userId}/calendarEvents`).add({
+          title,
+          description,
+          location: args.location || "Vasant Valley School",
+          start,
+          end,
+          createdAt: new Date().toISOString(),
+          userId
+        });
+        return { success: true, eventId: docRef.id, message: `Calendar event "${title}" created successfully in Firestore.` };
+      }
+
+      case "searchCalendar": {
+        // Fetch custom user calendar events from Firestore
+        const snap = await serverDb.collection(`users/${userId}/calendarEvents`).get();
+        const selectCustom = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+
+        // Combine with official static schoolEvents list
+        const allEvents = [...selectCustom, ...schoolEvents];
+        let filtered = allEvents;
+
+        // Apply filters
+        if (args.startDate) {
+          filtered = filtered.filter(e => e.start >= args.startDate);
+        }
+        if (args.endDate) {
+          filtered = filtered.filter(e => e.start <= args.endDate);
+        }
+        if (args.query) {
+          const s = args.query.toLowerCase();
+          filtered = filtered.filter(e => 
+            (e.title && e.title.toLowerCase().includes(s)) ||
+            (e.description && e.description.toLowerCase().includes(s)) ||
+            (e.location && e.location.toLowerCase().includes(s))
+          );
+        }
+
+        // Format neatly to restrict context size bloating
+        const summary = filtered.map(e => ({
+          title: e.title,
+          start: e.start,
+          end: e.end,
+          location: e.location || "Vasant Valley School",
+          description: e.description || ""
+        }));
+
+        return { count: summary.length, events: summary.slice(0, 15) };
+      }
+
+      case "saveMemory": {
+        const memoriesRef = serverDb.collection(`users/${userId}/memoryItems`);
+        
+        const key = String(args.key || "general").substring(0, 100);
+        const value = String(args.value || "").substring(0, 1000);
+        let category = String(args.category || "general").toLowerCase();
+        if (category === "pref" || category === "preference") category = "preferences";
+        if (category === "person") category = "people";
+        if (category === "assignment" || category === "class") category = "school";
+        if (!["general", "preferences", "people", "school", "patterns"].includes(category)) {
+          category = "general";
+        }
+
+        // Deduplicate: check if a memory with same key already exists to prevent duplicate noise
+        const memSnap = await memoriesRef.where("key", "==", key).get();
+        
+        if (!memSnap.empty) {
+          const targetId = memSnap.docs[0].id;
+          await memoriesRef.doc(targetId).update({
+            value,
+            category,
+            updatedAt: new Date().toISOString()
+          });
+          return { success: true, memoryId: targetId, message: `Updated existing memory element for "${key}".` };
+        } else {
+          const docRef = await memoriesRef.add({
+            key,
+            value,
+            category,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            userId
+          });
+          return { success: true, memoryId: docRef.id, message: `Memory element "${key}" saved successfully in Firestore.` };
+        }
+      }
+
+      case "searchMemory": {
+        const snap = await serverDb.collection(`users/${userId}/memoryItems`).get();
+        let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+
+        if (args.query) {
+          const s = args.query.toLowerCase();
+          items = items.filter(m => 
+            (m.key && m.key.toLowerCase().includes(s)) || 
+            (m.value && m.value.toLowerCase().includes(s))
+          );
+        }
+
+        const results = items.map(m => ({ key: m.key, value: m.value, category: m.category }));
+        return { count: results.length, memories: results };
+      }
+
+      case "summariseEmails": {
+        const type = args.type || "inbox";
+        const emailLimit = args.limit || 10;
+        let emails: any[] = [];
+
+        if (accessToken) {
+          try {
+            const fetched = await fetchGmailEmails(accessToken, type);
+            db.syncGmailEmails(fetched, type);
+            emails = fetched;
+            console.log(`Fetched ${emails.length} real Gmail emails for summarisation.`);
+          } catch (err) {
+            console.error("Failed to fetch Google Gmail emails during agent tool execution, falling back to local cached store:", err);
+            emails = db.getEmails(type);
+          }
+        } else {
+          emails = db.getEmails(type);
+        }
+
+        // Chunk emails to fit within context nicely
+        const targetList = emails.slice(0, emailLimit);
+        if (targetList.length === 0) {
+          return { message: "No recent emails found in this category." };
+        }
+
+        const emailSummaries = targetList.map((e, index) => 
+          `[Email ${index + 1}] ID: ${e.id} | From: ${e.fromName} (${e.fromEmail}) | Subject: ${e.subject} | Date: ${e.date}\nSnippet: ${e.snippet}`
+        ).join("\n\n");
+
+        const prompt = `You are a professional assistant helping Teacher Dimash Thaosen. Carefully summarise the following emails. Focus on actionable items, deadlines/meetings, student issues, parent inquiries, and school administrative notices. Highlight who needs a reply and which emails represent critical action items. Style with clear, British English headings and short bullet points.
+        
+=== EMAILS ===
+${emailSummaries}
+=== END ===`;
+
+        const summaryText = await generateContentText(prompt);
+        return { count: targetList.length, summary: summaryText };
+      }
+
+      case "draftEmailReply": {
+        const email = db.getEmailById(args.emailId);
+        if (!email) {
+          throw new Error(`Email with ID ${args.emailId} not found in localized database.`);
+        }
+
+        // Fetch writing style from memory database
+        const memSnap = await serverDb.collection(`users/${userId}/memoryItems`).get();
+        const memories = memSnap.docs.map(d => d.data());
+        const styleText = memories.find((m: any) => m.key.toLowerCase().includes("style"))?.value || "Clear, polite, slightly warm, and direct. British English.";
+
+        const prompt = `You are drafting a professional email reply for Dimash Thaosen (teacher at Vasant Valley School).
+        
+Sender Name: ${email.fromName}
+Sender Email: ${email.fromEmail}
+Original Subject: ${email.subject}
+Original Message snippet: ${email.snippet}
+
+Writing Style Context:
+${styleText}
+
+${args.customKeyPoints ? `Critical points to incorporate in response:\n${args.customKeyPoints}` : ""}
+
+Draft a pristine, professional email reply. Always use British English spellings (e.g., summarise, organisation). Ensure the tone is polite, direct, clear, and school-context appropriate. Keep it point-wise where appropriate, and do not use flowery corporate jargon. Return only the drafted reply body.`;
+
+        const replyDraft = await generateContentText(prompt);
+        return { success: true, emailId: args.emailId, recipient: (email as any).fromStr || email.fromEmail || (email as any).from || "", subject: `Re: ${email.subject}`, draft: replyDraft };
+      }
+
+      case "generateLessonPlan": {
+        const prompt = `Generate a lesson plan:
+Course ID: ${args.courseId}
+Week: ${args.week}
+Lessons per week: ${args.lessonsPerWeek}
+Pedagogical Mix: ${args.pedagogicalMix}
+Language Tone: ${args.languageTone}
+Topic: ${args.topic}
+${args.customSourceMaterial ? `Custom Source material details:\n${args.customSourceMaterial}` : ""}`;
+
+        // Generate the lesson plan text
+        const planMarkdown = await aiGenerateLessonPlan(prompt);
+
+        // Write directly to user's lessonPlans in Firestore
+        const docRef = await serverDb.collection(`users/${userId}/lessonPlans`).add({
+          courseId: args.courseId,
+          week: args.week,
+          lessonsPerWeek: args.lessonsPerWeek,
+          pedagogicalMix: args.pedagogicalMix,
+          languageTone: args.languageTone,
+          markdown: planMarkdown,
+          createdAt: new Date().toISOString(),
+          userId
+        });
+
+        return {
+          success: true,
+          planId: docRef.id,
+          message: `Lesson plan for "${args.topic}" (Week ${args.week}) generated and saved successfully to Firestore.`,
+          markdown: planMarkdown
+        };
+      }
+
+      default:
+        throw new Error(`Unknown tool execution name: ${name}`);
+    }
+  } catch (err: any) {
+    console.error(`Error executing tool ${name}:`, err);
+    return { success: false, error: err.message || String(err) };
+  }
+}

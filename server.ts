@@ -4,6 +4,8 @@ import { createServer as createViteServer } from "vite";
 import { db } from "./src/server/db";
 import { generateContentText, streamContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION } from "./src/server/ai";
 import { fetchGmailEmails } from "./src/server/gmail";
+import { runAssistantAgent } from "./src/server/agentRunner";
+import { executeTool } from "./src/server/agentTools";
 
 async function startServer() {
   const app = express();
@@ -195,41 +197,52 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
     const data = contextData || { tasks: "", emails: "", calendar: "", memory: "" };
 
     const prompt = `
-Summarise my day.
+Generate a highly practical and organised Today's Brief / Daily Brief for Teacher Dimash Thaosen using the actual context data provided below.
 
-Pull recent Gmail threads from the past 30 days (use the query
-"newer_than:30d -in:draft") and
-structure the brief with these sections:
+Strict Constraints:
+1. Use clean, professional British English spelling (e.g., prioritise, schedule, organise, summarise).
+2. NEVER invent meetings, emails, students, grades, or fake details. Only extract and reference items from the actual provided context data lists.
+3. If specific data is missing (e.g., no calendar events or no emails), explicitly state "No active items scheduled for today" or "All caught up" format rather than inventing placeholder values.
+4. Clearly state at the beginning that this brief is based solely on the live dashboard and email data available in the workspace.
+5. Prefer useful bullet points over tables for event logs and schedules.
 
-- 🏫 School & Admin (meetings, substitutions, student issues, dispersal
-  notes, class teacher items for 11A)
-- 🧪 Teaching & Curriculum (Cambridge updates, lesson prep, resources shared)
-- 🧠 Quiz & Competitions (quiz logistics, registrations, masterclass updates,
-  inter-school events)
-- 📮 Pending / To-Do (action items to follow up on, with checkboxes)
+Structure the response with EXACTLY these 6 sections (use precise h3 markdown size e.g., ### 1. Today's Schedule):
 
-For any parent or staff email, include the sender's name, the student/class
-it concerns, the nature of the message, and whether a reply is needed.
+### 1. Today's Schedule
+- List today's timetable sessions/calendar entries in chronological order. Include respective start and end times.
+- Conduct a gap analysis/free block analysis if possible (e.g. identify open windows of time between classes or meetings). If no gaps are detectable, say "Continuous schedule or standard preparation blocks".
 
-Skip noise: OTPs, security alerts, calendar invite notifications, Veracross
-automated mails, newsletter/promotional emails.
+### 2. Must Do
+- Extract and list urgent/high-priority pending tasks from the context data that must be accomplished today.
+- Include a practical reason or grounding note based on metadata.
 
-Keep the tone warm and conversational — the way you'd brief a colleague.
-Return the brief directly as your response.
+### 3. Should Do
+- Extract and list medium/low-priority tasks from the context data that are active but not critical for today.
 
-Here is the current context data:
+### 4. Follow-ups
+- Focus on pending email communications that need replies, or follow-up category tasks. List sender, concern topic, and what needs immediate reaction.
 
-CURRENT PENDING TASKS:
-${data.tasks || "No pending tasks."}
+### 5. Suggested Work Order
+- Synthesise a recommended sequential timeline or hour-by-hour order of work for the teacher. Map work items or grading tasks (from Must Do/Should Do) into specific gaps/free blocks in "Today's Schedule" for maximum productivity.
 
-RECENT EMAILS:
-${data.emails || "No recent emails matching."}
+### 6. Can Move
+- List tasks or activities that are non-urgent, lack immediate deadlines, or can be postponed guilt-free if teaching obligations run over.
 
-TODAY'S TIMETABLE / SCHEDULE:
+Include a concluding short sentence incorporating any relevant Teacher Biography & Preferences if stored.
+
+Here is the current real-time database context data:
+
+[TODAY'S TIMETABLE / SCHEDULE]
 ${data.calendar || "No scheduled activities today."}
 
-TEACHER BIOGRAPHY & PREFERENCES:
-${data.memory || "No memory profile elements stored yet."}
+[CURRENT PENDING TASKS]
+${data.tasks || "No active pending tasks stored."}
+
+[RECENT EMAILS]
+${data.emails || "No recent parent or colleague emails found."}
+
+[TEACHER BIOGRAPHY & PREFERENCES]
+${data.memory || "No memory preferences stored."}
 `;
 
     try {
@@ -237,68 +250,78 @@ ${data.memory || "No memory profile elements stored yet."}
       res.json({ plan: { content: responseText } });
     } catch (err) {
       console.error("Failed to generate planner markdown:", err);
-      res.json({ plan: { content: "Oops! Couldn't generate the daily brief. Please try again soon." } });
+      res.json({ plan: { content: "### 1. Today's Schedule\n\nNo schedule periods loaded.\n\n### 2. Must Do\n\nNo critical tasks pending.\n\n### 3. Should Do\n\nNo pending tasks.\n\n### 4. Follow-ups\n\nNo pending follow-ups.\n\n### 5. Suggested Work Order\n\nNo sequential plan generated.\n\n### 6. Can Move\n\nNo items to postpone.\n\n---\n*Failed to generate the daily brief with AI. Please check your network and retry configuration.*" } });
     }
   });
 
-  // Chat/Assistant streaming endpoint
+  // Chat/Assistant endpoint using Agentic Assistant Runner
   app.get("/api/chat", (req, res) => {
     res.json(db.getChatHistory());
   });
 
-  app.post("/api/chat/clear", (req, res) => {
+  app.post("/api/chat/clear", async (req, res) => {
     db.clearChatHistory();
     res.json({ success: true });
   });
 
   app.post("/api/chat", async (req, res) => {
-    const { message, contextData } = req.body;
+    const { message, contextData, userId, chatHistory } = req.body;
     if (!message) {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    // Set headers for SSE-like text streaming
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-
-    const data = contextData || { tasks: "", calendar: "", memory: "" };
-
-    const contextStr = `
-TASKS LIST:
-${data.tasks}
-
-TODAY'S SCHEDULE:
-${data.calendar}
-
-TEACHER GENERAL MEMORIES:
-${data.memory}
-`;
-
-    const fullPrompt = `
-User message: "${message}"
-
-Below is your database context as the Teacher Personal Assistant at Vasant Valley School. Leverage this context to address the teacher's questions.
-
-CONTEXT CODES:
-${contextStr}
-`;
-
-    let fullAnswer = "";
+    const authHeader = req.headers.authorization;
+    let accessToken: string | undefined = undefined;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      accessToken = authHeader.substring(7);
+    }
 
     try {
-      const generator = streamContentText(fullPrompt);
-      for await (const chunk of generator) {
-        fullAnswer += chunk;
-        res.write(chunk);
-      }
-    } catch (err) {
-      console.error("Stream generation error:", err);
-      const fallbackErr = " [I experienced a connection interruption in streaming the full response. Please check your setup.]";
-      fullAnswer += fallbackErr;
-      res.write(fallbackErr);
-    } finally {
-      res.end();
+      const agentResult = await runAssistantAgent({
+        message,
+        contextData,
+        userId: userId || "default_teacher",
+        accessToken,
+        chatHistory: chatHistory || []
+      });
+      res.json(agentResult);
+    } catch (err: any) {
+      console.error("Agent error in POST /api/chat:", err);
+      res.status(500).json({ error: err.message || "Failed to run agent assistant" });
+    }
+  });
+
+  app.post("/api/chat/approve", async (req, res) => {
+    const { tool, args, userId, chatHistory, contextData } = req.body;
+    if (!tool || !userId) {
+      return res.status(400).json({ error: "Missing tool or userId parameters" });
+    }
+
+    const authHeader = req.headers.authorization;
+    let accessToken: string | undefined = undefined;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      accessToken = authHeader.substring(7);
+    }
+
+    try {
+      // 1. Execute the write tool with client's parameters server-side
+      const toolResult = await executeTool(userId, tool, args, accessToken);
+
+      // 2. Feed the write tool execution results back to Gemini for the concluding confirmation response
+      const resumeMessage = `[SYSTEM: Agent executed write action "${tool}" successfully. Result outcome: ${JSON.stringify(toolResult)}]`;
+      
+      const agentResult = await runAssistantAgent({
+        message: resumeMessage,
+        contextData,
+        userId,
+        accessToken,
+        chatHistory: chatHistory || []
+      });
+
+      res.json(agentResult);
+    } catch (err: any) {
+      console.error("Agent error in POST /api/chat/approve:", err);
+      res.status(500).json({ error: err.message || "Approval execution failed" });
     }
   });
 

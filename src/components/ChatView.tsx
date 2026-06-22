@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "../types";
 import { Send, Sparkles, Trash2, ArrowUpCircle, Check } from "lucide-react";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreChat } from "../lib/hooks";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, query, getDocs, writeBatch, doc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import ReactMarkdown from "react-markdown";
 
@@ -37,6 +37,10 @@ export default function ChatView({ userId }: { userId?: string }) {
   const [activeStreamingReply, setActiveStreamingReply] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Guards against duplicate execution during async state frames
+  const sendingRef = useRef(false);
+  const approvingRef = useRef(false);
+
   const { tasks } = useFirestoreTasks(userId);
   const { events } = useFirestoreEvents(userId);
   const { memoryItems } = useFirestoreMemory(userId);
@@ -56,13 +60,36 @@ export default function ChatView({ userId }: { userId?: string }) {
     scrollToBottom();
   }, [messages, activeStreamingReply]);
 
+  const [executedTools, setExecutedTools] = useState<Array<{ name: string; args: any; result: any }>>([]);
+  const [pendingApproval, setPendingApproval] = useState<any | null>(null);
+
   const handleClearHistory = async () => {
     if (!userId) return;
     try {
       setMessages([]);
       setActiveStreamingReply("");
+      setPendingApproval(null);
+      setExecutedTools([]);
+      
+      // Clear user chat messages in Firestore directly from the authenticated client
+      const q = query(collection(db, `users/${userId}/chatMessages`));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const batch = writeBatch(db);
+        snap.docs.forEach((d) => {
+          batch.delete(doc(db, `users/${userId}/chatMessages`, d.id));
+        });
+        await batch.commit();
+      }
+
+      // Tell the server-side runtime to clear its local in-memory logs
+      await fetch("/api/chat/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId })
+      });
     } catch (err) {
-      console.error(err);
+      console.error("Failed to clear chat history database:", err);
     }
   };
 
@@ -72,14 +99,17 @@ export default function ChatView({ userId }: { userId?: string }) {
 
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim() || loading || !userId) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
 
     const userMessageText = textToSend;
     setUserInput("");
     setLoading(true);
-    setActiveStreamingReply("");
+    setPendingApproval(null);
+    setExecutedTools([]);
 
     try {
-      // First, add the user message to Firestore
+      // 1. Add user message in Firestore to archive history
       await addDoc(collection(db, `users/${userId}/chatMessages`), {
         role: "user",
         content: userMessageText,
@@ -87,146 +117,142 @@ export default function ChatView({ userId }: { userId?: string }) {
         userId
       });
 
-      // Optimistically update chat view with User bubble
-      const userMsg: ChatMessage = {
-        id: "opt-msg-" + Date.now(),
-        role: "user",
-        content: userMessageText,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, userMsg]);
-
-      // Provide context
+      // Provide live state grounding
       const contextData = {
-        tasks: tasks.filter((t) => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"})`).join("\n"),
+        tasks: tasks.filter((t) => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"}, ID: ${t.id})`).join("\n"),
         calendar: events.map((e) => `- ${e.title} at ${e.start} - ${e.end}`).join("\n"),
         memory: memoryItems.map((m) => `- ${m.key}: ${m.value}`).join("\n"),
       };
 
+      const history = messages.slice(-15).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      // 2. Query server-side agentic runtime
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessageText, contextData }),
+        body: JSON.stringify({
+          message: userMessageText,
+          contextData,
+          userId,
+          chatHistory: history
+        }),
       });
 
       if (!response.ok) {
-        throw new Error("API Connection failed.");
+        throw new Error("Terminal agent processor reported an issue.");
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No readable stream support.");
-      }
+      const agentResult = await response.json();
 
-      const decoder = new TextDecoder("utf-8");
-      let completedOutput = "";
+      setExecutedTools(agentResult.toolCallsExecuted || []);
 
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        completedOutput += chunk;
-        setActiveStreamingReply(completedOutput);
-      }
-
-      // Parse and execute potential database trigger tokens
-      const taskRegex = /\[CREATE_TASK:\s*([^\]]+)\]/g;
-      const eventRegex = /\[CREATE_EVENT:\s*([^\]]+)\]/g;
-      const memoryRegex = /\[CREATE_MEMORY:\s*([^\]]+)\]/g;
-
-      let match;
-      while ((match = taskRegex.exec(completedOutput)) !== null) {
-        const parts = match[1].split("|").map(p => p.trim());
-        const title = parts[0] || "New Activity";
-        const description = parts[1] || "";
-        const category = parts[2] || "school";
-        const priority = parts[3] || "medium";
-        const deadline = parts[4] || "";
-
-        try {
-          await addDoc(collection(db, `users/${userId}/tasks`), {
-            title,
-            description,
-            category,
-            priority,
-            deadline,
-            status: "pending",
-            source: "assistant",
-            createdAt: new Date().toISOString(),
-            userId
-          });
-        } catch (e) {
-          console.error("Firestore automatic Task creation failed:", e);
-        }
-      }
-
-      while ((match = eventRegex.exec(completedOutput)) !== null) {
-        const parts = match[1].split("|").map(p => p.trim());
-        const title = parts[0] || "New Event";
-        const description = parts[1] || "";
-        const location = parts[2] || "Vasant Valley School";
-        const start = parts[3] || new Date().toISOString();
-        const end = parts[4] || new Date(Date.now() + 3600000).toISOString();
-
-        try {
-          await addDoc(collection(db, `users/${userId}/calendarEvents`), {
-            title,
-            description,
-            location,
-            start,
-            end,
-            createdAt: new Date().toISOString(),
-            userId
-          });
-        } catch (e) {
-          console.error("Firestore automatic Event creation failed:", e);
-        }
-      }
-
-      while ((match = memoryRegex.exec(completedOutput)) !== null) {
-        const parts = match[1].split("|").map(p => p.trim());
-        const key = parts[0] || "Reminder";
-        const value = parts[1] || "";
-        const category = parts[2] || "general";
-
-        try {
-          await addDoc(collection(db, `users/${userId}/memoryItems`), {
-            key,
-            value,
-            category,
-            createdAt: new Date().toISOString(),
-            userId
-          });
-        } catch (e) {
-          console.error("Firestore automatic Memory Item creation failed:", e);
-        }
-      }
-
-      // Add assistant message to Firestore
+      // 3. Persist the text generation outcome to Firestore
       await addDoc(collection(db, `users/${userId}/chatMessages`), {
         role: "assistant",
-        content: completedOutput,
+        content: agentResult.text,
         timestamp: new Date().toISOString(),
         userId
       });
 
-      setActiveStreamingReply("");
+      if (agentResult.pendingApproval) {
+        setPendingApproval(agentResult.pendingApproval);
+      }
+
     } catch (err: any) {
-      console.error("Stream reader error:", err);
+      console.error("Agent chat failure:", err);
       setMessages((prev) => [
         ...prev,
         {
           id: "err-msg-" + Date.now(),
           role: "assistant",
-          content: "Sorry, I had an issue connecting to the personal assistant server. Please check your config.",
+          content: "Apologies, I encountered an issue synchronising with our server tools. Please retry.",
           timestamp: new Date().toISOString(),
         },
       ]);
-      setActiveStreamingReply("");
     } finally {
       setLoading(false);
+      sendingRef.current = false;
     }
+  };
+
+  const handleApproveAction = async () => {
+    if (!pendingApproval || loading || !userId) return;
+    if (approvingRef.current) return;
+    approvingRef.current = true;
+
+    setLoading(true);
+    const { tool, args } = pendingApproval;
+    setPendingApproval(null);
+
+    try {
+      const contextData = {
+        tasks: tasks.filter((t) => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"}, ID: ${t.id})`).join("\n"),
+        calendar: events.map((e) => `- ${e.title} at ${e.start} - ${e.end}`).join("\n"),
+        memory: memoryItems.map((m) => `- ${m.key}: ${m.value}`).join("\n"),
+      };
+
+      const history = messages.slice(-15).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const response = await fetch("/api/chat/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tool,
+          args,
+          userId,
+          chatHistory: history,
+          contextData
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Verification execution resulted in an error.");
+      }
+
+      const agentResult = await response.json();
+      setExecutedTools((prev) => [...prev, ...(agentResult.toolCallsExecuted || [])]);
+
+      await addDoc(collection(db, `users/${userId}/chatMessages`), {
+        role: "assistant",
+        content: agentResult.text,
+        timestamp: new Date().toISOString(),
+        userId
+      });
+
+    } catch (err: any) {
+      console.error("Verification execution issue:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: "err-approve-" + Date.now(),
+          role: "assistant",
+          content: `I initiated the database modifications, but had a follow-up responder problem: ${err.message}. Please refresh the relevant planner page.`,
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    } finally {
+      setLoading(false);
+      approvingRef.current = false;
+    }
+  };
+
+  const handleCancelAction = () => {
+    setPendingApproval(null);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: "cancel-" + Date.now(),
+        role: "assistant",
+        content: "Draft request cancelled. No database changes were saved.",
+        timestamp: new Date().toISOString()
+      }
+    ]);
   };
 
   return (
@@ -367,6 +393,74 @@ export default function ChatView({ userId }: { userId?: string }) {
                 <div className="w-1.5 h-1.5 rounded-full bg-[#8b857b] animate-bounce" style={{ animationDelay: "0ms" }}></div>
                 <div className="w-1.5 h-1.5 rounded-full bg-[#8b857b] animate-bounce" style={{ animationDelay: "150ms" }}></div>
                 <div className="w-1.5 h-1.5 rounded-full bg-[#8b857b] animate-bounce" style={{ animationDelay: "300ms" }}></div>
+              </div>
+            </div>
+          )}
+
+          {/* Render server-side executed tools log */}
+          {executedTools.length > 0 && (
+            <div className="p-3 bg-[#e8f0ec]/80 border border-[#d1e2da] rounded-xl text-xs space-y-1 max-w-[480px] my-1.5 animate-fadeIn">
+              <p className="font-mono text-[9px] font-bold text-[#2d5a4a] uppercase tracking-wider mb-1">
+                ⚡ Server-Side Actions Executed:
+              </p>
+              {executedTools.map((tool, idx) => (
+                <div key={idx} className="flex items-center gap-1.5 text-[#2d5a4a] text-xs font-serif italic">
+                  <span className="w-1 h-1 rounded-full bg-[#2d5a4a]" />
+                  <span>
+                    {tool.name === "searchCalendar" ? "Searched school schedule database" :
+                     tool.name === "searchTasks" ? "Analyzed pending tasks and workloads" :
+                     tool.name === "searchMemory" ? "Scanned Dimash's preferences & historical profiles" :
+                     tool.name === "summariseEmails" ? "Retrieved and synthesised recent Gmail messages" :
+                     `Executed server action: ${tool.name}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Visual Pending Approval Card */}
+          {pendingApproval && (
+            <div className="p-4 rounded-xl border-2 border-dashed border-[#2d5a4a] bg-[#fdfaf5] shadow-[0_2px_12px_rgba(45,90,74,0.06)] max-w-[450px] my-3 animate-scaleUp">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-[#2d5a4a]" />
+                <span className="font-sans font-bold text-xs text-[#2d5a4a] uppercase tracking-wide">
+                  Pending Verification
+                </span>
+              </div>
+              
+              <p className="text-sm font-serif text-[#1a1612] mb-3 font-semibold leading-snug">
+                {pendingApproval.explanation}
+              </p>
+
+              <div className="p-2.5 bg-[#f3ede2] rounded-lg border border-[#e1d8c6] text-[11px] font-mono space-y-1 mb-4 text-[#4a4540]">
+                <p className="font-bold uppercase text-[9px] tracking-wide text-[#7a756f] border-b border-[#e1d8c6] pb-1">
+                  Parameters validation:
+                </p>
+                {Object.entries(pendingApproval.args || {}).map(([k, v]) => (
+                  <div key={k} className="flex justify-between py-0.5">
+                    <span className="text-[#8b857b] lowercase">{k}:</span>
+                    <span className="font-bold text-[#2d5a4a] max-w-[200px] truncate text-right">{String(v)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleApproveAction}
+                  disabled={loading}
+                  className="flex-1 bg-[#2d5a4a] hover:bg-[#3d7560] text-white py-2 px-3 rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer shadow-sm active:scale-95 duration-100"
+                >
+                  <Check className="w-3.5 h-3.5" /> Confirm and Save
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelAction}
+                  disabled={loading}
+                  className="bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 hover:text-rose-700 py-2 px-3.5 rounded-lg text-xs font-sans font-bold transition-all select-none cursor-pointer"
+                >
+                  Dismiss
+                </button>
               </div>
             </div>
           )}
