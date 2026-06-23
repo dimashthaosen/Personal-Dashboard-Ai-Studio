@@ -9,13 +9,16 @@ import {
   MessageSquare, 
   CornerDownLeft,
   X,
-  Plus
+  Plus,
+  Users
 } from "lucide-react";
 import { 
   useFirestoreTasks, 
   useFirestoreEvents, 
   useFirestoreMemory, 
-  useFirestoreChat 
+  useFirestoreChat,
+  useFirestoreStudents,
+  useFirestoreTimetable
 } from "../lib/hooks";
 import { Email } from "../types";
 
@@ -25,6 +28,12 @@ interface CommandBarProps {
   onClose: () => void;
   onNavigateTab: (tab: string) => void;
   onSendAssistantPrompt?: (prompt: string) => void;
+  onSelectStudent?: (studentId: string) => void;
+  onSelectTask?: (taskId: string) => void;
+  onSelectEvent?: (eventId: string) => void;
+  onSelectMemory?: (memoryId: string) => void;
+  onSelectEmail?: (emailId: string) => void;
+  onSelectChatMessage?: (messageId: string) => void;
 }
 
 export default function CommandBar({ 
@@ -32,7 +41,13 @@ export default function CommandBar({
   isOpen, 
   onClose, 
   onNavigateTab, 
-  onSendAssistantPrompt 
+  onSendAssistantPrompt,
+  onSelectStudent,
+  onSelectTask,
+  onSelectEvent,
+  onSelectMemory,
+  onSelectEmail,
+  onSelectChatMessage
 }: CommandBarProps) {
   const [queryText, setQueryText] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -45,8 +60,10 @@ export default function CommandBar({
   const { events } = useFirestoreEvents(userId);
   const { memoryItems } = useFirestoreMemory(userId);
   const { messages } = useFirestoreChat(userId);
+  const { students } = useFirestoreStudents(userId);
+  const { timetable } = useFirestoreTimetable(userId);
 
-  // Cached Emails from localStorage (polite cache alignment)
+  // Cached Emails from localStorage
   const [cachedEmails, setCachedEmails] = useState<Email[]>([]);
 
   useEffect(() => {
@@ -127,9 +144,27 @@ export default function CommandBar({
       ).slice(0, 2)
     : [];
 
+  const filteredStudents = term
+    ? students.filter(s => 
+        (s.fullName && s.fullName.toLowerCase().includes(term)) ||
+        (s.classSection && s.classSection.toLowerCase().includes(term)) ||
+        (s.subjectCombination && s.subjectCombination.toLowerCase().includes(term))
+      ).slice(0, 4)
+    : [];
+
+  const filteredTimetable = term
+    ? timetable.filter(t => 
+        (t.subject && t.subject.toLowerCase().includes(term)) ||
+        (t.classSection && t.classSection.toLowerCase().includes(term)) ||
+        (t.day && t.day.toLowerCase().includes(term)) ||
+        (t.room && t.room.toLowerCase().includes(term)) ||
+        (t.venue && t.venue.toLowerCase().includes(term))
+      ).slice(0, 3)
+    : [];
+
   // Group all results into a single flat array for keyboard selection index mapping
   interface SearchResultItem {
-    type: "task" | "event" | "memory" | "email" | "chat" | "assistant_action";
+    type: "task" | "event" | "memory" | "email" | "chat" | "assistant_action" | "student" | "timetable";
     id: string;
     title: string;
     subtitle?: string;
@@ -138,92 +173,206 @@ export default function CommandBar({
 
   const resultItems: SearchResultItem[] = [];
 
-  // 1. Tasks
-  filteredTasks.forEach(t => {
-    resultItems.push({
-      type: "task",
-      id: `task-${t.id}`,
-      title: t.title,
-      subtitle: `Status: ${t.status?.toUpperCase() || "PENDING"} · Priority: ${t.priority?.toUpperCase() || "MEDIUM"}`,
-      handler: () => {
-        onNavigateTab("tasks");
-        onClose();
-      }
-    });
-  });
-
-  // 2. Calendar Event
-  filteredEvents.forEach(e => {
-    resultItems.push({
-      type: "event",
-      id: `event-${e.id || e.title}`,
-      title: e.title,
-      subtitle: `Start: ${new Date(e.start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · Location: ${e.location || "School"}`,
-      handler: () => {
-        onNavigateTab("calendar");
-        onClose();
-      }
-    });
-  });
-
-  // 3. Memory Core Bio Constants
-  filteredMemories.forEach(m => {
-    resultItems.push({
-      type: "memory",
-      id: `memory-${m.id}`,
-      title: m.key,
-      subtitle: `Category: ${m.category.toUpperCase().replace("_", " ")}`,
-      handler: () => {
-        onNavigateTab("memory");
-        onClose();
-      }
-    });
-  });
-
-  // 4. Cached Emails
-  filteredEmails.forEach(e => {
-    resultItems.push({
-      type: "email",
-      id: `email-${e.id}`,
-      title: e.subject || "(No Subject)",
-      subtitle: `From: ${e.from} · ${new Date(e.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-      handler: () => {
-        onNavigateTab("email");
-        onClose();
-      }
-    });
-  });
-
-  // 5. Chat History
-  filteredChat.forEach(m => {
-    resultItems.push({
-      type: "chat",
-      id: `chat-${m.id}`,
-      title: m.content.substring(0, 100) + (m.content.length > 100 ? "..." : ""),
-      subtitle: `Chat Msg · Role: ${m.role === "user" ? "You" : "Assistant"}`,
-      handler: () => {
-        onNavigateTab("chat");
-        onClose();
-      }
-    });
-  });
-
-  // 6. Universal Action Builder
-  if (term.length > 2) {
+  if (term === "") {
+    // 1. Interactive Quick Actions Group when empty query
     resultItems.push({
       type: "assistant_action",
-      id: "assistant-trigger-action",
-      title: `Prompt Assistant: "${queryText}"`,
-      subtitle: "Pass query to AI to draft tasks, emails, calendar events, or check syllabus with approvals.",
+      id: "action-add-task",
+      title: "Add task...",
+      subtitle: "Draft a new planner action item using the Assistant",
+      handler: () => {
+        setQueryText("Add task: ");
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+    });
+    resultItems.push({
+      type: "event",
+      id: "action-create-event",
+      title: "Create calendar event...",
+      subtitle: "Schedule a school activity, session, or meeting with the Assistant",
+      handler: () => {
+        setQueryText("Create calendar event: ");
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+    });
+    resultItems.push({
+      type: "email",
+      id: "action-draft-reply",
+      title: "Draft reply...",
+      subtitle: "AI drafts a polite school email response to a student/colleague",
+      handler: () => {
+        setQueryText("Draft reply regarding: ");
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+    });
+    resultItems.push({
+      type: "assistant_action",
+      id: "action-plan-day",
+      title: "Plan my school day",
+      subtitle: "Route to Assistant to synthesize pending tasks and calendar agenda",
       handler: () => {
         if (onSendAssistantPrompt) {
-          onSendAssistantPrompt(queryText);
+          onSendAssistantPrompt("Plan my day based on my calendar and pending tasks");
         } else {
           onNavigateTab("chat");
         }
         onClose();
       }
     });
+    resultItems.push({
+      type: "task",
+      id: "action-show-pending",
+      title: "Show pending tasks",
+      subtitle: "Pass instruction to Assistant to display all outstanding activities",
+      handler: () => {
+        if (onSendAssistantPrompt) {
+          onSendAssistantPrompt("Show my pending tasks");
+        } else {
+          onNavigateTab("chat");
+        }
+        onClose();
+      }
+    });
+  } else {
+    // 2. Populated Search matches
+
+    // A. Tasks
+    filteredTasks.forEach(t => {
+      resultItems.push({
+        type: "task",
+        id: `task-${t.id}`,
+        title: t.title,
+        subtitle: `Status: ${t.status?.toUpperCase() || "PENDING"} | Priority: ${t.priority?.toUpperCase() || "MEDIUM"}`,
+        handler: () => {
+          if (onSelectTask) {
+            onSelectTask(t.id);
+          }
+          onNavigateTab("tasks");
+          onClose();
+        }
+      });
+    });
+
+    // B. Calendar Events
+    filteredEvents.forEach(e => {
+      resultItems.push({
+        type: "event",
+        id: `event-${e.id || e.title}`,
+        title: e.title,
+        subtitle: `Start: ${new Date(e.start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} | Location: ${e.location || "School"}`,
+        handler: () => {
+          if (onSelectEvent) {
+            onSelectEvent(e.id || e.title);
+          }
+          onNavigateTab("calendar");
+          onClose();
+        }
+      });
+    });
+
+    // C. Timetable Entries (deep links to Calendar)
+    filteredTimetable.forEach(t => {
+      resultItems.push({
+        type: "timetable",
+        id: `timetable-${t.id || (t.day + t.period + t.classSection)}`,
+        title: `${t.subject} (Class ${t.classSection}) - Period ${t.period}`,
+        subtitle: `Timetable | ${t.day} | ${t.startTime} - ${t.endTime} | Room: ${t.room || t.venue || "N/A"}`,
+        handler: () => {
+          if (onSelectEvent) {
+            // Trigger calendar to find day of week for this timetable entry
+            onSelectEvent(`tt-virt-${t.day}`);
+          }
+          onNavigateTab("calendar");
+          onClose();
+        }
+      });
+    });
+
+    // D. Memories
+    filteredMemories.forEach(m => {
+      resultItems.push({
+        type: "memory",
+        id: `memory-${m.id}`,
+        title: m.key,
+        subtitle: `Category: ${m.category.toUpperCase().replace("_", " ")}`,
+        handler: () => {
+          if (onSelectMemory) {
+            onSelectMemory(m.id);
+          }
+          onNavigateTab("memory");
+          onClose();
+        }
+      });
+    });
+
+    // E. Emails
+    filteredEmails.forEach(e => {
+      resultItems.push({
+        type: "email",
+        id: `email-${e.id}`,
+        title: e.subject || "(No Subject)",
+        subtitle: `From: ${e.from} | ${new Date(e.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+        handler: () => {
+          if (onSelectEmail) {
+            onSelectEmail(e.id);
+          }
+          onNavigateTab("email");
+          onClose();
+        }
+      });
+    });
+
+    // F. Chat Messages
+    filteredChat.forEach(m => {
+      resultItems.push({
+        type: "chat",
+        id: `chat-${m.id}`,
+        title: m.content.substring(0, 100) + (m.content.length > 100 ? "..." : ""),
+        subtitle: `Chat Msg | Role: ${m.role === "user" ? "You" : "Assistant"}`,
+        handler: () => {
+          if (onSelectChatMessage) {
+            onSelectChatMessage(m.id);
+          }
+          onNavigateTab("chat");
+          onClose();
+        }
+      });
+    });
+
+    // G. Students
+    filteredStudents.forEach(s => {
+      resultItems.push({
+        type: "student",
+        id: `student-${s.id}`,
+        title: s.fullName,
+        subtitle: `Class ${s.classSection} Student | Roll No: ${s.rollNumber || "N/A"}`,
+        handler: () => {
+          if (onSelectStudent && s.id) {
+            onSelectStudent(s.id);
+          }
+          onNavigateTab("students");
+          onClose();
+        }
+      });
+    });
+
+    // H. Universal AI Assistant Action Builder
+    if (term.length > 2) {
+      resultItems.push({
+        type: "assistant_action",
+        id: "assistant-trigger-action",
+        title: `Prompt Assistant: "${queryText}"`,
+        subtitle: "Pass query to AI to draft tasks, emails, calendar events, or check syllabus with approvals.",
+        handler: () => {
+          if (onSendAssistantPrompt) {
+            onSendAssistantPrompt(queryText);
+          } else {
+            onNavigateTab("chat");
+          }
+          onClose();
+        }
+      });
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -241,6 +390,196 @@ export default function CommandBar({
         resultItems[selectedIndex].handler();
       }
     }
+  };
+
+  // Render results list grouped visually
+  const renderResults = () => {
+    if (queryText.trim() === "") {
+      // Show interactive quick actions list
+      return (
+        <div className="space-y-3 p-1">
+          <div className="px-2 pb-1.5 pt-1 text-[10px] font-mono font-bold text-[#2d5a4a] border-b border-[#ece6db] uppercase tracking-wider flex items-center gap-1.5 select-none">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Interactive Quick Actions</span>
+          </div>
+
+          <div className="space-y-0.5">
+            {resultItems.map((item, index) => {
+              const isActive = index === selectedIndex;
+              const IconComponent = {
+                task: ClipboardList,
+                event: Calendar,
+                timetable: Calendar,
+                memory: Brain,
+                email: Mail,
+                chat: MessageSquare,
+                assistant_action: Sparkles,
+                student: Users
+              }[item.type] || Sparkles;
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    setSelectedIndex(index);
+                    item.handler();
+                  }}
+                  className={`flex items-start gap-3.5 p-3 rounded-[12px] transition-all cursor-pointer select-none ${
+                    isActive 
+                      ? "bg-[#2d5a4a]/10 text-ink-950 shadow-sm border-l-[4px] border-[#2d5a4a] pl-[10px]" 
+                      : "hover:bg-[#ece6db]/40 text-ink-700"
+                  }`}
+                >
+                  <IconComponent className={`w-4.5 h-4.5 mt-0.5 flex-shrink-0 ${
+                    isActive ? "text-[#2d5a4a]" : "text-ink-400"
+                  }`} />
+                  
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className={`text-xs ${isActive ? "font-serif font-bold text-[#2d5a4a]" : "font-serif font-normal"}`}>
+                      {item.title}
+                    </p>
+                    {item.subtitle && (
+                      <p className="text-[10px] font-mono text-[#8b857b] truncate uppercase tracking-tight">
+                        {item.subtitle}
+                      </p>
+                    )}
+                  </div>
+
+                  {isActive && (
+                    <span className="flex items-center gap-1 text-[8px] font-mono font-bold text-[#2d5a4a] tracking-wider uppercase select-none self-center bg-[#2d5a4a]/10 px-1.5 py-0.5 rounded">
+                      <CornerDownLeft className="w-2.5 h-2.5" />
+                      RUN
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-4 pb-2 px-2 text-center select-none space-y-2">
+            <p className="text-[11px] font-serif italic text-[#8b857b]">
+              Need help? Search the database or let the Assistant do the heavy lifting!
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ece6db]/55 text-[#4a4540]">
+                "Show pending Class 9 tasks"
+              </span>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ece6db]/55 text-[#4a4540]">
+                "Find grading style memory"
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (resultItems.length === 0) {
+      return (
+        <div className="py-12 px-4 text-center select-none space-y-2 text-[#8b857b]/80">
+          <p className="font-serif italic text-xs">No local records match &ldquo;{queryText}&rdquo;.</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (onSendAssistantPrompt) {
+                onSendAssistantPrompt(queryText);
+              } else {
+                onNavigateTab("chat");
+              }
+              onClose();
+            }}
+            className="inline-flex items-center gap-1 bg-[#2d5a4a] text-white font-mono text-[10px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-md hover:bg-[#3a7560] cursor-pointer animate-fadeIn"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Ask Assistant Instantly
+          </button>
+        </div>
+      );
+    }
+
+    // Explicit group configurations
+    const categories = [
+      { id: "tasks", label: "Tasks", types: ["task"] },
+      { id: "calendar", label: "Calendar & Timetable", types: ["event", "timetable"] },
+      { id: "memory", label: "Memory Bio", types: ["memory"] },
+      { id: "emails", label: "Faculty Email Cache", types: ["email"] },
+      { id: "chat", label: "Assistant Chat History", types: ["chat"] },
+      { id: "students", label: "Student Registry", types: ["student"] },
+      { id: "assistant_action", label: "Assistant Intelligent Action", types: ["assistant_action"] },
+    ];
+
+    return (
+      <div className="space-y-4 animate-fadeIn">
+        {categories.map((cat) => {
+          const catItems = resultItems.filter(item => cat.types.includes(item.type));
+          if (catItems.length === 0) return null;
+
+          return (
+            <div key={cat.id} className="space-y-1">
+              <div className="px-2 text-[10px] font-mono font-bold text-[#8b857b] uppercase tracking-wider mb-1.5 select-none border-b border-[#ece6db]/60 pb-1 flex items-center justify-between">
+                <span>{cat.label}</span>
+                <span className="text-[9px] font-normal text-[#8b857b]/65 lowercase">
+                  ({catItems.length} match{catItems.length > 1 ? "es" : ""})
+                </span>
+              </div>
+
+              <div className="space-y-0.5">
+                {catItems.map((item) => {
+                  const globalIndex = resultItems.findIndex(x => x.id === item.id);
+                  const isActive = globalIndex === selectedIndex;
+                  const IconComponent = {
+                    task: ClipboardList,
+                    event: Calendar,
+                    timetable: Calendar,
+                    memory: Brain,
+                    email: Mail,
+                    chat: MessageSquare,
+                    assistant_action: Sparkles,
+                    student: Users
+                  }[item.type] || Sparkles;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        setSelectedIndex(globalIndex);
+                        item.handler();
+                      }}
+                      className={`flex items-start gap-3.5 p-2.5 rounded-lg transition-all cursor-pointer select-none ${
+                        isActive 
+                          ? "bg-[#2d5a4a]/10 text-ink-950 shadow-sm border-l-[3px] border-[#2d5a4a] pl-[9px]" 
+                          : "hover:bg-[#ece6db]/40 text-ink-700"
+                      }`}
+                    >
+                      <IconComponent className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                        isActive ? "text-[#2d5a4a]" : "text-ink-400"
+                      }`} />
+                      
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <p className={`text-xs ${isActive ? "font-serif font-bold text-[#2d5a4a]" : "font-serif font-normal"}`}>
+                          {item.title}
+                        </p>
+                        {item.subtitle && (
+                          <p className="text-[10px] font-mono text-[#8b857b] truncate uppercase tracking-tight">
+                            {item.subtitle}
+                          </p>
+                        )}
+                      </div>
+
+                      {isActive && (
+                        <span className="flex items-center gap-1 text-[8px] font-mono font-bold text-[#2d5a4a] tracking-wider uppercase select-none self-center bg-[#2d5a4a]/10 px-1.5 py-0.5 rounded">
+                          <CornerDownLeft className="w-2.5 h-2.5" />
+                          RUN
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -277,109 +616,15 @@ export default function CommandBar({
         </div>
 
         {/* Results view */}
-        <div className="max-h-[380px] overflow-y-auto p-2 space-y-2">
-          {queryText.trim() === "" ? (
-            <div className="py-8 px-4 text-center select-none space-y-3.5">
-              <Sparkles className="w-6 h-6 text-[#2d5a4a] mx-auto animate-pulse" />
-              <div className="space-y-1">
-                <p className="text-xs font-serif italic text-ink-405">
-                  Type to search. Need action? Try typing:
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1.5">
-                  <span className="text-[10px] font-mono px-2 py-1 rounded bg-[#ece6db]/40 text-[#4a4540]">
-                    &quot;Show pending Class 9 tasks&quot;
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-1 rounded bg-[#ece6db]/40 text-[#4a4540]">
-                    &quot;Find grading style memory&quot;
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-1 rounded bg-[#ece6db]/40 text-[#4a4540]">
-                    &quot;Add task to follow up with Anita&quot;
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : resultItems.length === 0 ? (
-            <div className="py-12 px-4 text-center select-none space-y-2 text-[#8b857b]/80">
-              <p className="font-serif italic text-xs">No local records match &ldquo;{queryText}&rdquo;.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onSendAssistantPrompt) {
-                    onSendAssistantPrompt(queryText);
-                  } else {
-                    onNavigateTab("chat");
-                  }
-                  onClose();
-                }}
-                className="inline-flex items-center gap-1 bg-[#2d5a4a] text-white font-mono text-[10px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-md hover:bg-[#3a7560] cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Ask Assistant Instantly
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <div className="px-2 text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider mb-1.5 select-none">
-                Grouped Matches ({resultItems.length})
-              </div>
-              
-              {resultItems.map((item, index) => {
-                const isActive = index === selectedIndex;
-                const IconComponent = {
-                  task: ClipboardList,
-                  event: Calendar,
-                  memory: Brain,
-                  email: Mail,
-                  chat: MessageSquare,
-                  assistant_action: Sparkles
-                }[item.type];
-
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => {
-                      setSelectedIndex(index);
-                      item.handler();
-                    }}
-                    className={`flex items-start gap-3.5 p-3 rounded-lg transition-all cursor-pointer select-none ${
-                      isActive 
-                        ? "bg-[#2d5a4a]/10 text-ink-950 shadow-sm border-l-[3px] border-[#2d5a4a] pl-[9px]" 
-                        : "hover:bg-[#ece6db]/40 text-ink-700"
-                    }`}
-                  >
-                    <IconComponent className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                      isActive ? "text-[#2d5a4a]" : "text-ink-400"
-                    }`} />
-                    
-                    <div className="flex-1 min-w-0 space-y-0.5">
-                      <p className={`text-xs ${isActive ? "font-serif font-bold" : "font-serif font-normal"}`}>
-                        {item.title}
-                      </p>
-                      {item.subtitle && (
-                        <p className="text-[10px] font-mono text-[#8b857b] truncate uppercase tracking-tight">
-                          {item.subtitle}
-                        </p>
-                      )}
-                    </div>
-
-                    {isActive && (
-                      <span className="flex items-center gap-1 text-[8px] font-mono font-bold text-[#2d5a4a] tracking-wider uppercase select-none self-center bg-[#2d5a4a]/10 px-1.5 py-0.5 rounded">
-                        <CornerDownLeft className="w-2.5 h-2.5" />
-                        RUN
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <div className="max-h-[380px] overflow-y-auto p-2 space-y-2 pristine-scrollbar">
+          {renderResults()}
         </div>
 
         {/* Dynamic keyboard guidelines */}
         <div className="px-4.5 py-2.5 bg-[#f3ede2] text-[10px] font-mono text-[#8b857b] border-t border-[#ece6db] flex items-center justify-between select-none">
           <div className="flex items-center gap-3">
-            <span>↑↓ ARROWS TO NAVIGATE</span>
-            <span className="text-[#8b857b]/50">·</span>
+            <span>UP/DOWN TO NAVIGATE</span>
+            <span className="text-[#8b857b]/50">|</span>
             <span>ENTER TO RUN</span>
           </div>
           <span>CTRL+K TO TOGGLE</span>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CalendarEvent } from "../types";
 import { 
   Calendar, 
@@ -16,20 +16,80 @@ import {
   Zap,
   Activity
 } from "lucide-react";
-import { useFirestoreEvents, useFirestoreTasks } from "../lib/hooks";
+import { useFirestoreEvents, useFirestoreTasks, useFirestoreTimetable } from "../lib/hooks";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "motion/react";
 
-export default function CalendarView({ userId }: { userId?: string }) {
+export default function CalendarView({ 
+  userId,
+  initialSelectedEventId,
+  onClearInitialEventId
+}: { 
+  userId?: string;
+  initialSelectedEventId?: string | null;
+  onClearInitialEventId?: () => void;
+}) {
   const { events, loading } = useFirestoreEvents(userId);
   const { tasks } = useFirestoreTasks(userId);
+  const { timetable } = useFirestoreTimetable(userId);
 
   // Calendar View Mode: 'month' | 'week' | 'day'
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<"agenda" | "intelligence">("agenda");
+
+  // Handle deep-linked calendar event selection
+  useEffect(() => {
+    if (initialSelectedEventId) {
+      // 1. Check custom user events first
+      const customEvt = events.find(e => e.id === initialSelectedEventId);
+      if (customEvt) {
+        setSelectedDate(new Date(customEvt.start));
+        setViewMode("day");
+        
+        setTimeout(() => {
+          const element = document.getElementById(`cal-event-${initialSelectedEventId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 300);
+
+        if (onClearInitialEventId) {
+          setTimeout(onClearInitialEventId, 1000);
+        }
+        return;
+      }
+
+      // 2. Check virtual timetable events or formatted timetable identifiers
+      if (initialSelectedEventId.startsWith("tt-") || initialSelectedEventId.startsWith("timetable-")) {
+        const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+        const lowerId = initialSelectedEventId.toLowerCase();
+        const matchedDay = days.find(d => lowerId.includes(d));
+        if (matchedDay) {
+          const targetDayIdx = days.indexOf(matchedDay) + 1; // 1 = Monday, ..., 7 = Sunday
+          const d = new Date();
+          const currentDayIdx = d.getDay() === 0 ? 7 : d.getDay(); // Map Sunday to 7
+          const diff = targetDayIdx - currentDayIdx;
+          d.setDate(d.getDate() + diff);
+          setSelectedDate(d);
+          setViewMode("day");
+
+          setTimeout(() => {
+            const element = document.getElementById(`cal-event-${initialSelectedEventId}`);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 300);
+
+          if (onClearInitialEventId) {
+            setTimeout(onClearInitialEventId, 1000);
+          }
+        }
+      }
+    }
+  }, [initialSelectedEventId, events, onClearInitialEventId]);
 
   // Create event State
   const [eventTitle, setEventTitle] = useState("");
@@ -129,10 +189,52 @@ export default function CalendarView({ userId }: { userId?: string }) {
     return days;
   };
 
+  // Helper to convert timetable entries to virtual CalendarEvents for a given date
+  const getVirtualEventsForDate = (date: Date) => {
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    const dayTimetable = timetable.filter(
+      (e) => e.day.toLowerCase() === dayName.toLowerCase()
+    );
+
+    return dayTimetable.map((t) => {
+      // Parse timing strings like "8:10 am" to standard Date times
+      const parseTimeStr = (timeStr: string) => {
+        const match = timeStr.match(/(\d+):(\d+)\s*(am|pm)/i);
+        if (!match) return { hours: 0, minutes: 0 };
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const ampm = match[3].toLowerCase();
+        if (ampm === "pm" && hours < 12) hours += 12;
+        if (ampm === "am" && hours === 12) hours = 0;
+        return { hours, minutes };
+      };
+
+      const startMeta = parseTimeStr(t.startTime);
+      const endMeta = parseTimeStr(t.endTime);
+
+      const startD = new Date(date);
+      startD.setHours(startMeta.hours, startMeta.minutes, 0, 0);
+
+      const endD = new Date(date);
+      endD.setHours(endMeta.hours, endMeta.minutes, 0, 0);
+
+      return {
+        id: `tt-virt-${t.day}-${t.period}-${t.classSection}`,
+        title: `${t.subject} (Class ${t.classSection})`,
+        start: startD.toISOString(),
+        end: endD.toISOString(),
+        location: t.room || t.venue || "",
+        description: `Source: Time Table | Period: ${t.period} | Teacher Code: ${t.teacherCode}`,
+        isTimetableVirtual: true,
+      } as CalendarEvent;
+    });
+  };
+
   // Filter events for the exact selected day
-  const filteredEventsForDay = events.filter((evt) => {
-    return isSameDay(new Date(evt.start), selectedDate);
-  });
+  const filteredEventsForDay = [
+    ...events.filter((evt) => isSameDay(new Date(evt.start), selectedDate)),
+    ...getVirtualEventsForDate(selectedDate)
+  ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
   // Dynamic header titles depending on view mode
   const getHeaderTitle = () => {
@@ -145,7 +247,7 @@ export default function CalendarView({ userId }: { userId?: string }) {
       const endDay = days[6].toLocaleDateString("en-GB", { day: "numeric" });
       const endMonth = days[6].toLocaleDateString("en-GB", { month: "short" });
       const endYear = days[6].toLocaleDateString("en-GB", { year: "numeric" });
-      return `Week of ${startDay} ${startMonth} – ${endDay} ${endMonth} ${endYear}`;
+      return `Week of ${startDay} ${startMonth} - ${endDay} ${endMonth} ${endYear}`;
     } else {
       return selectedDate.toLocaleDateString("en-GB", {
         weekday: "long",
@@ -368,8 +470,17 @@ export default function CalendarView({ userId }: { userId?: string }) {
                       minute: "2-digit",
                     });
 
+                    const isSelected = event.id === initialSelectedEventId;
                     return (
-                      <div key={event.id} className="relative group">
+                      <div 
+                        key={event.id} 
+                        id={`cal-event-${event.id}`}
+                        className={`relative group p-3 rounded-[12px] transition-all ${
+                          isSelected 
+                            ? "bg-amber-100/40 border border-amber-300/65 ring-2 ring-amber-400/20 pl-4" 
+                            : "hover:bg-[#ece6db]/25"
+                        }`}
+                      >
                         
                         {/* Circle node indicator */}
                         <span className="absolute -left-[32px] top-1.5 w-3 h-3 rounded-full border-2 border-[#f5f1e8] bg-[#2d5a4a]" />
@@ -377,7 +488,7 @@ export default function CalendarView({ userId }: { userId?: string }) {
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 text-[9px] font-mono text-[#2d5a4a] font-bold uppercase tracking-wider">
                             <Clock className="w-3.5 h-3.5" />
-                            <span>{startFormatted} – {endFormatted}</span>
+                            <span>{startFormatted} - {endFormatted}</span>
                           </div>
 
                           <h4 className="font-serif font-bold text-sm text-[#1a1612]">
@@ -426,7 +537,10 @@ export default function CalendarView({ userId }: { userId?: string }) {
                     {/* Standard Gregorian Grid Cells */}
                     <div className="grid grid-cols-7 gap-1 bg-[#ece6db]/30 rounded-lg p-0.5" id="month-view-grid">
                       {getDaysInMonthCalendar(selectedDate).map((day, dIdx) => {
-                        const dayEvents = events.filter((evt) => isSameDay(new Date(evt.start), day));
+                        const dayEvents = [
+                          ...events.filter((evt) => isSameDay(new Date(evt.start), day)),
+                          ...getVirtualEventsForDate(day)
+                        ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
                         const isCurrentMonth = day.getMonth() === selectedDate.getMonth();
                         const isSelected = isSameDay(day, selectedDate);
                         const isToday = isSameDay(day, new Date());
@@ -554,7 +668,10 @@ export default function CalendarView({ userId }: { userId?: string }) {
                   <div className="space-y-4" id="weekly-calendar-container">
                     <div className="grid grid-cols-1 md:grid-cols-7 gap-3" id="week-view-grid">
                       {getDaysOfWeek(selectedDate).map((day, wIdx) => {
-                        const dayEvents = events.filter((evt) => isSameDay(new Date(evt.start), day));
+                        const dayEvents = [
+                          ...events.filter((evt) => isSameDay(new Date(evt.start), day)),
+                          ...getVirtualEventsForDate(day)
+                        ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
                         const isSelected = isSameDay(day, selectedDate);
                         const isToday = isSameDay(day, new Date());
 
@@ -696,7 +813,7 @@ export default function CalendarView({ userId }: { userId?: string }) {
                                 className="p-3 rounded-xl bg-[#f5efe4] border border-[#e1d8c6] hover:border-[#2d5a4a]/40 transition-all space-y-1.5"
                               >
                                 <span className="font-mono text-[8px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1.5 py-0.5 rounded uppercase tracking-wider block w-max">
-                                  {startStr} – {endStr}
+                                  {startStr} - {endStr}
                                 </span>
                                 <h4 className="font-sans font-bold text-xs text-[#1a1612] leading-tight">
                                   {evt.title}
@@ -865,7 +982,7 @@ export default function CalendarView({ userId }: { userId?: string }) {
                                     title={`${fp.start} - ${fp.end}`}
                                     className="px-2 py-1 text-[9px] font-mono font-bold text-[#2d5a4a] bg-[#e8f0ec] rounded border border-[#d2e3da]"
                                   >
-                                    {fp.name === "Break" ? "Break ☕" : `${fp.name} Period`}
+                                    {fp.name === "Break" ? "Break" : `${fp.name} Period`}
                                   </span>
                                 ))}
                               </div>
@@ -916,7 +1033,10 @@ export default function CalendarView({ userId }: { userId?: string }) {
                         {(() => {
                           const daysOfWeek = getDaysOfWeek(selectedDate);
                           const metrics = daysOfWeek.map((day) => {
-                            const dayEvents = events.filter((evt) => isSameDay(new Date(evt.start), day));
+                            const dayEvents = [
+                              ...events.filter((evt) => isSameDay(new Date(evt.start), day)),
+                              ...getVirtualEventsForDate(day)
+                            ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
                             let totalMinutes = 0;
                             dayEvents.forEach((evt) => {
                               const s = new Date(evt.start);
@@ -948,7 +1068,7 @@ export default function CalendarView({ userId }: { userId?: string }) {
                                         {m.dayName.toUpperCase()} {m.dateNum}
                                       </span>
                                       <span className={`font-bold uppercase ${isHeavy ? "text-redpen" : "text-[#2d5a4a]"}`}>
-                                        {roundedHours} hrs {isHeavy ? "🔥 High" : "Balanced"}
+                                        {roundedHours} hrs {isHeavy ? "High" : "Balanced"}
                                       </span>
                                     </div>
                                     {/* Progress meter gutter */}

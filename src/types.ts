@@ -68,3 +68,93 @@ export interface TeacherUser {
   isGoogle?: boolean;
   userId?: string;
 }
+
+export interface StudentSourceEvidence {
+  fileName: string;
+  snippet: string;
+  field?: string;
+}
+
+export interface StudentRecord {
+  id?: string;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  classSection: string;
+  rollNumber?: string;
+  admissionNumber?: string;
+  subjects: string[];
+  subjectCombination?: string;
+  stream?: string;
+  sociologyStudent: boolean;
+  orientationGroup?: string;
+  house?: string;
+  email?: string;
+  phone?: string;
+  parentName?: string;
+  parentContact?: string;
+  notes?: string;
+  specialisation?: string;
+  comments?: string;
+  sourceFiles: string[];
+  sourceEvidence: string[]; // Keep as string[] as per requested fields, or string represented snippets
+  confidence: "high" | "medium" | "low";
+  needsReview: boolean;
+  reviewReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  userId?: string;
+}
+
+export interface StudentConflict {
+  field: string;
+  valueStored: any;
+  valueIncoming: any;
+  resolved: boolean;
+}
+
+export interface StudentImportPreview {
+  records: StudentRecord[];
+  duplicates: StudentRecord[];
+  mergedCount: number;
+  newCount: number;
+}
+
+export interface TimetableEntry {
+  id?: string;
+  teacherName: string;
+  teacherCode: string;
+  department?: string;
+  subject: string;
+  classSection: string;
+  day: string; // Monday - Friday
+  period: string; // LESSON 1 - 9, Dispersal, etc.
+  startTime: string;
+  endTime: string;
+  venue?: string;
+  room?: string;
+  sourceFile: string;
+  sourcePage?: number;
+  originalText?: string;
+  confidence: "high" | "medium" | "low";
+  needsReview: boolean;
+  reviewReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  userId?: string;
+}
+
+export interface TimetableImportPreview {
+  records: TimetableEntry[];
+  duplicates: TimetableEntry[];
+  newCount: number;
+  duplicateCount: number;
+}
+
+export interface TimetableConflict {
+  type: "overlap" | "duplicate" | "clash";
+  description: string;
+  entries: TimetableEntry[];
+}
+
+

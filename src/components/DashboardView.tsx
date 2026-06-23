@@ -3,7 +3,7 @@ import { Email, DailyPlan } from "../types";
 import { AlertCircle, Calendar, Clock, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory } from "../lib/hooks";
+import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreStudents, useFirestoreTimetable } from "../lib/hooks";
 import { getCachedEmails, saveCachedEmails } from "./EmailView";
 
 interface DashboardViewProps {
@@ -16,6 +16,13 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
   const { tasks, loading: loadingTasks } = useFirestoreTasks(userId);
   const { events, loading: loadingEvents } = useFirestoreEvents(userId);
   const { memoryItems } = useFirestoreMemory(userId);
+  const { students } = useFirestoreStudents(userId);
+  const { timetable } = useFirestoreTimetable(userId);
+
+  const totalStudentsCount = students.length;
+  const class11ACount = students.filter(s => s.classSection === "11A").length;
+  const sociologyCount = students.filter(s => s.sociologyStudent).length;
+  const needsReviewCount = students.filter(s => s.needsReview).length;
 
   const [emails, setEmails] = useState<Email[]>(() => {
     try {
@@ -90,7 +97,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
       tasks: tasks.filter(t => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"})`).join("\n"),
       emails: emails.map((e) => `- From ${e.fromName} (${e.category}): "${e.subject}" (${e.snippet.substring(0, 100)}...) Needs reply? ${e.needsReply}`).join("\n"),
       calendar: events.map((e) => `- ${e.title} at ${new Date(e.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} - ${new Date(e.end).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`).join("\n"),
-      memory: memoryItems.map((m) => `- ${m.key}: ${m.value}`).join("\n"),
+      memory: memoryItems.filter(m => !m.doNotUseAutomatically).map((m) => `- ${m.key}: ${m.value}`).join("\n"),
     };
 
     try {
@@ -137,7 +144,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
       type: "tasks" as const,
       title: t.title,
       badge: t.priority.toUpperCase(),
-      subtitle: `Task • ${t.category.toUpperCase()}`,
+      subtitle: `Task | ${t.category.toUpperCase()}`,
       badgeBg: t.priority === "urgent" ? "bg-[#f7e4e1] text-[#b83232] border-[#e3c4be]" : "bg-[#fcf3e8] text-[#b8860b] border-[#eed8b3]",
     })),
     ...unreadReplies.map((e) => ({
@@ -146,7 +153,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
       type: "emails" as const,
       title: e.subject,
       badge: "REPLY NEEDED",
-      subtitle: `Email from • ${e.fromName}`,
+      subtitle: `Email from | ${e.fromName}`,
       badgeBg: "bg-[#e8f0ec] text-[#2d5a4a] border-[#d2e3da]",
     }))
   ].filter(item => !dismissedAlerts.includes(item.id)).slice(0, 5); // STRICTLY limit to 4-5 important ones
@@ -171,6 +178,44 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     }
   };
 
+  const todayDayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todayTimetable = timetable.filter(
+    (e) => e.day.toLowerCase() === todayDayName.toLowerCase()
+  );
+
+  const mappedTimetableToday = todayTimetable.map((t) => ({
+    id: `tt-${t.day}-${t.period}`,
+    title: `${t.subject} (Class ${t.classSection})`,
+    start: t.startTime,
+    isTimetable: true,
+    venue: t.room || t.venue || "Classroom",
+  }));
+
+  const mappedCalendarToday = todayEvents.map((evt) => ({
+    id: evt.id,
+    title: evt.title,
+    start: formatTimeLabel(evt.start),
+    isTimetable: false,
+    venue: evt.location || "",
+  }));
+
+  const combinedTodaySlots = [
+    ...mappedTimetableToday,
+    ...mappedCalendarToday,
+  ].sort((a, b) => {
+    const parseTime = (timeStr: string) => {
+      const match = timeStr.match(/(\d+):(\d+)\s*(am|pm)/i);
+      if (!match) return 0;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toLowerCase();
+      if (ampm === "pm" && hours < 12) hours += 12;
+      if (ampm === "am" && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    };
+    return parseTime(a.start) - parseTime(b.start);
+  });
+
   const displayDateStr = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -185,12 +230,12 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
         <p className="font-mono text-[10px] tracking-[0.16em] text-[#7a756f] uppercase font-bold">DAILY JOURNAL</p>
         <h2 className="font-serif text-3xl font-normal text-[#1a1612] mt-1.5">{displayDateStr}</h2>
         <p className="font-serif italic text-xs text-[#4a4540] mt-1 pl-0.5">
-          “The silent half of teaching is planning the next day with quiet composure.”
+          "The silent half of teaching is planning the next day with quiet composure."
         </p>
       </div>
 
-      {/* Three overview cards (equal columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Two overview cards (equal columns) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Needs Attention Overview card */}
         <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 relative overflow-hidden">
@@ -302,38 +347,125 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
           </div>
         </div>
 
-        {/* Timetable Overview Card */}
-        <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-serif font-bold text-sm text-[#1a1612] flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#2d5a4a] stroke-[1.8]" />
-              Timetable
-            </h3>
-            <span className="font-mono text-[9px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-full leading-none">
-              {todayEvents.length} {todayEvents.length === 1 ? "Slot" : "Slots"}
-            </span>
-          </div>
+      </div>
 
-          <div className="space-y-3.5 pt-1">
-            {loadingEvents ? (
-              <p className="font-sans text-xs text-[#8b857b]">Loading periods...</p>
-            ) : todayEvents.length === 0 ? (
-              <p className="font-sans italic text-xs text-[#8b857b]">No active slots scheduled for today.</p>
-            ) : (
-              todayEvents.map((evt) => (
-                <div key={evt.id} className="flex items-center gap-3.5 text-xs">
-                  <span className="font-mono text-[9px] text-[#2d5a4a] font-bold tracking-wider uppercase bg-[#e8f0ec] border border-[#d2e3da] rounded px-2 py-0.5 whitespace-nowrap">
-                    {formatTimeLabel(evt.start)}
-                  </span>
-                  <p className="font-sans text-ink-700 truncate leading-snug" title={evt.title}>
-                    {evt.title}
-                  </p>
-                </div>
-              ))
-            )}
+      {/* Today's Timetable Grid Row */}
+      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
+        <div className="flex items-center justify-between border-b border-[#ece6db] pb-3">
+          <div className="flex items-center gap-2">
+            <span className="font-serif font-black text-xs text-[#2d5a4a] bg-[#e8f0ec] px-2 py-0.5 rounded border border-[#d2e3da]">
+              TODAY'S SCHEDULE
+            </span>
+            <h3 className="font-serif font-bold text-sm text-[#1a1612] truncate">
+              {todayDayName}'s Teaching & Periods Flow
+            </h3>
           </div>
+          <button
+            onClick={() => onNavigate("timetable")}
+            className="font-mono text-[9px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-2 py-0.5 rounded-[6px] transition-all focus:outline-none"
+          >
+            Manage Timetable →
+          </button>
         </div>
 
+        {timetable.length === 0 ? (
+          <div className="flex items-center justify-between py-2 text-xs text-[#8b857b] italic font-serif">
+            <span>Your weekly school timetable has not been loaded yet.</span>
+            <button
+              onClick={() => onNavigate("timetable")}
+              className="text-[#2d5a4a] font-mono text-[10px] font-bold uppercase tracking-wider"
+            >
+              Parse PDF Data →
+            </button>
+          </div>
+        ) : todayDayName === "Saturday" || todayDayName === "Sunday" ? (
+          <div className="py-8 text-center bg-white border border-[#e1d8c6] rounded-xl">
+            <p className="font-serif italic text-xs text-[#8b857b]">
+              It's the weekend! No teaching or periods are scheduled for today ({todayDayName}).
+            </p>
+            <button
+              onClick={() => onNavigate("timetable")}
+              className="mt-3 font-mono text-[9px] text-[#2d5a4a] border border-[#d2e3da] px-3 py-1 rounded-[6px] hover:bg-[#2d5a4a] hover:text-white transition-all"
+            >
+              View Full Weekly Timetable
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+            {[
+              { label: "LESSON 1", startTime: "8:10 am" },
+              { label: "LESSON 2", startTime: "8:50 am" },
+              { label: "LESSON 3", startTime: "9:45 am" },
+              { label: "LESSON 4", startTime: "10:25 am" },
+              { label: "LESSON 5", startTime: "11:15 am" },
+              { label: "LESSON 6", startTime: "11:53 am" },
+              { label: "LESSON 7", startTime: "12:31 pm" },
+              { label: "LESSON 8", startTime: "1:45 pm" },
+              { label: "LESSON 9", startTime: "2:23 pm" },
+            ].map((period) => {
+              const cell = timetable.find(
+                (entry) =>
+                  entry.day.toLowerCase() === todayDayName.toLowerCase() &&
+                  entry.period.toUpperCase().includes(period.label.toUpperCase())
+              );
+
+              return (
+                <div
+                  key={period.label}
+                  className={`flex flex-col justify-between border rounded-xl p-3 min-h-[110px] transition-all duration-200 hover:shadow-sm ${
+                    cell
+                      ? cell.needsReview
+                        ? "bg-amber-50/40 border-amber-200 hover:bg-amber-50/70"
+                        : "bg-[#e8f0ec]/50 border-[#cbe3d6] hover:bg-[#e8f0ec]/80"
+                      : "bg-white/40 border-dashed border-[#e1d8c6] hover:bg-white/80"
+                  }`}
+                >
+                  {/* Top segment: timing / period */}
+                  <div className="border-b border-[#ece6db]/50 pb-1.5 mb-1.5 flex justify-between items-center">
+                    <span className="font-mono text-[8px] font-bold text-[#8b857b]">
+                      L{period.label.split(" ")[1]}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#8b857b]">
+                      {period.startTime}
+                    </span>
+                  </div>
+
+                  {/* Middle segment: content or free state */}
+                  <div className="flex-1 flex flex-col justify-center">
+                    {cell ? (
+                      <div className="space-y-0.5">
+                        <p className="font-sans font-bold text-[11px] text-ink-900 leading-tight line-clamp-2" title={cell.subject}>
+                          {cell.subject}
+                        </p>
+                        <p className="font-mono text-[8px] text-ink-500 font-semibold leading-none">
+                          Class {cell.classSection}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-1">
+                        <span className="font-sans italic text-[10px] text-[#b1aaa0] tracking-wide">
+                          Free Period
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom segment: room & teacher code */}
+                  {cell && (
+                    <div className="border-t border-[#ece6db]/50 pt-1.5 mt-1.5 flex items-center justify-between text-[8px] font-mono text-[#8b857b]">
+                      <span className="truncate max-w-[50px]" title={cell.room || cell.venue}>
+                        {cell.room || cell.venue || "Room"}
+                      </span>
+                      <span className="uppercase text-[7px] bg-black/5 px-1 py-0.5 rounded font-bold leading-none">
+                        {cell.teacherCode}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Two lower cards (left ≈1fr, right ≈1.1fr) */}

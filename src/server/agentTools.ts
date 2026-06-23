@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
 import path from "path";
 import { schoolEvents } from "../data/schoolEvents.js";
+import { SEED_STUDENTS } from "../data/studentsData.js";
 import { generateContentText, generateLessonPlan as aiGenerateLessonPlan } from "./ai.js";
 import { db } from "./db.js";
 import { fetchGmailEmails } from "./gmail.js";
@@ -198,6 +199,50 @@ export const TOOL_DECLARATIONS = [
         customSourceMaterial: { type: "STRING", description: "Any custom source text, document excerpts, or references to align with" }
       },
       required: ["courseId", "week", "lessonsPerWeek", "pedagogicalMix", "languageTone", "topic"]
+    }
+  },
+  {
+    name: "searchStudents",
+    description: "Searches or filters students in the Class Student Database. (Read-only, executes automatically)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: { type: "STRING", description: "Search keyword matching name or subjects" },
+        classSection: { type: "STRING", description: "Filter by specific class section, e.g. '11A', '11B', '11C'" },
+        sociologyOnly: { type: "BOOLEAN", description: "Filter to only sociology students" },
+        needsReviewOnly: { type: "BOOLEAN", description: "Filter to only records flagged as needing review" }
+      }
+    }
+  },
+  {
+    name: "getStudentProfile",
+    description: "Retrieves a specific student's detailed dashboard profile including contact, electives, sources, and conflicts.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        fullName: { type: "STRING", description: "Full name of the student" }
+      },
+      required: ["fullName"]
+    }
+  },
+  {
+    name: "summariseClassProfile",
+    description: "Retrieves statistical summaries and breakdowns of Class 11A or Class 11ABC student enrollment, streams, and electives. (Read-only)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        classSection: { type: "STRING", description: "The class section to break down: e.g. '11A' or empty for all Class 11" }
+      }
+    }
+  },
+  {
+    name: "getTimetable",
+    description: "Retrieves the teacher's current teaching schedule / timetable. You can query by specific day (e.g., 'Monday', 'Tuesday'), or list all entries. (Read-only, executes automatically)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        day: { type: "STRING", description: "Optional day of the week to filter, e.g. 'Monday', 'Tuesday', etc." }
+      }
     }
   }
 ];
@@ -491,7 +536,10 @@ ${emailSummaries}
         // Fetch writing style from memory database
         const memSnap = await serverDb.collection(`users/${userId}/memoryItems`).get();
         const memories = memSnap.docs.map(d => d.data());
+        
+        const replyMemories = memories.filter((m: any) => m.useInReplies === true).map(m => `- ${m.key}: ${m.value}`).join('\n');
         const styleText = memories.find((m: any) => m.key.toLowerCase().includes("style"))?.value || "Clear, polite, slightly warm, and direct. British English.";
+        const contextMemories = replyMemories ? `\nActive Memory Context (Must use for this reply):\n${replyMemories}\n` : '';
 
         const prompt = `You are drafting a professional email reply for Dimash Thaosen (teacher at Vasant Valley School).
         
@@ -502,6 +550,7 @@ Original Message snippet: ${email.snippet}
 
 Writing Style Context:
 ${styleText}
+${contextMemories}
 
 ${args.customKeyPoints ? `Critical points to incorporate in response:\n${args.customKeyPoints}` : ""}
 
@@ -541,6 +590,148 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
           planId: docRef.id,
           message: `Lesson plan for "${args.topic}" (Week ${args.week}) generated and saved successfully to Firestore.`,
           markdown: planMarkdown
+        };
+      }
+
+      case "searchStudents": {
+        const snap = await serverDb.collection(`users/${userId}/students`).get();
+        let list: any[] = [];
+        let isFallback = false;
+        
+        if (!snap.empty) {
+          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else {
+          list = SEED_STUDENTS;
+          isFallback = true;
+        }
+
+        if (args.classSection) {
+          list = list.filter(s => String(s.classSection).toLowerCase() === args.classSection.toLowerCase());
+        }
+        if (args.sociologyOnly) {
+          list = list.filter(s => s.sociologyStudent === true);
+        }
+        if (args.needsReviewOnly) {
+          list = list.filter(s => s.needsReview === true);
+        }
+        if (args.query) {
+          const q = args.query.toLowerCase();
+          list = list.filter(s => 
+            s.fullName.toLowerCase().includes(q) || 
+            (s.subjects && s.subjects.some((sub: string) => sub.toLowerCase().includes(q))) ||
+            (s.reviewReason && s.reviewReason.toLowerCase().includes(q))
+          );
+        }
+
+        return {
+          count: list.length,
+          students: list.map(s => ({
+            id: s.id || "temp-id",
+            fullName: s.fullName,
+            classSection: s.classSection,
+            rollNumber: s.rollNumber || "",
+            subjects: s.subjects,
+            sociologyStudent: s.sociologyStudent,
+            needsReview: s.needsReview,
+            reviewReason: s.reviewReason || "",
+            confidence: s.confidence
+          })),
+          isPreImportDraft: isFallback
+        };
+      }
+
+      case "getStudentProfile": {
+        const snap = await serverDb.collection(`users/${userId}/students`).get();
+        let list: any[] = [];
+        
+        if (!snap.empty) {
+          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else {
+          list = SEED_STUDENTS;
+        }
+
+        const student = list.find(s => s.fullName.toLowerCase() === args.fullName.toLowerCase());
+        if (!student) {
+          return { success: false, error: `Student with name "${args.fullName}" not found.` };
+        }
+
+        return {
+          success: true,
+          studentDetails: student
+        };
+      }
+
+      case "summariseClassProfile": {
+        const snap = await serverDb.collection(`users/${userId}/students`).get();
+        let list: any[] = [];
+        
+        if (!snap.empty) {
+          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else {
+          list = SEED_STUDENTS;
+        }
+
+        const stats = {
+          totalStudents: list.length,
+          class11A: list.filter(s => s.classSection === "11A").length,
+          class11B: list.filter(s => s.classSection === "11B").length,
+          class11C: list.filter(s => s.classSection === "11C").length,
+          sociologyStudents: list.filter(s => s.sociologyStudent).length,
+          needsReview: list.filter(s => s.needsReview).length,
+          subjectCounts: {} as Record<string, number>
+        };
+
+        list.forEach(s => {
+          if (s.subjects) {
+            s.subjects.forEach((sub: string) => {
+              stats.subjectCounts[sub] = (stats.subjectCounts[sub] || 0) + 1;
+            });
+          }
+        });
+
+        return {
+          success: true,
+          summary: stats
+        };
+      }
+
+      case "getTimetable": {
+        const snap = await serverDb.collection(`users/${userId}/timetableEntries`).get();
+        let list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+
+        if (list.length === 0) {
+          const { EXTRACTED_TIMETABLE } = await import("../data/extractedTimetable.js");
+          list = EXTRACTED_TIMETABLE as any[];
+        }
+
+        if (args.day) {
+          const targetDay = args.day.toLowerCase();
+          list = list.filter(e => e.day.toLowerCase() === targetDay);
+        }
+
+        list.sort((a, b) => {
+          const getPeriodNum = (p: string) => {
+            if (p.toLowerCase().includes("dispersal")) return 10;
+            const match = p.match(/\d+/);
+            return match ? parseInt(match[0], 10) : 99;
+          };
+          return getPeriodNum(a.period) - getPeriodNum(b.period);
+        });
+
+        return {
+          count: list.length,
+          timetable: list.map(e => ({
+            day: e.day,
+            period: e.period,
+            startTime: e.startTime,
+            endTime: e.endTime,
+            subject: e.subject,
+            classSection: e.classSection,
+            room: e.room || e.venue || "",
+            originalText: e.originalText,
+            needsReview: e.needsReview,
+            reviewReason: e.reviewReason || ""
+          }))
         };
       }
 

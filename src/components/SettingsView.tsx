@@ -25,11 +25,11 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
   ];
 
   const privacyGuarantees = [
-    "No telemetry larping — your logs correspond strictly to raw browser states.",
-    "Emails are never dispatched silently — every reply draft requires manual approval.",
+    "No telemetry larping - your logs correspond strictly to raw browser states.",
+    "Emails are never dispatched silently - every reply draft requires manual approval.",
     "Student names and academic files are treated as top-level private entities in the sandboxed local db.",
     "Constant biography records and memory logs can be wiped clean in one click on keyviews.",
-    "No automatic background crawlers — syllabus syncing strictly happens when requested manually.",
+    "No automatic background crawlers - syllabus syncing strictly happens when requested manually.",
   ];
 
   const envs = [
@@ -73,7 +73,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
           </div>
           <div>
             <span className="font-serif font-bold text-sm text-[#1a1612] block leading-tight">{currentUser.name}</span>
-            <span className="font-mono text-[10px] text-[#8b857b] block uppercase mt-0.5">{currentUser.email} • PRIMARY SYNC</span>
+            <span className="font-mono text-[10px] text-[#8b857b] block uppercase mt-0.5">{currentUser.email} | PRIMARY SYNC</span>
             <span className="font-mono text-[8px] tracking-wider font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-md mt-1.5 inline-block">
               VASANT VALLEY FA CULTY ADMINISTRATOR
             </span>

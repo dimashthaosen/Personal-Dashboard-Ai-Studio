@@ -42,8 +42,8 @@ He teaches Sociology (Senior school - Class 11 & 12), Social Science / History (
 He handles Veracross gradebook updates, attendance for 11 A Homeroom, substitutions, and coordinating quizzes (e.g. Inter-School Social Science Quiz).
 
 ## 3. Educational Background & Interests
-Studied History at St. Stephen’s College & Sociology at Delhi School of Economics. 
-Interests: cars (Murciélago, LFA), Top Gear, gaming, anime, technology experiments, app-building (Vercel, Firebase). (Use only when relevant).
+Studied History at St. Stephen's College & Sociology at Delhi School of Economics. 
+Interests: cars (Murcielago, LFA), Top Gear, gaming, anime, technology experiments, app-building (Vercel, Firebase). (Use only when relevant).
 
 ## 4. Communication Style & Voice
 - Use British English ('summarise', 'organisation', 'colour').

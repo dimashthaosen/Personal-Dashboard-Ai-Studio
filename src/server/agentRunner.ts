@@ -49,6 +49,9 @@ ${contextData?.calendar || "No meetings, lessons, or staff assemblies today."}
 
 TEACHER BIOGRAPHY & REFERENCE FACT MEMORIES:
 ${contextData?.memory || "No stored general memories or bio preferences."}
+
+TIMETABLE (TEACHING SCHEDULE):
+${contextData?.timetable || "No active teaching timetable loaded. Suggest calling 'getTimetable' or using the timetable import view to load schedule."}
 `.trim();
 
   const finalSystemInstruction = `${TEACHER_SYSTEM_INSTRUCTION}

@@ -33,12 +33,16 @@ export default function ChatView({
   userId, 
   googleToken, 
   initialCommandPrompt, 
-  onClearCommandPrompt 
+  onClearCommandPrompt,
+  initialSelectedChatMessageId,
+  onClearInitialChatMessageId
 }: { 
   userId?: string; 
   googleToken?: string | null;
   initialCommandPrompt?: string | null;
   onClearCommandPrompt?: () => void;
+  initialSelectedChatMessageId?: string | null;
+  onClearInitialChatMessageId?: () => void;
 }) {
   const { messages: firestoreMessages } = useFirestoreChat(userId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -60,6 +64,22 @@ export default function ChatView({
       }, 150);
     }
   }, [initialCommandPrompt, userId]);
+
+  // Handle deep-linked message scrolling
+  useEffect(() => {
+    if (initialSelectedChatMessageId) {
+      setTimeout(() => {
+        const element = document.getElementById(`chat-msg-${initialSelectedChatMessageId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+
+      if (onClearInitialChatMessageId) {
+        setTimeout(onClearInitialChatMessageId, 1000);
+      }
+    }
+  }, [initialSelectedChatMessageId, onClearInitialChatMessageId]);
 
   // Guards against duplicate execution during async state frames
   const sendingRef = useRef(false);
@@ -145,7 +165,7 @@ export default function ChatView({
       const contextData = {
         tasks: tasks.filter((t) => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"}, ID: ${t.id})`).join("\n"),
         calendar: events.map((e) => `- ${e.title} at ${e.start} - ${e.end}`).join("\n"),
-        memory: memoryItems.map((m) => `- ${m.key}: ${m.value}`).join("\n"),
+        memory: memoryItems.filter(m => !m.doNotUseAutomatically).map((m) => `- ${m.key}: ${m.value}`).join("\n"),
       };
 
       const history = messages.slice(-15).map(m => ({
@@ -349,7 +369,7 @@ export default function ChatView({
       const contextData = {
         tasks: tasks.filter((t) => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"}, ID: ${t.id})`).join("\n"),
         calendar: events.map((e) => `- ${e.title} at ${e.start} - ${e.end}`).join("\n"),
-        memory: memoryItems.map((m) => `- ${m.key}: ${m.value}`).join("\n"),
+        memory: memoryItems.filter(m => !m.doNotUseAutomatically).map((m) => `- ${m.key}: ${m.value}`).join("\n"),
       };
 
       const history = messages.slice(-15).map(m => ({
@@ -495,10 +515,16 @@ export default function ChatView({
             const isError = msg.id?.toString().startsWith("err-");
             const isCancel = msg.id?.toString().startsWith("cancel-");
 
+            const isSelected = msg.id === initialSelectedChatMessageId;
             return (
               <div
                 key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start animate-fadeIn"}`}
+                id={`chat-msg-${msg.id}`}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start animate-fadeIn"
+                } ${
+                  isSelected ? "ring-2 ring-amber-400 rounded-2xl p-2 bg-amber-50/20 shadow-sm" : ""
+                }`}
               >
                 <div
                   className={`max-w-[85%] rounded-[14px] px-4 py-3 shadow-[0_1px_2px_rgba(26,22,18,0.02)] border ${

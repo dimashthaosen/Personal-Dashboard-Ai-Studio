@@ -33,15 +33,15 @@ export interface CourseData {
 
 export const GP_EXAMPLES = `
 1. (Deconstructing an Argument) "This lesson introduces students to the anatomy of an argument by analyzing a short op-ed on climate change. Students work in pairs to highlight the main claim in yellow, the supporting reasons in green, and the conclusion in blue. Through a guided class discussion, they evaluate whether the reasons logically support the conclusion. The lesson closes with an exit slip where students must identify a hidden assumption in the author's reasoning."
-2. (Evaluating Sources) "This lesson focuses on evaluating the credibility of sources using the CRAAP test (Currency, Relevance, Authority, Accuracy, Purpose). Students are given three different articles about a recent global event—one from a reputable news outlet, one from a personal blog, and one from a biased organization. In small groups, they score each source and debate their findings. The lesson concludes with students writing a short paragraph justifying which source they would use for a research project."
+2. (Evaluating Sources) "This lesson focuses on evaluating the credibility of sources using the CRAAP test (Currency, Relevance, Authority, Accuracy, Purpose). Students are given three different articles about a recent global event - one from a reputable news outlet, one from a personal blog, and one from a biased organization. In small groups, they score each source and debate their findings. The lesson concludes with students writing a short paragraph justifying which source they would use for a research project."
 3. (Local vs Global Perspectives) "This lesson explores how the issue of water scarcity is viewed differently at local, national, and global levels. Students begin by mapping their personal water usage, then analyze a case study of a drought-stricken community, and finally review a UN report on global water security. Through a jigsaw reading activity, students synthesize these perspectives. The lesson ends with a reflection on how local actions impact global outcomes."
 `;
 
 export const SOCIOLOGY_EXAMPLES = `
 1. (Sex Ratio) "This lesson investigates the declining sex ratio in India, with a focus on the child sex ratio. Students examine the prosperity paradox, where relatively wealthy states such as Punjab and Haryana display some of the most distorted sex ratios. Students analyse social causes including son preference, dowry practices, and the misuse of diagnostic technology. A structured debate evaluates legal responses such as the PCPNDT Act alongside cultural initiatives like Beti Bachao, Beti Padhao."
 2. (Literacy) "This lesson explores literacy as a critical factor shaping demographic outcomes and social inequality. Students study disparities in literacy by gender, caste, tribe, and region, and examine how illiteracy reinforces intergenerational poverty. Students analyse the relationship between female literacy and fertility. Census data from 1951 to 2011 are used to trace changes in literacy gaps."
-3. (Migration) "This lesson examines rural–urban population shifts driven by internal migration. Students analyse push factors such as declining common property resources and rural unemployment, alongside pull factors like urban anonymity and economic opportunity. Through case studies, students assess the growth of million-plus cities and the resulting pressure on infrastructure."
-4. (Population Policy) "This lesson traces the evolution of India's population policy, from the National Family Planning Programme in 1952 to the coercive sterilisation campaigns during the Emergency of 1975–76. Students examine the shift from population control to family welfare. Ethical debates focus on state coercion and individual rights, comparing target-driven approaches with the National Health Policy 2017."
+3. (Migration) "This lesson examines rural-urban population shifts driven by internal migration. Students analyse push factors such as declining common property resources and rural unemployment, alongside pull factors like urban anonymity and economic opportunity. Through case studies, students assess the growth of million-plus cities and the resulting pressure on infrastructure."
+4. (Population Policy) "This lesson traces the evolution of India's population policy, from the National Family Planning Programme in 1952 to the coercive sterilisation campaigns during the Emergency of 1975-76. Students examine the shift from population control to family welfare. Ethical debates focus on state coercion and individual rights, comparing target-driven approaches with the National Health Policy 2017."
 `;
 
 export const CURRICULUM: Record<string, CourseData> = {
@@ -64,7 +64,7 @@ export const CURRICULUM: Record<string, CourseData> = {
       { weeks: [9, 10], data: { name: "Beliefs, Bias and Vested Interest", content: "Exploring how vested interests and personal biases shape reporting and beliefs." } },
       { weeks: [11, 13], data: { name: "Structure of Arguments", content: "Identifying premises, supporting details, and conclusions within arguments." } },
       { weeks: [14, 15], data: { name: "Identifying Arguments", content: "Extracting argument structures from written pieces." } },
-      { weeks: [16, 18], data: { name: "Fallacies", content: "Fallacies: Identifying common logical fallacies — Ad Hominem, Straw Man, Slippery Slope — that weaken reasoning." } },
+      { weeks: [16, 18], data: { name: "Fallacies", content: "Fallacies: Identifying common logical fallacies - Ad Hominem, Straw Man, Slippery Slope - that weaken reasoning." } },
       { weeks: [19, 20], data: { name: "Creating Good and Bad Arguments", content: "Constructing robust evidence-based arguments vs. spotting poor ones." } },
       { weeks: [21, 22], data: { name: "(Mis)Interpreting data & statistics", content: "Understanding how data can be interpreted incorrectly." } },
       { weeks: [23, 24], data: { name: "Working with Case Studies", content: "Applying concepts to detailed real-world scenarios." } },
@@ -94,7 +94,7 @@ export const CURRICULUM: Record<string, CourseData> = {
       { weeks: [14, 18], data: { name: "Social Structure and Stratification", content: "Understanding Society Ch.1-2: Social structure, stratification and social processes in society." } },
       { weeks: [19, 21], data: { name: "Culture and Socialisation", content: "Introducing Sociology Ch.4: Deep dive into culture, values and the socialization process." } },
       { weeks: [22, 26], data: { name: "Research Methods", content: "Introducing Sociology Ch.5: Participant observation, surveys, interviews." } },
-      { weeks: [27, 30], data: { name: "Western Sociologists", content: "Western Sociologists — Understanding Society Ch.4: The 3 Revolutions; Marx; Durkheim; Weber." } },
+      { weeks: [27, 30], data: { name: "Western Sociologists", content: "Western Sociologists - Understanding Society Ch.4: The 3 Revolutions; Marx; Durkheim; Weber." } },
       { weeks: [31, 40], data: { name: "Indian Sociologists, Demographic Structure of Indian Society, Project Work", content: "Understanding Society Ch.5: G.S. Ghurye, D.P. Mukerji, A.R. Desai, M.N. Srinivas. Final Project." } }
     ]
   },

@@ -56,6 +56,78 @@
         "userId": { "type": "string" }
       },
       "required": ["role", "content", "timestamp", "userId"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "A student record detailing subjects, stream, sociology enrolment, and evidence.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "maxLength": 200 },
+        "firstName": { "type": "string", "maxLength": 100 },
+        "lastName": { "type": "string", "maxLength": 100 },
+        "classSection": { "type": "string", "maxLength": 10 },
+        "rollNumber": { "type": "string", "maxLength": 50 },
+        "admissionNumber": { "type": "string", "maxLength": 50 },
+        "subjects": { "type": "array" },
+        "subjectCombination": { "type": "string", "maxLength": 500 },
+        "stream": { "type": "string", "maxLength": 100 },
+        "sociologyStudent": { "type": "boolean" },
+        "orientationGroup": { "type": "string", "maxLength": 100 },
+        "house": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "parentName": { "type": "string", "maxLength": 200 },
+        "parentContact": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "sourceFiles": { "type": "array" },
+        "sourceEvidence": { "type": "array" },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+        "needsReview": { "type": "boolean" },
+        "reviewReason": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["fullName", "firstName", "lastName", "classSection", "subjects", "sociologyStudent", "confidence", "needsReview", "userId"]
+    },
+    "TimetableEntry": {
+      "title": "Timetable Entry",
+      "description": "A scheduled class period for the teacher",
+      "type": "object",
+      "properties": {
+        "teacherName": { "type": "string", "maxLength": 100 },
+        "teacherCode": { "type": "string", "maxLength": 10 },
+        "department": { "type": "string", "maxLength": 100 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "classSection": { "type": "string", "maxLength": 50 },
+        "day": { "type": "string", "maxLength": 20 },
+        "period": { "type": "string", "maxLength": 20 },
+        "startTime": { "type": "string", "maxLength": 20 },
+        "endTime": { "type": "string", "maxLength": 20 },
+        "venue": { "type": "string", "maxLength": 100 },
+        "room": { "type": "string", "maxLength": 50 },
+        "sourceFile": { "type": "string", "maxLength": 100 },
+        "sourcePage": { "type": "integer" },
+        "originalText": { "type": "string", "maxLength": 500 },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+        "needsReview": { "type": "boolean" },
+        "reviewReason": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": [
+        "teacherName",
+        "teacherCode",
+        "subject",
+        "classSection",
+        "day",
+        "period",
+        "sourceFile",
+        "confidence",
+        "needsReview",
+        "userId"
+      ]
     }
   },
   "firestore": {
@@ -74,6 +146,14 @@
     "users/{userId}/chatMessages": {
       "schema": { "$ref": "#/entities/ChatMessage" },
       "description": "Chat log history belonging to a user"
+    },
+    "users/{userId}/students": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Class student database records belonging to a user"
+    },
+    "users/{userId}/timetableEntries": {
+      "schema": { "$ref": "#/entities/TimetableEntry" },
+      "description": "Timetable scheduled entries belonging to a user"
     }
   }
 }

@@ -5,13 +5,46 @@ import { useFirestoreTasks } from "../lib/hooks";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-export default function TasksView({ userId }: { userId?: string }) {
+export default function TasksView({ 
+  userId,
+  initialSelectedTaskId,
+  onClearInitialTaskId
+}: { 
+  userId?: string;
+  initialSelectedTaskId?: string | null;
+  onClearInitialTaskId?: () => void;
+}) {
   const { tasks: allTasks, loading } = useFirestoreTasks(userId);
 
   // Filters state
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+
+  // Handle deep-linked task selection
+  useEffect(() => {
+    if (initialSelectedTaskId && allTasks.length > 0) {
+      const found = allTasks.find(t => t.id === initialSelectedTaskId);
+      if (found) {
+        // Clear filters that would hide the selected task
+        setStatusFilter("");
+        setPriorityFilter("");
+        setCategoryFilter("");
+
+        // Highlight and scroll to item
+        setTimeout(() => {
+          const element = document.getElementById(`task-item-${initialSelectedTaskId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 150);
+
+        if (onClearInitialTaskId) {
+          setTimeout(onClearInitialTaskId, 1000);
+        }
+      }
+    }
+  }, [initialSelectedTaskId, allTasks, onClearInitialTaskId]);
 
   const tasks = allTasks.filter(t => {
     if (statusFilter && t.status !== statusFilter) return false;
@@ -286,10 +319,16 @@ export default function TasksView({ userId }: { userId?: string }) {
             <div className="divide-y divide-[#ece6db]">
               {filtered.map((task) => {
                 const isCompleted = task.status === "done";
+                const isSelected = task.id === initialSelectedTaskId;
                 return (
                   <div
                     key={task.id}
-                    className="p-4 flex items-start gap-3.5 hover:bg-[#ece6db]/20 transition-colors group"
+                    id={`task-item-${task.id}`}
+                    className={`p-4 flex items-start gap-3.5 hover:bg-[#ece6db]/20 transition-all group rounded-lg ${
+                      isSelected 
+                        ? "bg-amber-100/40 border-l-[4px] border-amber-500 pl-[12px] shadow-sm ring-1 ring-amber-400/20" 
+                        : ""
+                    }`}
                   >
                     {/* Done Checkbox */}
                     <button

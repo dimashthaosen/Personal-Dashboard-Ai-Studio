@@ -10,6 +10,8 @@ import MemoryView from "./components/MemoryView";
 import ProjectsView from "./components/ProjectsView";
 import SettingsView from "./components/SettingsView";
 import CommandBar from "./components/CommandBar";
+import StudentsView from "./components/StudentsView";
+import TimetableView from "./components/TimetableView";
 import { initAuth, googleSignIn, firebaseLogout } from "./lib/firebase";
 import {
   Menu,
@@ -55,6 +57,12 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isCommandBarOpen, setIsCommandBarOpen] = useState(false);
   const [proposedActionPrompt, setProposedActionPrompt] = useState<string | null>(null);
+  const [selectedStudentIdForView, setSelectedStudentIdForView] = useState<string | null>(null);
+  const [selectedTaskIdForView, setSelectedTaskIdForView] = useState<string | null>(null);
+  const [selectedEventIdForView, setSelectedEventIdForView] = useState<string | null>(null);
+  const [selectedMemoryIdForView, setSelectedMemoryIdForView] = useState<string | null>(null);
+  const [selectedEmailIdForView, setSelectedEmailIdForView] = useState<string | null>(null);
+  const [selectedChatMessageIdForView, setSelectedChatMessageIdForView] = useState<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -161,9 +169,17 @@ export default function App() {
           setCurrentTab("dashboard");
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Firebase Google Sign-In failed:", err);
-      alert("Sign-In failed or cancelled. Please verify cookie/popup settings and try again.");
+      if (err.code === "auth/cancelled-popup-request" || err.code === "auth/popup-closed-by-user") {
+         if (window.self !== window.top) {
+            alert("Google Sign-In popups are blocked inside the AI Studio preview iframe. Please click the 'Open in New Tab' icon (↗️) at the top right of this preview window and try signing in from the new tab.");
+         } else {
+            alert("Sign-In popup was closed or cancelled. Please try again.");
+         }
+      } else {
+         alert("Sign-In failed. Please verify cookie/popup settings and try again. Error: " + err.message);
+      }
     }
   };
 
@@ -207,7 +223,9 @@ export default function App() {
       items: [
         { id: "lessons", label: "Lesson Planner", icon: <BookOpen className="w-4 h-4" /> },
         { id: "projects", label: "Projects", icon: <FolderKanban className="w-4 h-4" /> },
+        { id: "timetable", label: "Time Table", icon: <Calendar className="w-4 h-4" /> },
         { id: "memory", label: "Memory Bio", icon: <Brain className="w-4 h-4" /> },
+        { id: "students", label: "Student Registry", icon: <Database className="w-4 h-4" /> },
       ],
     },
   ];
@@ -225,7 +243,7 @@ export default function App() {
       <div className="min-h-screen bg-paper-0 flex items-center justify-center p-4 sm:p-6 font-sans">
         <div className="max-w-[1000px] w-full animate-fade-up bg-[#fcf9f3] border border-paper-3 rounded-[32px] shadow-[0_12px_40px_-16px_rgba(26,22,18,0.12)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px]">
           
-          {/* Left Column — deep-green brand panel */}
+          {/* Left Column - deep-green brand panel */}
           <div className="md:col-span-6 bg-[#2d5a4a] p-10 sm:p-12 flex flex-col justify-between text-[#fcf9f3] relative overflow-hidden select-none">
             {/* Soft background glow */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/[0.025] rounded-full blur-3xl pointer-events-none -mr-16 -mt-16 bg-gradient-to-br from-white/10 to-transparent"></div>
@@ -256,7 +274,7 @@ export default function App() {
                 Your day, gathered<br />before the bell.
               </h2>
               <p className="font-serif italic text-sm text-[#fcf9f3]/80 leading-relaxed max-w-sm">
-                A quiet desk for lessons, mail and meetings — grounded in your own curriculum notes.
+                A quiet desk for lessons, mail and meetings - grounded in your own curriculum notes.
               </p>
             </div>
 
@@ -283,7 +301,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Column — sign-in panel */}
+          {/* Right Column - sign-in panel */}
           <div className="md:col-span-6 p-10 sm:p-12 flex flex-col justify-between bg-[#fcf9f3] relative select-none">
             {/* Top spacer to balance formatting */}
             <div className="hidden md:block"></div>
@@ -337,7 +355,13 @@ export default function App() {
       case "dashboard":
         return <DashboardView googleToken={googleToken} onNavigate={(tab) => setCurrentTab(tab)} userId={currentUser?.userId} />;
       case "tasks":
-        return <TasksView userId={currentUser?.userId} />;
+        return (
+          <TasksView 
+            userId={currentUser?.userId} 
+            initialSelectedTaskId={selectedTaskIdForView}
+            onClearInitialTaskId={() => setSelectedTaskIdForView(null)}
+          />
+        );
       case "chat":
         return (
           <ChatView 
@@ -345,14 +369,47 @@ export default function App() {
             googleToken={googleToken} 
             initialCommandPrompt={proposedActionPrompt}
             onClearCommandPrompt={() => setProposedActionPrompt(null)}
+            initialSelectedChatMessageId={selectedChatMessageIdForView}
+            onClearInitialChatMessageId={() => setSelectedChatMessageIdForView(null)}
           />
         );
       case "email":
-        return <EmailView googleToken={googleToken} currentUser={currentUser} onSwitchAccount={handleLoginGoogle} />;
+        return (
+          <EmailView 
+            googleToken={googleToken} 
+            currentUser={currentUser} 
+            userId={currentUser?.userId} 
+            onSwitchAccount={handleLoginGoogle} 
+            initialSelectedEmailId={selectedEmailIdForView}
+            onClearInitialEmailId={() => setSelectedEmailIdForView(null)}
+          />
+        );
       case "calendar":
-        return <CalendarView userId={currentUser?.userId} />;
+        return (
+          <CalendarView 
+            userId={currentUser?.userId} 
+            initialSelectedEventId={selectedEventIdForView}
+            onClearInitialEventId={() => setSelectedEventIdForView(null)}
+          />
+        );
       case "memory":
-        return <MemoryView userId={currentUser?.userId} />;
+        return (
+          <MemoryView 
+            userId={currentUser?.userId} 
+            initialSelectedMemoryId={selectedMemoryIdForView}
+            onClearInitialMemoryId={() => setSelectedMemoryIdForView(null)}
+          />
+        );
+      case "timetable":
+        return <TimetableView userId={currentUser?.userId} />;
+      case "students":
+        return (
+          <StudentsView 
+            userId={currentUser?.userId} 
+            initialSelectedStudentId={selectedStudentIdForView}
+            onClearInitialStudentId={() => setSelectedStudentIdForView(null)}
+          />
+        );
       case "lessons":
         return <LessonPlannerView userId={currentUser?.userId} />;
       case "projects":
@@ -610,13 +667,7 @@ export default function App() {
         {renderActiveView()}
       </main>
 
-      {/* Floating real username on bottom right */}
-      <div className="fixed bottom-4 right-4 z-50 bg-[#fcf9f3]/95 backdrop-blur-sm border border-[#e1d8c6] rounded-full px-3.5 py-1.5 shadow-[0_4px_16px_-4px_rgba(26,22,18,0.15)] flex items-center gap-2 pointer-events-none select-none">
-        <span className="w-2 h-2 rounded-full bg-[#2d5a4a] animate-pulse" />
-        <span className="font-mono text-[9px] font-bold text-[#1a1612] uppercase tracking-[0.12em]">
-          User: {currentUser?.username || "guest"}
-        </span>
-      </div>
+
 
       {/* Global Spot Command Search Modal Bar Overlay */}
       <CommandBar 
@@ -625,6 +676,12 @@ export default function App() {
         onClose={() => setIsCommandBarOpen(false)}
         onNavigateTab={(tab) => setCurrentTab(tab)}
         onSendAssistantPrompt={handleSendAssistantPrompt}
+        onSelectStudent={(studentId) => setSelectedStudentIdForView(studentId)}
+        onSelectTask={(taskId) => setSelectedTaskIdForView(taskId)}
+        onSelectEvent={(eventId) => setSelectedEventIdForView(eventId)}
+        onSelectMemory={(memoryId) => setSelectedMemoryIdForView(memoryId)}
+        onSelectEmail={(emailId) => setSelectedEmailIdForView(emailId)}
+        onSelectChatMessage={(messageId) => setSelectedChatMessageIdForView(messageId)}
       />
 
     </div>

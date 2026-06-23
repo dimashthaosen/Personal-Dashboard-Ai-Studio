@@ -194,20 +194,20 @@ export default function LessonPlannerView({ userId }: { userId?: string }) {
     
     let toneInstruction = "";
     if (languageTone === "accessible") {
-      toneInstruction = "REQUIRED EXPLANATORY TONE: HIGHLY ACCESSIBLE, CONCEPT-CLEAR, ENGAGING. Do NOT dump dense, un-unpacked academic jargon. Use active, student-centric, relatable terms — clear analogies, real-world examples (social media, youth subcultures, mobile phones), step-by-step unpacking. Make the Process feel like an interactive classroom for 16–18 year-olds; introduce, bold, and simply define correct sociological terms.";
+      toneInstruction = "REQUIRED EXPLANATORY TONE: HIGHLY ACCESSIBLE, CONCEPT-CLEAR, ENGAGING. Do NOT dump dense, un-unpacked academic jargon. Use active, student-centric, relatable terms - clear analogies, real-world examples (social media, youth subcultures, mobile phones), step-by-step unpacking. Make the Process feel like an interactive classroom for 16-18 year-olds; introduce, bold, and simply define correct sociological terms.";
     } else {
       toneInstruction = "REQUIRED EXPLANATORY TONE: ADVANCED ACADEMIC. Formal, rigorous, dense with exam-board terminology; university-prep discourse.";
     }
 
     let pedaMix = "";
     if (pedagogicalMix === "progressive") {
-      pedaMix = "PROGRESSIVE LEVEL CURVE — Lesson 1: FIRST PRINCIPLES (definitions, concept mapping, vocabulary; no premature debate). Lesson 2: FIELD CASEWORK / EMPIRICAL READINGS (text excerpts, statistics, case studies). Lesson 3: INTERACTIVE COLLABORATION (dialogue circles, fishbowl, roleplay, peer debate). Lesson 4+: APPLIED SYNTHESIS & WRITING (written arguments, prompt deconstruction, checking fallacies).";
+      pedaMix = "PROGRESSIVE LEVEL CURVE - Lesson 1: FIRST PRINCIPLES (definitions, concept mapping, vocabulary; no premature debate). Lesson 2: FIELD CASEWORK / EMPIRICAL READINGS (text excerpts, statistics, case studies). Lesson 3: INTERACTIVE COLLABORATION (dialogue circles, fishbowl, roleplay, peer debate). Lesson 4+: APPLIED SYNTHESIS & WRITING (written arguments, prompt deconstruction, checking fallacies).";
     } else if (pedagogicalMix === "discussion") {
-      pedaMix = "CONVERSATIONAL & PERSPECTIVE-HEAVY — Lesson 1: DECONSTRUCTION OF VESTED INTERESTS (locate biases, value judgements, predict outcomes). Lesson 2: DEEP-LEVEL SOCRATIC SEARCH (probe the logic of the source). Lesson 3: THE CLASSROOM FORUM (groups argue Local/National/Global or contrasting theories). Lesson 4+: PERSPECTIVE WRITING SYNTHESIS (reflective arguments, peer-evaluate, trace fallacies).";
+      pedaMix = "CONVERSATIONAL & PERSPECTIVE-HEAVY - Lesson 1: DECONSTRUCTION OF VESTED INTERESTS (locate biases, value judgements, predict outcomes). Lesson 2: DEEP-LEVEL SOCRATIC SEARCH (probe the logic of the source). Lesson 3: THE CLASSROOM FORUM (groups argue Local/National/Global or contrasting theories). Lesson 4+: PERSPECTIVE WRITING SYNTHESIS (reflective arguments, peer-evaluate, trace fallacies).";
     } else if (pedagogicalMix === "research") {
-      pedaMix = "RIGOROUS INQUIRY & EXPERIMENTATION — Lesson 1: DATA ANALYTICS & VISUAL LITERACY (charts, graphs, research tools/limits). Lesson 2: SOURCE DISSECTION & CRAAP METRICS. Lesson 3: COMPLEX CASE EXAMPLES (structural vs circumstantial causes). Lesson 4+: HYPOTHESIS & SCIENTIFIC ARGUMENTS (evidence-based briefs, next investigation steps).";
+      pedaMix = "RIGOROUS INQUIRY & EXPERIMENTATION - Lesson 1: DATA ANALYTICS & VISUAL LITERACY (charts, graphs, research tools/limits). Lesson 2: SOURCE DISSECTION & CRAAP METRICS. Lesson 3: COMPLEX CASE EXAMPLES (structural vs circumstantial causes). Lesson 4+: HYPOTHESIS & SCIENTIFIC ARGUMENTS (evidence-based briefs, next investigation steps).";
     } else {
-      pedaMix = "BOARD EXAM PREPARATION — Lesson 1: EXAM PROMPT & MARK-SCHEME INSIGHTS (past questions, mark boundaries, premium answers). Lesson 2: CONCEPTUAL DRILLS & TIMED STRUCTURES. Lesson 3: TIMED COOPERATIVE WORKSHOP (essay outlines in pairs, rubric checklists). Lesson 4+: PEER ASSESSMENT LOOP (deconstruct attempts, rewrite workshops).";
+      pedaMix = "BOARD EXAM PREPARATION - Lesson 1: EXAM PROMPT & MARK-SCHEME INSIGHTS (past questions, mark boundaries, premium answers). Lesson 2: CONCEPTUAL DRILLS & TIMED STRUCTURES. Lesson 3: TIMED COOPERATIVE WORKSHOP (essay outlines in pairs, rubric checklists). Lesson 4+: PEER ASSESSMENT LOOP (deconstruct attempts, rewrite workshops).";
     }
 
     const gpInstruction = courseId === "gp8" ? "IMPORTANT: For Grade 8 Global Perspectives, strictly follow the syllabus progression. Do NOT introduce later concepts early. Stick ONLY to the topic assigned for this week." : "";
@@ -254,11 +254,11 @@ ${pacingInstr}
 ${examples}
 === END OF EXAMPLES ===
 
-FORMAT — produce exactly this structure in Markdown:
+FORMAT - produce exactly this structure in Markdown:
 
 # Week ${week}: [Topic Title]
 
-**Learning Objective:** [One sentence — what students will understand by end of week]
+**Learning Objective:** [One sentence - what students will understand by end of week]
 
 **Skills:** [2-3 relevant subject skills]
 
@@ -268,11 +268,11 @@ FORMAT — produce exactly this structure in Markdown:
 
 **Concept:** [chapter/topic name]
 
-**Process:** [~110-word paragraph: open with the central question/idea, describe the main pedagogical move (discussion, debate, data analysis, close reading, case study…), name specific content/examples used, describe what students do analytically, and end with how the lesson closes or transitions. Flowing prose, NOT bullets.]
+**Process:** [~110-word paragraph: open with the central question/idea, describe the main pedagogical move (discussion, debate, data analysis, close reading, case study...), name specific content/examples used, describe what students do analytically, and end with how the lesson closes or transitions. Flowing prose, NOT bullets.]
 
 **Tools/Resources:** Canva, Projector, Whiteboard and marker
 
-**Assessment/Differentiation:** [brief — exit slip, pop quiz, think-pair-share, past-paper question, etc.]
+**Assessment/Differentiation:** [brief - exit slip, pop quiz, think-pair-share, past-paper question, etc.]
 
 [Repeat for all ${lessonsPerWeek} lessons]
 
@@ -589,7 +589,7 @@ ${pedaMix}
                 <div className="flex items-center justify-between mb-8 pb-4 border-b border-paper-2">
                   <div>
                     <h2 className="font-serif text-2xl font-bold text-ink-900 leading-tight">Weekly Plan: {CURRICULUM[courseId]?.label || "Course"}</h2>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-[#2d5a4a] font-bold mt-1.5">Week {week} • {lessonsPerWeek} Lessons</p>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-[#2d5a4a] font-bold mt-1.5">Week {week} | {lessonsPerWeek} Lessons</p>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => navigator.clipboard.writeText(generatedMarkdown)} className="p-2 border border-paper-3 bg-paper-1 hover:bg-paper-2 rounded-lg text-ink-600 transition-colors" title="Copy Markdown">
@@ -721,7 +721,7 @@ ${pedaMix}
                       </div>
                       
                       <div className="mt-auto pt-3 border-t border-paper-2 flex justify-between items-center text-[10px] font-mono tracking-wider text-ink-500">
-                        <span>{plan.lessonsPerWeek} Lessons • {plan.pedagogicalMix}</span>
+                        <span>{plan.lessonsPerWeek} Lessons | {plan.pedagogicalMix}</span>
                         <span>{date}</span>
                       </div>
                     </div>

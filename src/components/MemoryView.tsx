@@ -1,112 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MemoryItem } from "../types";
 import { Brain, Plus, Trash2, Edit2, Check, X, Pin, MessageSquare, EyeOff } from "lucide-react";
 import { useFirestoreMemory } from "../lib/hooks";
-import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-export default function MemoryView({ userId }: { userId?: string }) {
+export default function MemoryView({ 
+  userId,
+  initialSelectedMemoryId,
+  onClearInitialMemoryId
+}: { 
+  userId?: string;
+  initialSelectedMemoryId?: string | null;
+  onClearInitialMemoryId?: () => void;
+}) {
   const { memoryItems: memories, loading } = useFirestoreMemory(userId);
-
-  // Category filter
-  const [categoryFilter, setCategoryFilter] = useState("all");
-
-  // Create memory state
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
-  const [newCategory, setNewCategory] = useState("school_routines");
-
-  // Edit memory state
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-
-  const handleCreateMemory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newKey.trim() || !newValue.trim() || !userId) return;
-
-    try {
-      await addDoc(collection(db, `users/${userId}/memoryItems`), {
-        key: newKey,
-        value: newValue,
-        category: newCategory,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        userId,
-        isPinned: false,
-        useInReplies: false,
-        doNotUseAutomatically: false
-      });
-
-      setNewKey("");
-      setNewValue("");
-      setNewCategory("school_routines");
-      setShowCreateForm(false);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleStartEditing = (id: string, value: string) => {
-    setEditingId(id);
-    setEditValue(value);
-  };
-
-  const handleSaveEdit = async (id: string) => {
-    if (!editValue.trim() || !userId) return;
-    try {
-      await updateDoc(doc(db, `users/${userId}/memoryItems`, id), { value: editValue, updatedAt: new Date().toISOString() });
-      setEditingId(null);
-      setEditValue("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeleteMemory = async (id: string) => {
-    if (!userId) return;
-    try {
-      await deleteDoc(doc(db, `users/${userId}/memoryItems`, id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleTogglePin = async (item: MemoryItem) => {
-    if (!userId || item.id.startsWith("system")) return;
-    try {
-      await updateDoc(doc(db, `users/${userId}/memoryItems`, item.id), {
-        isPinned: !item.isPinned,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error("Failed to toggle pin:", err);
-    }
-  };
-
-  const handleToggleUseInReplies = async (item: MemoryItem) => {
-    if (!userId || item.id.startsWith("system")) return;
-    try {
-      await updateDoc(doc(db, `users/${userId}/memoryItems`, item.id), {
-        useInReplies: !item.useInReplies,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error("Failed to toggle use in replies:", err);
-    }
-  };
-
-  const handleToggleDoNotUseAutomatically = async (item: MemoryItem) => {
-    if (!userId || item.id.startsWith("system")) return;
-    try {
-      await updateDoc(doc(db, `users/${userId}/memoryItems`, item.id), {
-        doNotUseAutomatically: !item.doNotUseAutomatically,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error("Failed to toggle ignore flag:", err);
-    }
-  };
 
   const systemMemories: MemoryItem[] = [
     {
@@ -198,7 +106,169 @@ export default function MemoryView({ userId }: { userId?: string }) {
     assistant_behaviour: "ASSISTANT COACHING"
   };
 
-  const allMemories = [...systemMemories, ...memories];
+  // Filter out the system memories that have been overridden in Firestore
+  const systemMemoriesFiltered = systemMemories.filter(sysMem => 
+    !memories.some(m => m.id === sysMem.id)
+  );
+
+  const allMemories = [...systemMemoriesFiltered, ...memories];
+
+  // Category filter
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  // Handle deep-linked memory selection
+  useEffect(() => {
+    if (initialSelectedMemoryId) {
+      setCategoryFilter("all");
+      
+      setTimeout(() => {
+        const element = document.getElementById(`memory-item-${initialSelectedMemoryId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 150);
+
+      if (onClearInitialMemoryId) {
+        setTimeout(onClearInitialMemoryId, 1000);
+      }
+    }
+  }, [initialSelectedMemoryId, onClearInitialMemoryId]);
+
+  // Create memory state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newKey, setNewKey] = useState("");
+  const [newValue, setNewValue] = useState("");
+  const [newCategory, setNewCategory] = useState("school_routines");
+
+  // Edit memory state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editKey, setEditKey] = useState("");
+  const [editValue, setEditValue] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+
+  const handleCreateMemory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKey.trim() || !newValue.trim() || !userId) return;
+
+    try {
+      await addDoc(collection(db, `users/${userId}/memoryItems`), {
+        key: newKey.trim(),
+        value: newValue.trim(),
+        category: newCategory,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        userId,
+        isPinned: false,
+        useInReplies: false,
+        doNotUseAutomatically: false
+      });
+
+      setNewKey("");
+      setNewValue("");
+      setNewCategory("school_routines");
+      setShowCreateForm(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleStartEditing = (item: MemoryItem) => {
+    setEditingId(item.id);
+    setEditKey(item.key);
+    setEditValue(item.value);
+    setEditCategory(item.category);
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editKey.trim() || !editValue.trim() || !userId) return;
+    try {
+      const existingMem = allMemories.find(m => m.id === id);
+      await setDoc(doc(db, `users/${userId}/memoryItems`, id), {
+        key: editKey.trim(),
+        value: editValue.trim(),
+        category: editCategory,
+        updatedAt: new Date().toISOString(),
+        createdAt: existingMem?.createdAt || new Date().toISOString(),
+        userId,
+        isPinned: existingMem?.isPinned || false,
+        useInReplies: existingMem?.useInReplies || false,
+        doNotUseAutomatically: existingMem?.doNotUseAutomatically || false
+      }, { merge: true });
+
+      setEditingId(null);
+      setEditKey("");
+      setEditValue("");
+      setEditCategory("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteMemory = async (id: string) => {
+    if (!userId) return;
+    try {
+      await deleteDoc(doc(db, `users/${userId}/memoryItems`, id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleTogglePin = async (item: MemoryItem) => {
+    if (!userId) return;
+    try {
+      await setDoc(doc(db, `users/${userId}/memoryItems`, item.id), {
+        key: item.key,
+        value: item.value,
+        category: item.category,
+        isPinned: !item.isPinned,
+        useInReplies: item.useInReplies || false,
+        doNotUseAutomatically: item.doNotUseAutomatically || false,
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId
+      }, { merge: true });
+    } catch (err) {
+      console.error("Failed to toggle pin:", err);
+    }
+  };
+
+  const handleToggleUseInReplies = async (item: MemoryItem) => {
+    if (!userId) return;
+    try {
+      await setDoc(doc(db, `users/${userId}/memoryItems`, item.id), {
+        key: item.key,
+        value: item.value,
+        category: item.category,
+        isPinned: item.isPinned || false,
+        useInReplies: !item.useInReplies,
+        doNotUseAutomatically: item.doNotUseAutomatically || false,
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId
+      }, { merge: true });
+    } catch (err) {
+      console.error("Failed to toggle use in replies:", err);
+    }
+  };
+
+  const handleToggleDoNotUseAutomatically = async (item: MemoryItem) => {
+    if (!userId) return;
+    try {
+      await setDoc(doc(db, `users/${userId}/memoryItems`, item.id), {
+        key: item.key,
+        value: item.value,
+        category: item.category,
+        isPinned: item.isPinned || false,
+        useInReplies: item.useInReplies || false,
+        doNotUseAutomatically: !item.doNotUseAutomatically,
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId
+      }, { merge: true });
+    } catch (err) {
+      console.error("Failed to toggle ignore flag:", err);
+    }
+  };
 
   // Filter memories
   const matchedMemories = allMemories.filter(
@@ -329,18 +399,28 @@ export default function MemoryView({ userId }: { userId?: string }) {
           filteredMemories.map((mem) => {
             const isEditing = editingId === mem.id;
             const isSystem = mem.id.startsWith("system");
+            const isFirestoreMemory = memories.some(m => m.id === mem.id);
+            const isSystemTemplate = isSystem && !isFirestoreMemory;
+            const isSystemOverridden = isSystem && isFirestoreMemory;
+
+            const isSelected = mem.id === initialSelectedMemoryId;
             return (
-              <div key={mem.id} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] group space-y-3 animate-fadeIn">
-                <div className="flex justify-between items-center border-b border-[#ece6db] pb-2">
+              <div 
+                key={mem.id} 
+                id={`memory-item-${mem.id}`}
+                className={`bg-[#fcf9f3] border rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] group space-y-3 transition-all ${
+                  isSelected 
+                    ? "border-amber-500 ring-2 ring-amber-400 bg-amber-50/25 shadow-md scale-[1.01]" 
+                    : "border-[#e1d8c6]"
+                }`}
+              >
+                <div className="flex flex-wrap gap-2 justify-between items-center border-b border-[#ece6db] pb-2">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={isSystem}
                       onClick={() => handleTogglePin(mem)}
-                      className={`p-1 rounded hover:bg-paper-2 transition-colors ${
-                        isSystem ? "cursor-default" : "cursor-pointer"
-                      }`}
-                      title={isSystem ? "System configurations are permanently pinned" : "Toggle Pin"}
+                      className="p-1 rounded hover:bg-paper-2 transition-colors cursor-pointer"
+                      title="Toggle Pin"
                     >
                       <Pin className={`w-4 h-4 ${
                         mem.isPinned 
@@ -348,50 +428,64 @@ export default function MemoryView({ userId }: { userId?: string }) {
                           : "text-[#8a857a] hover:text-[#2d5a4a]"
                       }`} />
                     </button>
-                    <span className="font-serif font-bold text-sm text-[#1a1612]">{mem.key}</span>
+                    {!isEditing ? (
+                      <span className="font-serif font-bold text-sm text-[#1a1612]">{mem.key}</span>
+                    ) : (
+                      <span className="font-mono text-[9px] text-[#7a756f] uppercase font-bold">Editing Context Item</span>
+                    )}
                     <span className="font-mono text-[9px] text-[#2d5a4a] uppercase bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-md">
                       {categoriesLabels[mem.category] || mem.category}
                     </span>
+                    {isSystem && (
+                      <span className={`font-mono text-[9px] uppercase px-2 py-0.5 rounded-md border ${
+                        isSystemOverridden 
+                          ? "bg-[#fdf2e9] text-[#b0601a] border-[#f5d0b3]" 
+                          : "bg-[#f4f4f5] text-[#52525b] border-[#e4e4e7]"
+                      }`}>
+                        {isSystemOverridden ? "System Core (Customized)" : "System Core (Default)"}
+                      </span>
+                    )}
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    {!isSystem && (
-                      !isEditing ? (
-                        <>
-                          <button
-                            onClick={() => handleStartEditing(mem.id, mem.value)}
-                            className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#3a7560] p-1.5 focus:outline-none flex items-center gap-0.5 cursor-pointer"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            EDIT
-                          </button>
+                    {!isEditing ? (
+                      <>
+                        <button
+                          onClick={() => handleStartEditing(mem)}
+                          className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#3a7560] p-1.5 focus:outline-none flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          EDIT
+                        </button>
+                        {(isSystemOverridden || !isSystem) && (
                           <button
                             onClick={() => handleDeleteMemory(mem.id)}
                             className="font-mono text-[10px] text-ink-500 hover:text-[#b83232] p-1.5 focus:outline-none flex items-center gap-0.5 cursor-pointer"
+                            title={isSystemOverridden ? "Reset this memory to the system default template" : "Wipe this memory from your brain"}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                            WIPE
+                            {isSystemOverridden ? "RESET TO DEFAULT" : "WIPE"}
                           </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleSaveEdit(mem.id)}
-                            className="font-mono text-[10px] text-chalk-600 p-1 focus:outline-none flex items-center gap-0.5 font-bold cursor-pointer"
-                          >
-                            <Check className="w-3.5 h-3.5 text-chalk-600" />
-                            SAVE
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="font-mono text-[10px] text-ink-500 p-1 focus:outline-none flex items-center gap-0.5 cursor-pointer"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            CANCEL
-                          </button>
-                        </>
-                      )
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleSaveEdit(mem.id)}
+                          className="font-mono text-[10px] text-chalk-600 p-1 focus:outline-none flex items-center gap-0.5 font-bold cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5 text-chalk-600" />
+                          SAVE
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="font-mono text-[10px] text-ink-500 p-1 focus:outline-none flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          CANCEL
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -401,12 +495,44 @@ export default function MemoryView({ userId }: { userId?: string }) {
                     &ldquo;{mem.value}&rdquo;
                   </p>
                 ) : (
-                  <textarea
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    rows={2}
-                    className="w-full text-xs p-2.5 rounded border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a] resize-none font-serif italic"
-                  />
+                  <div className="space-y-3 bg-[#f3ede2]/30 p-3 rounded-lg border border-[#e1d8c6]/50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[9px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Key Context Identifier *</label>
+                        <input
+                          type="text"
+                          required
+                          value={editKey}
+                          onChange={(e) => setEditKey(e.target.value)}
+                          className="w-full text-xs px-3 py-2 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-ink-950 focus:outline-none focus:border-[#2d5a4a]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Context Category</label>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          className="w-full text-xs px-3 py-2 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-[#1a1612] focus:outline-none uppercase"
+                        >
+                          {categories.filter(c => c !== "all").map(cat => (
+                            <option key={cat} value={cat}>
+                              {categoriesLabels[cat]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Constant Value / Description *</label>
+                      <textarea
+                        required
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        rows={3}
+                        className="w-full text-xs p-2.5 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-ink-950 focus:outline-none focus:border-[#2d5a4a] resize-none font-serif italic"
+                      />
+                    </div>
+                  </div>
                 )}
                 
                 <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-[#ece6db]/50">
@@ -414,13 +540,12 @@ export default function MemoryView({ userId }: { userId?: string }) {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={isSystem}
                       onClick={() => handleToggleUseInReplies(mem)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium border transition-colors ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium border transition-colors cursor-pointer ${
                         mem.useInReplies 
                           ? "bg-[#e8f0ec] text-[#2d5a4a] border-[#d2e3da]" 
                           : "bg-white text-[#8b857b] border-[#e1d8c6] hover:bg-[#ece6db]/30"
-                      } ${isSystem ? "cursor-default opacity-85" : "cursor-pointer"}`}
+                      }`}
                     >
                       <MessageSquare className="w-3 h-3" />
                       Style in Replies
@@ -428,13 +553,12 @@ export default function MemoryView({ userId }: { userId?: string }) {
 
                     <button
                       type="button"
-                      disabled={isSystem}
                       onClick={() => handleToggleDoNotUseAutomatically(mem)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium border transition-colors ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium border transition-colors cursor-pointer ${
                         mem.doNotUseAutomatically 
                           ? "bg-red-50 text-red-700 border-red-200" 
                           : "bg-white text-[#8b857b] border-[#e1d8c6] hover:bg-[#ece6db]/30"
-                      } ${isSystem ? "cursor-default opacity-85" : "cursor-pointer"}`}
+                      }`}
                     >
                       <EyeOff className="w-3 h-3" />
                       Do Not Auto-Use
@@ -443,7 +567,7 @@ export default function MemoryView({ userId }: { userId?: string }) {
 
                   <div className="text-[9px] font-mono text-[#8b857b] pr-1 pl-0.5">
                     <span>RECORD CREATION: {new Date(mem.createdAt || mem.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-                    <span className="mx-2">·</span>
+                    <span className="mx-2">|</span>
                     <span>UPDATED: {new Date(mem.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
                   </div>
                 </div>

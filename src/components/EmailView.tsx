@@ -36,13 +36,40 @@ export const saveCachedEmails = (key: string, data: Email[]) => {
   }
 };
 
-export default function EmailView({ googleToken, currentUser, onSwitchAccount }: { googleToken?: string | null, currentUser?: TeacherUser | null, onSwitchAccount?: () => void }) {
+export default function EmailView({ 
+  googleToken, 
+  currentUser, 
+  userId, 
+  onSwitchAccount,
+  initialSelectedEmailId,
+  onClearInitialEmailId
+}: { 
+  googleToken?: string | null;
+  currentUser?: TeacherUser | null;
+  userId?: string;
+  onSwitchAccount?: () => void;
+  initialSelectedEmailId?: string | null;
+  onClearInitialEmailId?: () => void;
+}) {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncingBackground, setIsSyncingBackground] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Handle deep-linked email selection
+  useEffect(() => {
+    if (initialSelectedEmailId && emails.length > 0) {
+      const found = emails.find(e => e.id === initialSelectedEmailId);
+      if (found) {
+        setSelectedEmail(found);
+        if (onClearInitialEmailId) {
+          setTimeout(onClearInitialEmailId, 1000);
+        }
+      }
+    }
+  }, [initialSelectedEmailId, emails, onClearInitialEmailId]);
 
   // AI tools states
   const [summarising, setSummarising] = useState(false);
@@ -173,7 +200,11 @@ export default function EmailView({ googleToken, currentUser, onSwitchAccount }:
     setDraftingReply(true);
     setReplyDraft("");
     try {
-      const res = await fetch(`/api/emails/${id}/reply`, { method: "POST" });
+      const res = await fetch(`/api/emails/${id}/reply`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId })
+      });
       if (!res.ok) throw new Error("API failed");
       const text = await res.text();
       const data = JSON.parse(text);
