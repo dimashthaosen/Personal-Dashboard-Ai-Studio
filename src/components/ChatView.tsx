@@ -147,9 +147,9 @@ export default function ChatView({
     setLoading(true);
     setPendingApproval(null);
     setExecutedTools([]);
+    setActiveStreamingReply("");
 
     try {
-      // 1. Add user message in Firestore to archive history
       await addDoc(collection(db, `users/${userId}/chatMessages`), {
         role: "user",
         content: userMessageText,
@@ -157,7 +157,6 @@ export default function ChatView({
         userId
       });
 
-      // Provide live state grounding
       const contextData = {
         tasks: tasks.filter((t) => t.status !== "done").map((t) => `- [${t.priority.toUpperCase()}] ${t.title} (${t.category}, due: ${t.deadline || "none"}, ID: ${t.id})`).join("\n"),
         calendar: events.map((e) => `- ${e.title} at ${e.start} - ${e.end}`).join("\n"),
@@ -169,7 +168,6 @@ export default function ChatView({
         content: m.content
       }));
 
-      // 2. Query server-side agentic runtime
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (googleToken) {
         headers["Authorization"] = `Bearer ${googleToken}`;
@@ -186,24 +184,81 @@ export default function ChatView({
         }),
       });
 
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
         throw new Error("Terminal agent processor reported an issue.");
       }
 
-      const agentResult = await response.json();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalStreamedText = "";
 
-      setExecutedTools(agentResult.toolCallsExecuted || []);
+      const processPart = (part: string) => {
+        if (part.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(part.slice(6));
+            
+            if (data.type === "token") {
+              setActiveStreamingReply(prev => prev + data.text);
+              finalStreamedText += data.text;
+            } else if (data.type === "tool") {
+              if (data.status === "done") {
+                setExecutedTools(prev => [...prev, { name: data.name, args: {}, result: data.result }]);
+                // If the tool generated a lesson plan, save it to the DB on the client side
+                if (data.name === "generateLessonPlan" && data.result?.markdown) {
+                  const planArgs = data.result.args || {};
+                  addDoc(collection(db, `users/${userId}/lessonPlans`), {
+                    courseId: planArgs.courseId || "unknown",
+                    week: planArgs.week || "unknown",
+                    lessonsPerWeek: planArgs.lessonsPerWeek || 1,
+                    pedagogicalMix: planArgs.pedagogicalMix || "",
+                    languageTone: planArgs.languageTone || "",
+                    markdown: data.result.markdown,
+                    createdAt: new Date().toISOString(),
+                    userId
+                  }).catch(e => console.warn("Failed to save generated lesson plan:", e));
+                }
+              }
+            } else if (data.type === "approval") {
+              setPendingApproval({ batch: data.batch, contents: data.contents });
+            } else if (data.type === "done") {
+              finalStreamedText = data.text;
+              setActiveStreamingReply(data.text);
+            } else if (data.type === "error") {
+              throw new Error(data.message);
+            }
+          } catch (e) {
+            console.error("Stream parse error:", e);
+          }
+        }
+      };
 
-      // 3. Persist the text generation outcome to Firestore
-      await addDoc(collection(db, `users/${userId}/chatMessages`), {
-        role: "assistant",
-        content: agentResult.text,
-        timestamp: new Date().toISOString(),
-        userId
-      });
+      while (true) {
+        const { value, done } = await reader.read();
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || "";
+          
+          for (const part of parts) {
+            processPart(part);
+          }
+        }
+        if (done) {
+          if (buffer.trim()) {
+            processPart(buffer.trim());
+          }
+          break;
+        }
+      }
 
-      if (agentResult.pendingApproval) {
-        setPendingApproval(agentResult.pendingApproval);
+      if (finalStreamedText) {
+        await addDoc(collection(db, `users/${userId}/chatMessages`), {
+          role: "assistant",
+          content: finalStreamedText,
+          timestamp: new Date().toISOString(),
+          userId
+        });
       }
 
     } catch (err: any) {
@@ -213,11 +268,12 @@ export default function ChatView({
         {
           id: "err-msg-" + Date.now(),
           role: "assistant",
-          content: "Apologies, I encountered an issue synchronising with our server tools. Please retry.",
+          content: `Apologies, I encountered an issue: ${err.message || "Failed to sync"}. Please retry.`,
           timestamp: new Date().toISOString(),
         },
       ]);
     } finally {
+      setActiveStreamingReply("");
       setLoading(false);
       sendingRef.current = false;
     }
@@ -229,133 +285,84 @@ export default function ChatView({
     approvingRef.current = true;
 
     setLoading(true);
-    const { tool, args } = pendingApproval;
+    setActiveStreamingReply("");
+    const { batch, contents } = pendingApproval;
     setPendingApproval(null);
 
     try {
       // 1. Execute direct client-side Firestore writes to completely circumvent server container permission scopes
-      let clientResult: any = null;
+      const clientResults: Record<string, any> = {};
       try {
-        if (tool === "createTask") {
-          let priority = (args.priority || "medium").toLowerCase();
-          if (!["low", "medium", "high", "urgent"].includes(priority)) {
-            priority = "medium";
-          }
-          let category = (args.category || "school").toLowerCase();
-          if (category === "emails" || category === "drafts") category = "email";
-          if (category === "follow-up" || category === "student") category = "followup";
-          if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
-          if (category === "administration") category = "admin";
-          if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
-            category = "school";
-          }
-          const title = String(args.title || "Untitled Task").substring(0, 200);
+        for (const item of batch) {
+          const { tool, args } = item;
+          if (tool === "createTask") {
+            const priority = (args.priority || "medium").toLowerCase();
+            const category = (args.category || "school").toLowerCase();
+            const title = String(args.title || "Untitled Task").substring(0, 200);
 
-          const docRef = await addDoc(collection(db, `users/${userId}/tasks`), {
-            title,
-            description: args.description || "",
-            deadline: args.deadline || "",
-            priority,
-            category,
-            status: "pending",
-            source: "assistant",
-            createdAt: new Date().toISOString(),
-            userId
-          });
-          clientResult = { success: true, taskId: docRef.id, message: `Task "${title}" created successfully in Firestore.` };
-        } else if (tool === "updateTask") {
-          const { taskId } = args;
-          if (!taskId) throw new Error("Missing taskId for update");
-
-          const updateData: any = {};
-          if (args.title !== undefined) updateData.title = String(args.title).substring(0, 200);
-          if (args.description !== undefined) updateData.description = String(args.description);
-          if (args.deadline !== undefined) updateData.deadline = String(args.deadline);
-
-          if (args.priority !== undefined) {
-            let priority = String(args.priority).toLowerCase();
-            if (!["low", "medium", "high", "urgent"].includes(priority)) {
-              priority = "medium";
-            }
-            updateData.priority = priority;
-          }
-
-          if (args.category !== undefined) {
-            let category = String(args.category).toLowerCase();
-            if (category === "emails" || category === "drafts") category = "email";
-            if (category === "follow-up" || category === "student") category = "followup";
-            if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
-            if (category === "administration") category = "admin";
-            if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
-              category = "school";
-            }
-            updateData.category = category;
-          }
-
-          if (args.status !== undefined) {
-            let status = String(args.status).toLowerCase();
-            if (status === "in-progress" || status === "in_progress") {
-              status = "in_progress";
-            } else if (status === "completed") {
-              status = "done";
-            }
-            if (!["pending", "in_progress", "done", "waiting", "cancelled"].includes(status)) {
-              status = "pending";
-            }
-            updateData.status = status;
-          }
-
-          await updateDoc(doc(db, `users/${userId}/tasks`, taskId), updateData);
-          clientResult = { success: true, taskId, message: `Task successfully updated: ${JSON.stringify(updateData)}` };
-        } else if (tool === "createCalendarEvent") {
-          const title = String(args.title || "Untitled Event").substring(0, 200);
-          const start = String(args.start || new Date().toISOString()).substring(0, 100);
-          const end = String(args.end || new Date().toISOString()).substring(0, 100);
-          const description = String(args.description || "");
-
-          const docRef = await addDoc(collection(db, `users/${userId}/calendarEvents`), {
-            title,
-            description,
-            location: args.location || "Vasant Valley School",
-            start,
-            end,
-            createdAt: new Date().toISOString(),
-            userId
-          });
-          clientResult = { success: true, eventId: docRef.id, message: `Calendar event "${title}" created successfully in Firestore.` };
-        } else if (tool === "saveMemory") {
-          const key = String(args.key || "general").substring(0, 100);
-          const value = String(args.value || "").substring(0, 1000);
-          let category = String(args.category || "general").toLowerCase();
-          if (category === "pref" || category === "preference") category = "preferences";
-          if (category === "person") category = "people";
-          if (category === "assignment" || category === "class") category = "school";
-          if (!["general", "preferences", "people", "school", "patterns"].includes(category)) {
-            category = "general";
-          }
-
-          const memoriesRef = collection(db, `users/${userId}/memoryItems`);
-          const qMatches = query(memoriesRef, where("key", "==", key));
-          const memSnap = await getDocs(qMatches);
-
-          if (!memSnap.empty) {
-            const targetId = memSnap.docs[0].id;
-            await updateDoc(doc(db, `users/${userId}/memoryItems`, targetId), {
-              value,
+            const docRef = await addDoc(collection(db, `users/${userId}/tasks`), {
+              title,
+              description: args.description || "",
+              deadline: args.deadline || "",
+              priority,
               category,
-              updatedAt: new Date().toISOString()
-            });
-            clientResult = { success: true, memoryId: targetId, message: `Updated existing memory element for "${key}".` };
-          } else {
-            const docRef = await addDoc(memoriesRef, {
-              key,
-              value,
-              category,
+              status: "pending",
+              source: "assistant",
               createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
               userId
             });
-            clientResult = { success: true, memoryId: docRef.id, message: `Memory element "${key}" saved successfully in Firestore.` };
+            clientResults[tool] = { success: true, taskId: docRef.id, message: `Task "${title}" created successfully in Firestore.` };
+          } else if (tool === "updateTask") {
+            const { taskId } = args;
+            if (taskId) {
+              const updateData: any = {};
+              if (args.title !== undefined) updateData.title = String(args.title).substring(0, 200);
+              if (args.description !== undefined) updateData.description = String(args.description);
+              if (args.deadline !== undefined) updateData.deadline = String(args.deadline);
+              if (args.priority !== undefined) updateData.priority = String(args.priority).toLowerCase();
+              if (args.category !== undefined) updateData.category = String(args.category).toLowerCase();
+              if (args.status !== undefined) updateData.status = String(args.status).toLowerCase();
+              
+              await updateDoc(doc(db, `users/${userId}/tasks`, taskId), updateData);
+              clientResults[tool] = { success: true, taskId, message: `Task successfully updated.` };
+            }
+          } else if (tool === "createCalendarEvent") {
+            const title = String(args.title || "Untitled Event").substring(0, 200);
+            const docRef = await addDoc(collection(db, `users/${userId}/calendarEvents`), {
+              title,
+              description: String(args.description || ""),
+              location: args.location || "Vasant Valley School",
+              start: String(args.start || new Date().toISOString()).substring(0, 100),
+              end: String(args.end || new Date().toISOString()).substring(0, 100),
+              createdAt: new Date().toISOString(),
+              userId
+            });
+            clientResults[tool] = { success: true, eventId: docRef.id, message: `Calendar event "${title}" created successfully in Firestore.` };
+          } else if (tool === "saveMemory") {
+            const key = String(args.key || "general").substring(0, 100);
+            const memoriesRef = collection(db, `users/${userId}/memoryItems`);
+            const qMatches = query(memoriesRef, where("key", "==", key));
+            const memSnap = await getDocs(qMatches);
+            
+            if (!memSnap.empty) {
+              const targetId = memSnap.docs[0].id;
+              await updateDoc(doc(db, `users/${userId}/memoryItems`, targetId), {
+                value: String(args.value || "").substring(0, 1000),
+                category: String(args.category || "general").toLowerCase(),
+                updatedAt: new Date().toISOString()
+              });
+              clientResults[tool] = { success: true, memoryId: targetId, message: `Updated existing memory element for "${key}".` };
+            } else {
+              const docRef = await addDoc(memoriesRef, {
+                key,
+                value: String(args.value || "").substring(0, 1000),
+                category: String(args.category || "general").toLowerCase(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                userId
+              });
+              clientResults[tool] = { success: true, memoryId: docRef.id, message: `Memory element "${key}" saved successfully in Firestore.` };
+            }
           }
         }
       } catch (dbErr: any) {
@@ -368,11 +375,6 @@ export default function ChatView({
         memory: memoryItems.filter(m => !m.doNotUseAutomatically).map((m) => `- ${m.key}: ${m.value}`).join("\n"),
       };
 
-      const history = messages.slice(-15).map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-
       const approveHeaders: Record<string, string> = { "Content-Type": "application/json" };
       if (googleToken) {
         approveHeaders["Authorization"] = `Bearer ${googleToken}`;
@@ -382,40 +384,87 @@ export default function ChatView({
         method: "POST",
         headers: approveHeaders,
         body: JSON.stringify({
-          tool,
-          args,
+          batch,
+          contents,
           userId,
-          chatHistory: history,
           contextData,
-          clientResult
+          clientResults
         })
       });
 
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
         throw new Error("Verification execution resulted in an error.");
       }
 
-      const agentResult = await response.json();
-      setExecutedTools((prev) => [...prev, ...(agentResult.toolCallsExecuted || [])]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalStreamedText = "";
 
-      // If the tool is generateLessonPlan and we didn't save it server-side (or failed), we can save it client-side fallback
-      if (tool === "generateLessonPlan" && agentResult.toolCallsExecuted) {
-        const lpToolRes = agentResult.toolCallsExecuted.find((t: any) => t.name === "generateLessonPlan");
-        if (lpToolRes?.result?.fallbackData) {
+      const processPart = (part: string) => {
+        if (part.startsWith("data: ")) {
           try {
-            await addDoc(collection(db, `users/${userId}/lessonPlans`), lpToolRes.result.fallbackData);
-          } catch (lpErr) {
-            console.error("Failed to save lesson plan fallback client side:", lpErr);
+            const data = JSON.parse(part.slice(6));
+            
+            if (data.type === "token") {
+              setActiveStreamingReply(prev => prev + data.text);
+              finalStreamedText += data.text;
+            } else if (data.type === "tool") {
+              if (data.status === "done") {
+                setExecutedTools(prev => [...prev, { name: data.name, args: {}, result: data.result }]);
+                if (data.name === "generateLessonPlan" && data.result?.markdown) {
+                  const planArgs = data.result.args || {};
+                  addDoc(collection(db, `users/${userId}/lessonPlans`), {
+                    courseId: planArgs.courseId || "unknown",
+                    week: planArgs.week || "unknown",
+                    lessonsPerWeek: planArgs.lessonsPerWeek || 1,
+                    pedagogicalMix: planArgs.pedagogicalMix || "",
+                    languageTone: planArgs.languageTone || "",
+                    markdown: data.result.markdown,
+                    createdAt: new Date().toISOString(),
+                    userId
+                  }).catch(e => console.warn("Failed to save generated lesson plan:", e));
+                }
+              }
+            } else if (data.type === "done") {
+              finalStreamedText = data.text;
+              setActiveStreamingReply(data.text);
+            } else if (data.type === "error") {
+              throw new Error(data.message);
+            }
+          } catch (e) {
+            console.error("Stream parse error:", e);
           }
+        }
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || "";
+          
+          for (const part of parts) {
+            processPart(part);
+          }
+        }
+        if (done) {
+          if (buffer.trim()) {
+            processPart(buffer.trim());
+          }
+          break;
         }
       }
 
-      await addDoc(collection(db, `users/${userId}/chatMessages`), {
-        role: "assistant",
-        content: agentResult.text,
-        timestamp: new Date().toISOString(),
-        userId
-      });
+      if (finalStreamedText) {
+        await addDoc(collection(db, `users/${userId}/chatMessages`), {
+          role: "assistant",
+          content: finalStreamedText,
+          timestamp: new Date().toISOString(),
+          userId
+        });
+      }
 
     } catch (err: any) {
       console.error("Verification execution issue:", err);
@@ -429,6 +478,7 @@ export default function ChatView({
         }
       ]);
     } finally {
+      setActiveStreamingReply("");
       setLoading(false);
       approvingRef.current = false;
     }
@@ -605,7 +655,7 @@ export default function ChatView({
           )}
 
           {/* Visual Pending Approval Card */}
-          {pendingApproval && (
+          {pendingApproval && pendingApproval.batch && (
             <div className="p-4 rounded-xl border-2 border-dashed border-[#2d5a4a] bg-[#fdfaf5] shadow-[0_2px_12px_rgba(45,90,74,0.06)] max-w-[450px] my-3 animate-scaleUp">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 text-[#2d5a4a]" />
@@ -614,18 +664,24 @@ export default function ChatView({
                 </span>
               </div>
               
-              <p className="text-sm font-serif text-[#1a1612] mb-3 font-semibold leading-snug">
-                {pendingApproval.explanation}
-              </p>
+              <div className="space-y-4 mb-4">
+                {pendingApproval.batch.map((item: any, idx: number) => (
+                  <div key={idx}>
+                    <p className="text-sm font-serif text-[#1a1612] mb-2 font-semibold leading-snug">
+                      {item.explanation || `The AI assistant is proposing a write action using the ${item.tool} tool.`}
+                    </p>
 
-              <div className="p-2.5 bg-[#f3ede2] rounded-lg border border-[#e1d8c6] text-[11px] font-mono space-y-1 mb-4 text-[#4a4540]">
-                <p className="font-bold uppercase text-[9px] tracking-wide text-[#7a756f] border-b border-[#e1d8c6] pb-1">
-                  Parameters validation:
-                </p>
-                {Object.entries(pendingApproval.args || {}).map(([k, v]) => (
-                  <div key={k} className="flex justify-between py-0.5">
-                    <span className="text-[#8b857b] lowercase">{k}:</span>
-                    <span className="font-bold text-[#2d5a4a] max-w-[200px] truncate text-right">{String(v)}</span>
+                    <div className="p-2.5 bg-[#f3ede2] rounded-lg border border-[#e1d8c6] text-[11px] font-mono space-y-1 text-[#4a4540]">
+                      <p className="font-bold uppercase text-[9px] tracking-wide text-[#7a756f] border-b border-[#e1d8c6] pb-1">
+                        Tool: {item.tool}
+                      </p>
+                      {Object.entries(item.args || {}).map(([k, v]) => (
+                        <div key={k} className="flex justify-between py-0.5">
+                          <span className="text-[#8b857b] lowercase">{k}:</span>
+                          <span className="font-bold text-[#2d5a4a] max-w-[200px] truncate text-right">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -80,8 +80,9 @@ export async function fetchWithRetryAndFallback<T>(
   action: (modelName: string) => Promise<T>
 ): Promise<T> {
   const modelsToTry = [
-    "gemini-3.5-flash",
     "gemini-3.1-flash-lite",
+    "gemini-flash-latest",
+    "gemini-3.5-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-2.5-pro"
@@ -279,7 +280,7 @@ export async function generateLessonPacing(prompt: string): Promise<any> {
   }
 }
 
-function simulateDemoResponse(prompt: string): string {
+export function simulateDemoResponse(prompt: string): string {
   const lower = prompt.toLowerCase();
   
   if (lower.includes("task") || lower.includes("todo") || lower.includes("to-do") || lower.includes("add chore") || lower.includes("create task")) {

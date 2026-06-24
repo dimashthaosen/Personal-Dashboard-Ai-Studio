@@ -36,6 +36,37 @@ export const saveCachedEmails = (key: string, data: Email[]) => {
   }
 };
 
+function formatEmailBody(text: string | undefined): string {
+  if (!text) return "";
+  
+  // Normalize carriage returns
+  const normalized = text.replace(/\r\n/g, '\n');
+  
+  // Split by double newlines to get paragraphs
+  const paragraphs = normalized.split(/\n\s*\n/);
+  
+  return paragraphs.map(p => {
+    const lines = p.split('\n');
+    let formatted = lines[0] || "";
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const prevLine = lines[i - 1] || "";
+      
+      // Keep newline if:
+      // 1. Current line starts with a list indicator
+      // 2. Previous line ended with a colon
+      // 3. Previous line was short (likely a signature or a naturally short line, not a hard-wrapped paragraph)
+      if (/^\s*[-•*]/.test(line) || /^\s*\d+\./.test(line) || prevLine.trim().endsWith(':') || prevLine.length < 60) {
+        formatted += '\n' + line;
+      } else {
+        // Otherwise, unwrap the hard break by replacing it with a space
+        formatted += ' ' + line.trim();
+      }
+    }
+    return formatted;
+  }).join('\n\n');
+}
+
 export default function EmailView({ 
   googleToken, 
   currentUser, 
@@ -412,7 +443,7 @@ export default function EmailView({
 
               {/* Mail Body */}
               <div className="bg-[#f3ede2] p-5 rounded-[12px] border border-[#e1d8c6] text-xs text-[#4a4540] leading-relaxed font-sans whitespace-pre-wrap max-h-96 overflow-y-auto shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] selection:bg-[#2d5a4a]/10">
-                {selectedEmail.body || selectedEmail.snippet}
+                {formatEmailBody(selectedEmail.body || selectedEmail.snippet)}
               </div>
 
               {/* AI Actions Row */}

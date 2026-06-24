@@ -685,9 +685,9 @@ ${data.memory || "No memory preferences stored."}
   });
 
   app.post("/api/chat", async (req, res) => {
-    const { message, contextData, userId, chatHistory } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: "Message is required" });
+    const { message, contextData, userId, chatHistory, contents } = req.body;
+    if (!message && !contents) {
+      return res.status(400).json({ error: "Message or contents is required" });
     }
 
     const authHeader = req.headers.authorization;
@@ -696,25 +696,48 @@ ${data.memory || "No memory preferences stored."}
       accessToken = authHeader.substring(7);
     }
 
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    const onEvent = (event: any) => {
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+      if (typeof (res as any).flush === "function") {
+        (res as any).flush();
+      }
+    };
+
+    const initialContents = contents || [];
+    if (!contents && chatHistory) {
+      for (const msg of chatHistory) {
+        const role = msg.role === "assistant" ? "model" : "user";
+        initialContents.push({ role, parts: [{ text: msg.content }] });
+      }
+    }
+
     try {
-      const agentResult = await runAssistantAgent({
+      await runAssistantAgent({
         message,
+        contents: initialContents,
         contextData,
         userId: userId || "default_teacher",
         accessToken,
-        chatHistory: chatHistory || []
+        onEvent
       });
-      res.json(agentResult);
+      res.end();
     } catch (err: any) {
       console.error("Agent error in POST /api/chat:", err);
-      res.status(500).json({ error: err.message || "Failed to run agent assistant" });
+      onEvent({ type: "error", message: err.message || "Failed to run agent assistant" });
+      res.end();
     }
   });
 
   app.post("/api/chat/approve", async (req, res) => {
-    const { tool, args, userId, chatHistory, contextData, clientResult } = req.body;
-    if (!tool || !userId) {
-      return res.status(400).json({ error: "Missing tool or userId parameters" });
+    const { contents, batch, userId, contextData, clientResults } = req.body;
+    if (!contents || !batch || !userId) {
+      return res.status(400).json({ error: "Missing contents, batch, or userId parameters" });
     }
 
     const authHeader = req.headers.authorization;
@@ -723,30 +746,57 @@ ${data.memory || "No memory preferences stored."}
       accessToken = authHeader.substring(7);
     }
 
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    const onEvent = (event: any) => {
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+      if (typeof (res as any).flush === "function") {
+        (res as any).flush();
+      }
+    };
+
     try {
-      // 1. If client executed write client-side, use that outcome directly. Otherwise execute server-side.
-      let toolResult: any;
-      if (clientResult) {
-        toolResult = clientResult;
-      } else {
-        toolResult = await executeTool(userId, tool, args, accessToken);
+      // Execute each item in the batch sequentially
+      const responseParts: any[] = [];
+      for (const item of batch) {
+        onEvent({ type: "tool", name: item.tool, status: "running" });
+        
+        let result: any;
+        if (clientResults && clientResults[item.tool]) {
+          result = clientResults[item.tool];
+        } else {
+          result = await executeTool(userId, item.tool, item.args, accessToken);
+        }
+        
+        onEvent({ type: "tool", name: item.tool, status: "done", result });
+        responseParts.push({
+          functionResponse: {
+            name: item.tool,
+            response: { result }
+          }
+        });
       }
 
-      // 2. Feed the write tool execution results back to Gemini for the concluding confirmation response
-      const resumeMessage = `[SYSTEM: Agent executed write action "${tool}" successfully. Result outcome: ${JSON.stringify(toolResult)}]`;
-      
-      const agentResult = await runAssistantAgent({
-        message: resumeMessage,
+      // Feed the write tool execution results back to Gemini
+      contents.push({ role: "user", parts: responseParts });
+
+      await runAssistantAgent({
+        contents,
         contextData,
         userId,
         accessToken,
-        chatHistory: chatHistory || []
+        onEvent
       });
 
-      res.json(agentResult);
+      res.end();
     } catch (err: any) {
       console.error("Agent error in POST /api/chat/approve:", err);
-      res.status(500).json({ error: err.message || "Approval execution failed" });
+      onEvent({ type: "error", message: err.message || "Approval execution failed" });
+      res.end();
     }
   });
 

@@ -60,6 +60,65 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 3
   }
 }
 
+export async function fetchGmailEmailById(accessToken: string, emailId: string, type: "inbox" | "sent" = "inbox"): Promise<GmailEmail | null> {
+  try {
+    const detailRes = await fetchWithTimeout(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${emailId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      },
+      3000
+    );
+
+    if (!detailRes.ok) return null;
+
+    const detail = await detailRes.json();
+    const headers = detail.payload?.headers || [];
+    
+    const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === "subject");
+    const participantHeader = headers.find((h: any) => h.name.toLowerCase() === (type === "sent" ? "to" : "from"));
+    const dateHeader = headers.find((h: any) => h.name.toLowerCase() === "date");
+
+    const subject = subjectHeader ? subjectHeader.value : "No Subject";
+    const fromStr = participantHeader ? participantHeader.value : "Unknown";
+    
+    let fromName = fromStr;
+    let fromEmail = "";
+    const match = fromStr.match(/(.*)<(.*)>/);
+    if (match) {
+      fromName = match[1].trim();
+      fromEmail = match[2].trim();
+    } else if (fromStr.includes("@")) {
+      fromName = fromStr.split("@")[0];
+      fromEmail = fromStr.trim();
+    }
+
+    const dateStr = dateHeader ? dateHeader.value : new Date(parseInt(detail.internalDate)).toUTCString();
+    const snippet = detail.snippet || "";
+    
+    const body = getGmailMessageBody(detail.payload) || snippet;
+
+    return {
+      id: emailId,
+      subject,
+      from: fromStr,
+      fromName,
+      fromEmail,
+      snippet,
+      body,
+      date: new Date(dateStr).toISOString(),
+      needsReply: false,
+      category: subject.toLowerCase().includes("colleague") ? "school" : "parents",
+    } as GmailEmail;
+  } catch (err) {
+    console.error(`Error fetching email detail for ID ${emailId}:`, err);
+    return null;
+  }
+}
+
 export async function fetchGmailEmails(accessToken: string, type: "inbox" | "sent" = "inbox"): Promise<GmailEmail[]> {
   try {
     // Fetch last messages from inbox (30 days to cover past weeks completely, without aggressive category filtering)

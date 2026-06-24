@@ -31,17 +31,6 @@ export const serverDb = firebaseConfig.firestoreDatabaseId
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore();
 
-// Map of in-memory pending approvals to safeguard writing actions
-export interface PendingApproval {
-  id: string;
-  tool: string;
-  args: any;
-  userId: string;
-  explanation: string;
-}
-
-export const pendingApprovalsStore = new Map<string, PendingApproval>();
-
 // Helper to check if a tool is a write action that requires approval
 export function isWriteTool(name: string): boolean {
   const writeTools = ["createTask", "updateTask", "createCalendarEvent", "saveMemory", "generateLessonPlan"];
@@ -256,6 +245,16 @@ export const TOOL_DECLARATIONS = [
 ];
 
 // Core tool executors
+async function safeGetCollection(path: string) {
+  try {
+    const snap = await serverDb.collection(path).get();
+    return snap.docs;
+  } catch (err: any) {
+    console.warn(`Server-side DB read failed for ${path}, falling back to empty. Error:`, err.message);
+    return [];
+  }
+}
+
 export async function executeTool(userId: string, name: string, args: any, accessToken?: string): Promise<any> {
   console.log(`Executing tool server-side: ${name} for user ${userId} with args:`, args);
 
@@ -312,8 +311,8 @@ export async function executeTool(userId: string, name: string, args: any, acces
 
       case "searchTasks": {
         // Query tasks from Firestore
-        const snap = await serverDb.collection(`users/${userId}/tasks`).get();
-        let tasksList = snap.docs.map(d => ({ id: d.id, ...d.data() } as Task));
+        const docs = await safeGetCollection(`users/${userId}/tasks`);
+        let tasksList = docs.map(d => ({ id: d.id, ...d.data() } as Task));
 
         // Filter on server side for robustness and to avoid complex composite index requirement
         if (args.status) {
@@ -368,8 +367,8 @@ export async function executeTool(userId: string, name: string, args: any, acces
 
       case "searchCalendar": {
         // Fetch custom user calendar events from Firestore
-        const snap = await serverDb.collection(`users/${userId}/calendarEvents`).get();
-        const selectCustom = snap.docs.map(d => ({ id: d.id, ...d.data() } as CalendarEvent));
+        const docs = await safeGetCollection(`users/${userId}/calendarEvents`);
+        const selectCustom = docs.map(d => ({ id: d.id, ...d.data() } as CalendarEvent));
 
         // Combine with official static schoolEvents list
         const allEvents = [...selectCustom, ...schoolEvents];
@@ -438,8 +437,8 @@ export async function executeTool(userId: string, name: string, args: any, acces
       }
 
       case "searchMemory": {
-        const snap = await serverDb.collection(`users/${userId}/memoryItems`).get();
-        let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as MemoryItem));
+        const docs = await safeGetCollection(`users/${userId}/memoryItems`);
+        let items = docs.map(d => ({ id: d.id, ...d.data() } as MemoryItem));
 
         if (args.query) {
           const s = args.query.toLowerCase();
@@ -493,14 +492,27 @@ ${emailSummaries}
       }
 
       case "draftEmailReply": {
-        const email = db.getEmailById(args.emailId);
+        let email = null;
+        if (accessToken) {
+          const fetched = await import("./gmail.js").then(m => m.fetchGmailEmailById(accessToken, args.emailId));
+          if (fetched) {
+            email = fetched;
+            // Also sync it to DB so we have it for future reference
+            db.syncGmailEmails([fetched], "inbox");
+          }
+        }
+        
         if (!email) {
-          throw new Error(`Email with ID ${args.emailId} not found in localized database.`);
+          email = db.getEmailById(args.emailId);
+        }
+
+        if (!email) {
+          throw new Error(`Email with ID ${args.emailId} not found in localized database or via API.`);
         }
 
         // Fetch writing style from memory database
-        const memSnap = await serverDb.collection(`users/${userId}/memoryItems`).get();
-        const memories = memSnap.docs.map(d => d.data());
+        const docs = await safeGetCollection(`users/${userId}/memoryItems`);
+        const memories = docs.map(d => d.data());
         
         const prompt = buildReplyPrompt(email, args.customKeyPoints || "", memories);
 
@@ -521,33 +533,22 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
         // Generate the lesson plan text
         const planMarkdown = await aiGenerateLessonPlan(prompt);
 
-        // Write directly to user's lessonPlans in Firestore
-        const docRef = await serverDb.collection(`users/${userId}/lessonPlans`).add({
-          courseId: args.courseId,
-          week: args.week,
-          lessonsPerWeek: args.lessonsPerWeek,
-          pedagogicalMix: args.pedagogicalMix,
-          languageTone: args.languageTone,
-          markdown: planMarkdown,
-          createdAt: new Date().toISOString(),
-          userId
-        });
-
         return {
           success: true,
-          planId: docRef.id,
-          message: `Lesson plan for "${args.topic}" (Week ${args.week}) generated and saved successfully to Firestore.`,
-          markdown: planMarkdown
+          planId: "pending-save",
+          message: `Lesson plan for "${args.topic}" (Week ${args.week}) generated successfully.`,
+          markdown: planMarkdown,
+          args // Pass args back so the client has them
         };
       }
 
       case "searchStudents": {
-        const snap = await serverDb.collection(`users/${userId}/students`).get();
+        const docs = await safeGetCollection(`users/${userId}/students`);
         let list: StudentRecord[] = [];
         let isFallback = false;
         
-        if (!snap.empty) {
-          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
+        if (docs.length > 0) {
+          list = docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
         } else {
           list = SEED_STUDENTS;
           isFallback = true;
@@ -589,11 +590,11 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
       }
 
       case "getStudentProfile": {
-        const snap = await serverDb.collection(`users/${userId}/students`).get();
+        const docs = await safeGetCollection(`users/${userId}/students`);
         let list: StudentRecord[] = [];
         
-        if (!snap.empty) {
-          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
+        if (docs.length > 0) {
+          list = docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
         } else {
           list = SEED_STUDENTS;
         }
@@ -610,11 +611,11 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
       }
 
       case "summariseClassProfile": {
-        const snap = await serverDb.collection(`users/${userId}/students`).get();
+        const docs = await safeGetCollection(`users/${userId}/students`);
         let list: StudentRecord[] = [];
         
-        if (!snap.empty) {
-          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
+        if (docs.length > 0) {
+          list = docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
         } else {
           list = SEED_STUDENTS;
         }
@@ -644,8 +645,8 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
       }
 
       case "getTimetable": {
-        const snap = await serverDb.collection(`users/${userId}/timetableEntries`).get();
-        let list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as TimetableEntry[];
+        const docs = await safeGetCollection(`users/${userId}/timetableEntries`);
+        let list = docs.map(doc => ({ id: doc.id, ...doc.data() })) as TimetableEntry[];
 
         if (list.length === 0) {
           const { EXTRACTED_TIMETABLE } = await import("../data/extractedTimetable.js");
