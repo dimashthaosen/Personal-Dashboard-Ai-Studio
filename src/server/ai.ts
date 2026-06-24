@@ -283,15 +283,15 @@ function simulateDemoResponse(prompt: string): string {
   const lower = prompt.toLowerCase();
   
   if (lower.includes("task") || lower.includes("todo") || lower.includes("to-do") || lower.includes("add chore") || lower.includes("create task")) {
-    return "I have registered that task for you on your Task Board:\n\n- **Grade Class 11 Papers** (high priority, due Wednesday).\n\n[CREATE_TASK: Grade Class 11 Papers | Assess sociological stratification essays | school | high | 2026-06-18T18:00:00Z]";
+    return "I would normally register that task for you on your Task Board:\n\n- **Grade Class 11 Papers** (high priority, due Wednesday).";
   }
   
   if (lower.includes("event") || lower.includes("schedule") || lower.includes("meeting") || lower.includes("calendar") || lower.includes("book")) {
-    return "I have booked that event for you on your Calendar:\n\n- **GP Syllabus Review Meeting** (Tomorrow at 2:30 PM).\n\n[CREATE_EVENT: GP Syllabus Review Meeting | Collaborative audit of lesson plans with Anita | Staff Room | 2026-06-16T14:30:00 | 2026-06-16T15:15:00]";
+    return "I would normally book that event for you on your Calendar:\n\n- **GP Syllabus Review Meeting** (Tomorrow at 2:30 PM).";
   }
   
   if (lower.includes("remember") || lower.includes("memory") || lower.includes("remind") || lower.includes("recall")) {
-    return "I have recorded this in your memory profile so you can reference it later:\n\n- **Grading Style**: Prefers short evaluation rubrics with individual Cambridge letter indicators.\n\n[CREATE_MEMORY: Grading Style | Prefers short evaluation rubrics with individual Cambridge letter indicators | preferences]";
+    return "I would normally record this in your memory profile so you can reference it later:\n\n- **Grading Style**: Prefers short evaluation rubrics with individual Cambridge letter indicators.";
   }
 
   if (lower.includes("summarise") || lower.includes("summary")) {

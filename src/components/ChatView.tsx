@@ -8,11 +8,7 @@ import ReactMarkdown from "react-markdown";
 
 function cleanContentForDisplay(content: string) {
   if (!content) return "";
-  return content
-    .replace(/\[CREATE_TASK:\s*([^\]]+)\]/g, "")
-    .replace(/\[CREATE_EVENT:\s*([^\]]+)\]/g, "")
-    .replace(/\[CREATE_MEMORY:\s*([^\]]+)\]/g, "")
-    .trim();
+  return content.trim();
 }
 
 const renderers = {
@@ -508,10 +504,6 @@ export default function ChatView({
       {(messages.length > 0 || activeStreamingReply) && (
         <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-[#fcf9f3]/40">
           {messages.map((msg) => {
-            const hasTaskAction = msg.role === "assistant" && msg.content.includes("[CREATE_TASK:");
-            const hasEventAction = msg.role === "assistant" && msg.content.includes("[CREATE_EVENT:");
-            const hasMemoryAction = msg.role === "assistant" && msg.content.includes("[CREATE_MEMORY:");
-
             const isError = msg.id?.toString().startsWith("err-");
             const isCancel = msg.id?.toString().startsWith("cancel-");
 
@@ -550,26 +542,6 @@ export default function ChatView({
                           {cleanContentForDisplay(msg.content)}
                         </ReactMarkdown>
                       </div>
-                    </div>
-                  )}
-
-                  {(hasTaskAction || hasEventAction || hasMemoryAction) && (
-                    <div className="mt-2.5 pt-2 border-t border-[#e2dacb] flex flex-wrap gap-1.5 animate-fadeIn">
-                      {hasTaskAction && (
-                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d1e2da] px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Added to Tasks
-                        </span>
-                      )}
-                      {hasEventAction && (
-                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-sky-800 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Booked on Calendar
-                        </span>
-                      )}
-                      {hasMemoryAction && (
-                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-purple-800 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          <Check className="w-2.5 h-2.5 stroke-[2.5]" /> Saved to Memory
-                        </span>
-                      )}
                     </div>
                   )}
 

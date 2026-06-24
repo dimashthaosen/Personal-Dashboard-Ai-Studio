@@ -7,10 +7,18 @@ import { SEED_STUDENTS } from "../data/studentsData.js";
 import { generateContentText, generateLessonPlan as aiGenerateLessonPlan } from "./ai.js";
 import { db } from "./db.js";
 import { fetchGmailEmails } from "./gmail.js";
+import { normalisePriority, normaliseCategory, normaliseStatus, normaliseMemoryCategory, buildReplyPrompt } from "./validators.js";
+import { Task, CalendarEvent, MemoryItem, StudentRecord, TimetableEntry, Email } from "../types.js";
 
 // Load Firebase configuration
 const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+let firebaseConfig: any = {};
+try {
+  firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+} catch (err: any) {
+  console.error("FATAL: Failed to read or parse firebase-applet-config.json. Ensure it exists and is valid JSON.", err.message);
+  process.exit(1);
+}
 
 // Initialize firebase-admin only once
 const app = getApps().length === 0
@@ -254,19 +262,8 @@ export async function executeTool(userId: string, name: string, args: any, acces
   try {
     switch (name) {
       case "createTask": {
-        let priority = (args.priority || "medium").toLowerCase();
-        if (!["low", "medium", "high", "urgent"].includes(priority)) {
-          priority = "medium";
-        }
-
-        let category = (args.category || "school").toLowerCase();
-        if (category === "emails" || category === "drafts") category = "email";
-        if (category === "follow-up" || category === "student") category = "followup";
-        if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
-        if (category === "administration") category = "admin";
-        if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
-          category = "school";
-        }
+        const priority = normalisePriority(args.priority);
+        const category = normaliseCategory(args.category);
 
         const title = String(args.title || "Untitled Task").substring(0, 200);
 
@@ -298,36 +295,15 @@ export async function executeTool(userId: string, name: string, args: any, acces
         if (args.deadline !== undefined) updateData.deadline = String(args.deadline);
         
         if (args.priority !== undefined) {
-          let priority = String(args.priority).toLowerCase();
-          if (!["low", "medium", "high", "urgent"].includes(priority)) {
-            priority = "medium";
-          }
-          updateData.priority = priority;
+          updateData.priority = normalisePriority(String(args.priority));
         }
 
         if (args.category !== undefined) {
-          let category = String(args.category).toLowerCase();
-          if (category === "emails" || category === "drafts") category = "email";
-          if (category === "follow-up" || category === "student") category = "followup";
-          if (category === "homework" || category === "syllabus" || category === "curriculum" || category === "lessons") category = "school";
-          if (category === "administration") category = "admin";
-          if (!["school", "personal", "followup", "project", "email", "admin"].includes(category)) {
-            category = "school";
-          }
-          updateData.category = category;
+          updateData.category = normaliseCategory(String(args.category));
         }
 
         if (args.status !== undefined) {
-          let status = String(args.status).toLowerCase();
-          if (status === "in-progress" || status === "in_progress") {
-            status = "in_progress";
-          } else if (status === "completed") {
-            status = "done";
-          }
-          if (!["pending", "in_progress", "done", "waiting", "cancelled"].includes(status)) {
-            status = "pending";
-          }
-          updateData.status = status;
+          updateData.status = normaliseStatus(String(args.status));
         }
 
         await docRef.update(updateData);
@@ -337,7 +313,7 @@ export async function executeTool(userId: string, name: string, args: any, acces
       case "searchTasks": {
         // Query tasks from Firestore
         const snap = await serverDb.collection(`users/${userId}/tasks`).get();
-        let tasksList = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        let tasksList = snap.docs.map(d => ({ id: d.id, ...d.data() } as Task));
 
         // Filter on server side for robustness and to avoid complex composite index requirement
         if (args.status) {
@@ -393,7 +369,7 @@ export async function executeTool(userId: string, name: string, args: any, acces
       case "searchCalendar": {
         // Fetch custom user calendar events from Firestore
         const snap = await serverDb.collection(`users/${userId}/calendarEvents`).get();
-        const selectCustom = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const selectCustom = snap.docs.map(d => ({ id: d.id, ...d.data() } as CalendarEvent));
 
         // Combine with official static schoolEvents list
         const allEvents = [...selectCustom, ...schoolEvents];
@@ -432,18 +408,7 @@ export async function executeTool(userId: string, name: string, args: any, acces
         
         const key = String(args.key || "general").substring(0, 100);
         const value = String(args.value || "").substring(0, 1000);
-        let category = String(args.category || "school_routines").toLowerCase();
-        
-        // Map old/shorthand categories
-        if (category === "general" || category === "patterns") category = "school_routines";
-        if (category === "preferences" || category === "writing") category = "writing_preferences";
-        if (category === "people" || category === "person") category = "class_context";
-        if (category === "school") category = "school_routines";
-        
-        const validCategories = ["writing_preferences", "school_routines", "class_context", "recurring_tasks", "personal_preferences", "assistant_behaviour"];
-        if (!validCategories.includes(category)) {
-          category = "school_routines";
-        }
+        const category = normaliseMemoryCategory(args.category);
 
         // Deduplicate: check if a memory with same key already exists to prevent duplicate noise
         const memSnap = await memoriesRef.where("key", "==", key).get();
@@ -474,7 +439,7 @@ export async function executeTool(userId: string, name: string, args: any, acces
 
       case "searchMemory": {
         const snap = await serverDb.collection(`users/${userId}/memoryItems`).get();
-        let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as MemoryItem));
 
         if (args.query) {
           const s = args.query.toLowerCase();
@@ -537,24 +502,7 @@ ${emailSummaries}
         const memSnap = await serverDb.collection(`users/${userId}/memoryItems`).get();
         const memories = memSnap.docs.map(d => d.data());
         
-        const replyMemories = memories.filter((m: any) => m.useInReplies === true).map(m => `- ${m.key}: ${m.value}`).join('\n');
-        const styleText = memories.find((m: any) => m.key.toLowerCase().includes("style"))?.value || "Clear, polite, slightly warm, and direct. British English.";
-        const contextMemories = replyMemories ? `\nActive Memory Context (Must use for this reply):\n${replyMemories}\n` : '';
-
-        const prompt = `You are drafting a professional email reply for Dimash Thaosen (teacher at Vasant Valley School).
-        
-Sender Name: ${email.fromName}
-Sender Email: ${email.fromEmail}
-Original Subject: ${email.subject}
-Original Message snippet: ${email.snippet}
-
-Writing Style Context:
-${styleText}
-${contextMemories}
-
-${args.customKeyPoints ? `Critical points to incorporate in response:\n${args.customKeyPoints}` : ""}
-
-Draft a pristine, professional email reply. Always use British English spellings (e.g., summarise, organisation). Ensure the tone is polite, direct, clear, and school-context appropriate. Keep it point-wise where appropriate, and do not use flowery corporate jargon. Return only the drafted reply body.`;
+        const prompt = buildReplyPrompt(email, args.customKeyPoints || "", memories);
 
         const replyDraft = await generateContentText(prompt);
         return { success: true, emailId: args.emailId, recipient: (email as any).fromStr || email.fromEmail || (email as any).from || "", subject: `Re: ${email.subject}`, draft: replyDraft };
@@ -595,11 +543,11 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
 
       case "searchStudents": {
         const snap = await serverDb.collection(`users/${userId}/students`).get();
-        let list: any[] = [];
+        let list: StudentRecord[] = [];
         let isFallback = false;
         
         if (!snap.empty) {
-          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
         } else {
           list = SEED_STUDENTS;
           isFallback = true;
@@ -642,10 +590,10 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
 
       case "getStudentProfile": {
         const snap = await serverDb.collection(`users/${userId}/students`).get();
-        let list: any[] = [];
+        let list: StudentRecord[] = [];
         
         if (!snap.empty) {
-          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
         } else {
           list = SEED_STUDENTS;
         }
@@ -663,10 +611,10 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
 
       case "summariseClassProfile": {
         const snap = await serverDb.collection(`users/${userId}/students`).get();
-        let list: any[] = [];
+        let list: StudentRecord[] = [];
         
         if (!snap.empty) {
-          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudentRecord));
         } else {
           list = SEED_STUDENTS;
         }
@@ -697,11 +645,11 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
 
       case "getTimetable": {
         const snap = await serverDb.collection(`users/${userId}/timetableEntries`).get();
-        let list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        let list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as TimetableEntry[];
 
         if (list.length === 0) {
           const { EXTRACTED_TIMETABLE } = await import("../data/extractedTimetable.js");
-          list = EXTRACTED_TIMETABLE as any[];
+          list = EXTRACTED_TIMETABLE as TimetableEntry[];
         }
 
         if (args.day) {

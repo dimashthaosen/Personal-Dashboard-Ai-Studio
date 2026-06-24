@@ -334,37 +334,7 @@ class ServerDB {
     this.save();
   }
 
-  // Tasks Methods
-  getTasks() {
-    return this.data.tasks;
-  }
-
-  addTask(task: Omit<Task, "id" | "createdAt">) {
-    const newTask: Task = {
-      ...task,
-      id: "task-" + Date.now(),
-      createdAt: new Date().toISOString(),
-    };
-    this.data.tasks.push(newTask);
-    this.save();
-    return newTask;
-  }
-
-  updateTask(id: string, updates: Partial<Task>) {
-    const idx = this.data.tasks.findIndex((t) => t.id === id);
-    if (idx !== -1) {
-      this.data.tasks[idx] = { ...this.data.tasks[idx], ...updates };
-      this.save();
-      return this.data.tasks[idx];
-    }
-    return null;
-  }
-
-  deleteTask(id: string) {
-    this.data.tasks = this.data.tasks.filter((t) => t.id !== id);
-    this.save();
-    return true;
-  }
+  // Tasks Methods - Removed (now uses Firestore)
 
   // Emails Methods
   getEmails(type: "inbox" | "sent" = "inbox") {
@@ -394,55 +364,11 @@ class ServerDB {
     this.save();
   }
 
-  // Calendar Methods
-  getCalendarEvents() {
-    return this.data.calendarEvents;
-  }
+  // Calendar Methods - Removed (now uses Firestore)
 
-  addCalendarEvent(event: Omit<CalendarEvent, "id">) {
-    const newEvent: CalendarEvent = {
-      ...event,
-      id: "event-" + Date.now(),
-    };
-    this.data.calendarEvents.push(newEvent);
-    this.save();
-    return newEvent;
-  }
-
-  // Memory Methods
+  // Memory Methods (Read-only fallback)
   getMemoryItems() {
     return this.data.memoryItems;
-  }
-
-  addMemoryItem(item: Omit<MemoryItem, "id" | "updatedAt">) {
-    const newItem: MemoryItem = {
-      ...item,
-      id: "mem-" + Date.now(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.data.memoryItems.push(newItem);
-    this.save();
-    return newItem;
-  }
-
-  updateMemoryItem(id: string, updates: Partial<MemoryItem>) {
-    const idx = this.data.memoryItems.findIndex((m) => m.id === id);
-    if (idx !== -1) {
-      this.data.memoryItems[idx] = {
-        ...this.data.memoryItems[idx],
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      };
-      this.save();
-      return this.data.memoryItems[idx];
-    }
-    return null;
-  }
-
-  deleteMemoryItem(id: string) {
-    this.data.memoryItems = this.data.memoryItems.filter((m) => m.id !== id);
-    this.save();
-    return true;
   }
 
   // Chat History
@@ -469,22 +395,6 @@ class ServerDB {
   clearChatHistory() {
     this.data.chatHistory = [];
     this.save();
-  }
-
-  // Daily Plans
-  getDailyPlans() {
-    return this.data.dailyPlans;
-  }
-
-  addDailyPlan(plan: DailyPlan["plan"]) {
-    const newPlan: DailyPlan = {
-      id: "plan-" + Date.now(),
-      date: new Date().toISOString(),
-      plan,
-    };
-    this.data.dailyPlans.push(newPlan);
-    this.save();
-    return newPlan;
   }
 }
 

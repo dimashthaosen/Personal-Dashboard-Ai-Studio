@@ -9,10 +9,17 @@ import { executeTool, serverDb } from "./src/server/agentTools";
 
 import { SEED_STUDENTS } from "./src/data/studentsData";
 import { EXTRACTED_TIMETABLE } from "./src/data/extractedTimetable";
+import { normalisePriority, normaliseCategory, normaliseStatus, normaliseMemoryCategory, requireFields, sendServerError, buildReplyPrompt } from "./src/server/validators";
+import { docsToArray, getUserCollection } from "./src/server/firestoreHelpers";
+import { Task, MemoryItem, StudentRecord, TimetableEntry, CalendarEvent, Email } from "./src/types";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
+
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn("WARNING: GEMINI_API_KEY is missing. AI features will run in demo/fallback mode.");
+  }
 
   // Custom CORS middleware to support preflight requests and avoid "Failed to fetch" in cross-origin preview frames
   app.use((req, res, next) => {
@@ -38,53 +45,78 @@ async function startServer() {
   });
 
   // Tasks API
-  app.get("/api/tasks", (req, res) => {
-    const { status, priority, category } = req.query;
-    let list = db.getTasks();
-
-    if (status) {
-      list = list.filter((t) => t.status === status);
+  app.get("/api/tasks", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const snap = await getUserCollection(userId, "tasks").get();
+      let list = docsToArray(snap);
+      
+      const { status, priority, category } = req.query;
+      if (status) list = list.filter((t: Task) => t.status === status);
+      if (priority) list = list.filter((t: Task) => t.priority === priority);
+      if (category) list = list.filter((t: Task) => t.category === category);
+      res.json(list);
+    } catch (err: any) {
+      sendServerError(res, err, "GET /api/tasks");
     }
-    if (priority) {
-      list = list.filter((t) => t.priority === priority);
-    }
-    if (category) {
-      list = list.filter((t) => t.category === category);
-    }
-
-    res.json(list);
   });
 
-  app.post("/api/tasks", (req, res) => {
-    const { title, description, deadline, priority, category, status } = req.body;
-    if (!title) {
-      return res.status(400).json({ error: "Title is required" });
+  app.post("/api/tasks", async (req, res) => {
+    try {
+      const missing = requireFields(req.body, ["title", "userId"]);
+      if (missing.length > 0) return res.status(400).json({ error: `${missing[0]} is required` });
+      
+      const { userId, title, description, deadline, priority, category, status } = req.body;
+      const newTask = {
+        title,
+        description: description || "",
+        deadline: deadline || undefined,
+        priority: normalisePriority(priority),
+        category: normaliseCategory(category),
+        status: normaliseStatus(status),
+        source: "manual",
+        createdAt: new Date().toISOString()
+      };
+      
+      const docRef = await getUserCollection(userId, "tasks").add(newTask);
+      res.json({ id: docRef.id, ...newTask });
+    } catch (err: any) {
+      sendServerError(res, err, "POST /api/tasks");
     }
-
-    const newTask = db.addTask({
-      title,
-      description: description || "",
-      deadline: deadline || undefined,
-      priority: priority || "medium",
-      category: category || "school",
-      status: status || "pending",
-      source: "manual",
-    });
-
-    res.json(newTask);
   });
 
-  app.put("/api/tasks/:id", (req, res) => {
-    const updated = db.updateTask(req.params.id, req.body);
-    if (!updated) {
-      return res.status(404).json({ error: "Task not found" });
+  app.put("/api/tasks/:id", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      
+      const docRef = getUserCollection(userId, "tasks").doc(req.params.id);
+      const doc = await docRef.get();
+      if (!doc.exists) return res.status(404).json({ error: "Task not found" });
+      
+      const updateData: any = { ...req.body };
+      delete updateData.userId;
+      if (updateData.priority !== undefined) updateData.priority = normalisePriority(updateData.priority);
+      if (updateData.category !== undefined) updateData.category = normaliseCategory(updateData.category);
+      if (updateData.status !== undefined) updateData.status = normaliseStatus(updateData.status);
+      
+      await docRef.update(updateData);
+      res.json({ id: doc.id, ...doc.data(), ...updateData });
+    } catch (err: any) {
+      sendServerError(res, err, "PUT /api/tasks");
     }
-    res.json(updated);
   });
 
-  app.delete("/api/tasks/:id", (req, res) => {
-    const success = db.deleteTask(req.params.id);
-    res.json({ success });
+  app.delete("/api/tasks/:id", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      await getUserCollection(userId, "tasks").doc(req.params.id).delete();
+      res.json({ success: true });
+    } catch (err: any) {
+      sendServerError(res, err, "DELETE /api/tasks");
+    }
   });
 
   // Emails API
@@ -130,12 +162,12 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
     }
 
     const { userId } = req.body;
-    let memories: any[] = [];
+    let memories: MemoryItem[] = [];
     if (userId) {
       try {
-        const { serverDb } = await import("./src/server/agentTools");
-        const memSnap = await serverDb.collection(`users/${userId}/memoryItems`).get();
-        memories = memSnap.docs.map(d => d.data());
+        const { getUserCollection } = await import("./src/server/firestoreHelpers");
+        const memSnap = await getUserCollection(userId, "memoryItems").get();
+        memories = memSnap.docs.map(d => d.data() as MemoryItem);
       } catch (e) {
         console.error("Failed to fetch memories from Firestore", e);
         memories = db.getMemoryItems();
@@ -144,120 +176,140 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
       memories = db.getMemoryItems();
     }
 
-    const replyMemories = memories.filter((m: any) => m.useInReplies === true).map(m => `- ${m.key}: ${m.value}`).join('\n');
-    const baseStyle = memories.find((m: any) => m.key.toLowerCase().includes("style"))?.value || "Clear, friendly, British English, point-wise.";
-    const contextMemories = replyMemories ? `\nActive Memory Context (Must use for this reply):\n${replyMemories}\n` : '';
-
-    const prompt = `
-You are drafting an email reply for the teacher.
-Sender Name: ${email.fromName}
-Sender Email: ${email.fromEmail}
-Original Subject: ${email.subject}
-Original Message: ${email.snippet}
-
-Writing Style Guidelines:
-${baseStyle}
-${contextMemories}
-
-Draft a clear, professional, warm, and helpful response. Keep it point-wise where appropriate, and always use British English spelling and syntax. Avoid flowery corporate jargon. Just output the draft email body.
-`;
+    const prompt = buildReplyPrompt(email, "", memories);
 
     const replyResponse = await generateContentText(prompt);
     res.json({ reply: replyResponse });
   });
 
   // Calendar API
-  app.get("/api/calendar", (req, res) => {
-    res.json(db.getCalendarEvents());
+  app.get("/api/calendar", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const snap = await getUserCollection(userId, "calendarEvents").get();
+      res.json(docsToArray(snap));
+    } catch (err: any) {
+      sendServerError(res, err, "GET /api/calendar");
+    }
   });
 
-  app.post("/api/calendar", (req, res) => {
-    const { title, start, end, location, description } = req.body;
-    if (!title || !start || !end) {
-      return res.status(400).json({ error: "Title, start time, and end time are required" });
+  app.post("/api/calendar", async (req, res) => {
+    try {
+      const missing = requireFields(req.body, ["title", "start", "end", "userId"]);
+      if (missing.length > 0) return res.status(400).json({ error: `${missing[0]} is required` });
+
+      const { userId, title, start, end, location, description } = req.body;
+      const newEvent = {
+        title,
+        start,
+        end,
+        location: location || "",
+        description: description || "",
+        createdAt: new Date().toISOString()
+      };
+
+      const docRef = await getUserCollection(userId, "calendarEvents").add(newEvent);
+      res.json({ id: docRef.id, ...newEvent });
+    } catch (err: any) {
+      sendServerError(res, err, "POST /api/calendar");
     }
-
-    const newEvent = db.addCalendarEvent({
-      title,
-      start,
-      end,
-      location: location || "",
-      description: description || "",
-    });
-
-    res.json(newEvent);
   });
 
   // Memory API
-  app.get("/api/memory", (req, res) => {
-    res.json(db.getMemoryItems());
-  });
-
-  app.post("/api/memory", (req, res) => {
-    const { key, value, category } = req.body;
-    if (!key || !value) {
-      return res.status(400).json({ error: "Key and value are required" });
+  app.get("/api/memory", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const snap = await getUserCollection(userId, "memoryItems").get();
+      res.json(docsToArray(snap));
+    } catch (err: any) {
+      sendServerError(res, err, "GET /api/memory");
     }
-
-    const newItem = db.addMemoryItem({
-      key,
-      value,
-      category: category || "general",
-    });
-
-    res.json(newItem);
   });
 
-  app.put("/api/memory/:id", (req, res) => {
-    const updated = db.updateMemoryItem(req.params.id, req.body);
-    if (!updated) {
-      return res.status(404).json({ error: "Memory item not found" });
+  app.post("/api/memory", async (req, res) => {
+    try {
+      const missing = requireFields(req.body, ["key", "value", "userId"]);
+      if (missing.length > 0) return res.status(400).json({ error: `${missing[0]} is required` });
+
+      const { userId, key, value, category } = req.body;
+      const newItem = {
+        key,
+        value,
+        category: normaliseMemoryCategory(category),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const docRef = await getUserCollection(userId, "memoryItems").add(newItem);
+      res.json({ id: docRef.id, ...newItem });
+    } catch (err: any) {
+      sendServerError(res, err, "POST /api/memory");
     }
-    res.json(updated);
   });
 
-  app.delete("/api/memory/:id", (req, res) => {
-    const success = db.deleteMemoryItem(req.params.id);
-    res.json({ success });
+  app.put("/api/memory/:id", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+
+      const docRef = getUserCollection(userId, "memoryItems").doc(req.params.id);
+      const doc = await docRef.get();
+      if (!doc.exists) return res.status(404).json({ error: "Memory item not found" });
+
+      const updateData: any = { ...req.body, updatedAt: new Date().toISOString() };
+      delete updateData.userId;
+      if (updateData.category !== undefined) updateData.category = normaliseMemoryCategory(updateData.category);
+
+      await docRef.update(updateData);
+      res.json({ id: doc.id, ...doc.data(), ...updateData });
+    } catch (err: any) {
+      sendServerError(res, err, "PUT /api/memory");
+    }
+  });
+
+  app.delete("/api/memory/:id", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      await getUserCollection(userId, "memoryItems").doc(req.params.id).delete();
+      res.json({ success: true });
+    } catch (err: any) {
+      sendServerError(res, err, "DELETE /api/memory");
+    }
   });
 
   // Student Database API
   app.get("/api/students", async (req, res) => {
-    const userId = req.query.userId as string;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required for student database queries" });
-    }
     try {
-      const snap = await serverDb.collection(`users/${userId}/students`).orderBy("fullName", "asc").get();
-      const students = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      res.json(students);
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required for student database queries" });
+      const snap = await getUserCollection(userId, "students").orderBy("fullName", "asc").get();
+      res.json(docsToArray(snap));
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "GET /api/students");
     }
   });
 
   app.get("/api/students/:id", async (req, res) => {
-    const userId = req.query.userId as string;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
     try {
-      const doc = await serverDb.doc(`users/${userId}/students/${req.params.id}`).get();
-      if (!doc.exists) {
-        return res.status(404).json({ error: "Student not found" });
-      }
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const doc = await getUserCollection(userId, "students").doc(req.params.id).get();
+      if (!doc.exists) return res.status(404).json({ error: "Student not found" });
       res.json({ id: doc.id, ...doc.data() });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "GET /api/students/:id");
     }
   });
 
   app.post("/api/students/import-preview", async (req, res) => {
     try {
       const currentRecords = req.body.currentRecords || [];
-      const currentNames = new Set(currentRecords.map((r: any) => r.fullName.toLowerCase()));
+      const currentNames = new Set(currentRecords.map((r: StudentRecord) => r.fullName.toLowerCase()));
 
-      const duplicates = SEED_STUDENTS.filter((r: any) => currentNames.has(r.fullName.toLowerCase()));
+      const duplicates = SEED_STUDENTS.filter((r: StudentRecord) => currentNames.has(r.fullName.toLowerCase()));
       const preview = {
         records: SEED_STUDENTS,
         duplicates: duplicates,
@@ -267,22 +319,18 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
 
       res.json(preview);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "POST /api/students/import-preview");
     }
   });
 
   app.post("/api/students/import-confirm", async (req, res) => {
-    const { userId, records } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required for writing records" });
-    }
-    if (!records || !Array.isArray(records)) {
-      return res.status(400).json({ error: "No records list provided for import" });
-    }
-
     try {
+      const { userId, records } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required for writing records" });
+      if (!records || !Array.isArray(records)) return res.status(400).json({ error: "No records list provided for import" });
+
       const batch = serverDb.batch();
-      const collectionRef = serverDb.collection(`users/${userId}/students`);
+      const collectionRef = getUserCollection(userId, "students");
 
       // Support safe re-import: merge or create documents keyed by normalized Name+Section
       const existingSnap = await collectionRef.get();
@@ -305,9 +353,7 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
           userId,
           updatedAt: new Date().toISOString()
         };
-        if (!recordData.createdAt) {
-          recordData.createdAt = new Date().toISOString();
-        }
+        if (!recordData.createdAt) recordData.createdAt = new Date().toISOString();
         // Exclude UI temporary database ID if exists
         delete recordData.id;
 
@@ -325,17 +371,16 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
       await batch.commit();
       res.json({ success: true, count: savedIds.length, ids: savedIds });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "POST /api/students/import-confirm");
     }
   });
 
   app.post("/api/students", async (req, res) => {
-    const { userId, ...studentData } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required for creating a student" });
-    }
     try {
-      const docRef = serverDb.collection(`users/${userId}/students`).doc();
+      const { userId, ...studentData } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required for creating a student" });
+      
+      const docRef = getUserCollection(userId, "students").doc();
       const record = {
         ...studentData,
         userId,
@@ -345,38 +390,36 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
       await docRef.set(record);
       res.json({ success: true, id: docRef.id });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "POST /api/students");
     }
   });
 
   app.put("/api/students/:id", async (req, res) => {
-    const { userId, ...updates } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required for updates" });
-    }
     try {
-      const docRef = serverDb.doc(`users/${userId}/students/${req.params.id}`);
+      const { userId, ...updates } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required for updates" });
+      
+      const docRef = getUserCollection(userId, "students").doc(req.params.id);
       await docRef.update({
         ...updates,
         updatedAt: new Date().toISOString()
       });
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "PUT /api/students/:id");
     }
   });
 
   app.delete("/api/students/:id", async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required for deletion" });
-    }
     try {
-      const docRef = serverDb.doc(`users/${userId}/students/${req.params.id}`);
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required for deletion" });
+      
+      const docRef = getUserCollection(userId, "students").doc(req.params.id);
       await docRef.delete();
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "DELETE /api/students/:id");
     }
   });
 
@@ -386,12 +429,12 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
     try {
       const currentRecords = req.body.currentRecords || [];
       const currentKeys = new Set(
-        currentRecords.map((r: any) =>
+        currentRecords.map((r: TimetableEntry) =>
           `${r.day.toLowerCase()}_${r.period.toLowerCase()}_${r.classSection.toLowerCase()}_${r.subject.toLowerCase()}`
         )
       );
 
-      const duplicates = EXTRACTED_TIMETABLE.filter((r: any) => {
+      const duplicates = EXTRACTED_TIMETABLE.filter((r: TimetableEntry) => {
         const key = `${r.day.toLowerCase()}_${r.period.toLowerCase()}_${r.classSection.toLowerCase()}_${r.subject.toLowerCase()}`;
         return currentKeys.has(key);
       });
@@ -420,7 +463,7 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
 
     try {
       const batch = serverDb.batch();
-      const collectionRef = serverDb.collection(`users/${userId}/timetableEntries`);
+      const collectionRef = getUserCollection(userId, "timetableEntries");
 
       const existingSnap = await collectionRef.get();
       const existingDocsMap = new Map(
@@ -466,53 +509,44 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
   });
 
   app.get("/api/timetable", async (req, res) => {
-    const userId = req.query.userId as string;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
     try {
-      const snap = await serverDb.collection(`users/${userId}/timetableEntries`).get();
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      res.json(list);
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const snap = await getUserCollection(userId, "timetableEntries").get();
+      res.json(docsToArray(snap));
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "GET /api/timetable");
     }
   });
 
   app.get("/api/timetable/today", async (req, res) => {
-    const userId = req.query.userId as string;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
     try {
-      const snap = await serverDb.collection(`users/${userId}/timetableEntries`).get();
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const snap = await getUserCollection(userId, "timetableEntries").get();
+      const list = docsToArray(snap);
       const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       const todayName = days[new Date().getDay()];
-      const todayEntries = list.filter((r: any) => r.day.toLowerCase() === todayName.toLowerCase());
+      const todayEntries = list.filter((r: TimetableEntry) => r.day.toLowerCase() === todayName.toLowerCase());
       res.json(todayEntries);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "GET /api/timetable/today");
     }
   });
 
   app.get("/api/timetable/free-periods", async (req, res) => {
-    const userId = req.query.userId as string;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
     try {
-      const snap = await serverDb.collection(`users/${userId}/timetableEntries`).get();
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const snap = await getUserCollection(userId, "timetableEntries").get();
+      const list = docsToArray(snap);
 
       const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       const todayName = days[new Date().getDay()];
 
-      if (todayName === "Saturday" || todayName === "Sunday") {
-        return res.json([]);
-      }
+      if (todayName === "Saturday" || todayName === "Sunday") return res.json([]);
 
-      const todayEntries = list.filter((r: any) => r.day.toLowerCase() === todayName.toLowerCase());
+      const todayEntries = list.filter((r: TimetableEntry) => r.day.toLowerCase() === todayName.toLowerCase());
 
       const standardPeriods = [
         { label: "LESSON 1", startTime: "8:10 am", endTime: "8:50 am" },
@@ -527,7 +561,7 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
       ];
 
       const freePeriods = standardPeriods.filter(std => {
-        const hasTeaching = todayEntries.some((entry: any) => {
+        const hasTeaching = todayEntries.some((entry: TimetableEntry) => {
           const p = entry.period.toUpperCase();
           return p.includes(std.label);
         });
@@ -536,21 +570,19 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
 
       res.json(freePeriods);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "GET /api/timetable/free-periods");
     }
   });
 
   app.get("/api/timetable/conflicts", async (req, res) => {
-    const userId = req.query.userId as string;
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
     try {
-      const snap = await serverDb.collection(`users/${userId}/timetableEntries`).get();
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      const userId = req.query.userId as string;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const snap = await getUserCollection(userId, "timetableEntries").get();
+      const list = docsToArray(snap);
 
       const conflicts: any[] = [];
-      const grouped = new Map<string, any[]>();
+      const grouped = new Map<string, TimetableEntry[]>();
 
       for (const entry of list) {
         const key = `${entry.day}_${entry.period}`;
@@ -573,7 +605,7 @@ Draft a clear, professional, warm, and helpful response. Keep it point-wise wher
 
       res.json(conflicts);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendServerError(res, err, "GET /api/timetable/conflicts");
     }
   });
 

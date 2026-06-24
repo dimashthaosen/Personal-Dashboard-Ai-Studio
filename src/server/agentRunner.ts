@@ -64,7 +64,7 @@ ${contextStr}
   for (const msg of chatHistory) {
     const role = msg.role === "assistant" ? "model" : "user";
     // Sanitize any existing bracketted tags just in case
-    let purified = msg.content;
+    const purified = msg.content;
     contents.push({ role, parts: [{ text: purified }] });
   }
 

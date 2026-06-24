@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { TeacherUser, Email } from "./types";
-import DashboardView from "./components/DashboardView";
-import LessonPlannerView from "./components/LessonPlannerView";
-import TasksView from "./components/TasksView";
-import ChatView from "./components/ChatView";
-import EmailView from "./components/EmailView";
-import CalendarView from "./components/CalendarView";
-import MemoryView from "./components/MemoryView";
-import ProjectsView from "./components/ProjectsView";
-import SettingsView from "./components/SettingsView";
-import CommandBar from "./components/CommandBar";
-import StudentsView from "./components/StudentsView";
-import TimetableView from "./components/TimetableView";
+
+const DashboardView = lazy(() => import("./components/DashboardView"));
+const LessonPlannerView = lazy(() => import("./components/LessonPlannerView"));
+const TasksView = lazy(() => import("./components/TasksView"));
+const ChatView = lazy(() => import("./components/ChatView"));
+const EmailView = lazy(() => import("./components/EmailView"));
+const CalendarView = lazy(() => import("./components/CalendarView"));
+const MemoryView = lazy(() => import("./components/MemoryView"));
+const ProjectsView = lazy(() => import("./components/ProjectsView"));
+const SettingsView = lazy(() => import("./components/SettingsView"));
+const CommandBar = lazy(() => import("./components/CommandBar"));
+const StudentsView = lazy(() => import("./components/StudentsView"));
+const TimetableView = lazy(() => import("./components/TimetableView"));
+
 import { initAuth, googleSignIn, firebaseLogout } from "./lib/firebase";
 import {
   Menu,
@@ -664,25 +666,32 @@ export default function App() {
 
       {/* CENTRAL SCROLL VIEWPORT */}
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-12 min-w-0">
-        {renderActiveView()}
+        <Suspense fallback={
+          <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
+            <div className="w-8 h-8 rounded-full border-2 border-[#2d5a4a]/20 border-t-[#2d5a4a] animate-spin" />
+            <p className="font-mono text-xs uppercase tracking-widest text-[#7a756f]">Loading View...</p>
+          </div>
+        }>
+          {renderActiveView()}
+        </Suspense>
       </main>
 
-
-
       {/* Global Spot Command Search Modal Bar Overlay */}
-      <CommandBar 
-        userId={currentUser?.userId}
-        isOpen={isCommandBarOpen}
-        onClose={() => setIsCommandBarOpen(false)}
-        onNavigateTab={(tab) => setCurrentTab(tab)}
-        onSendAssistantPrompt={handleSendAssistantPrompt}
-        onSelectStudent={(studentId) => setSelectedStudentIdForView(studentId)}
-        onSelectTask={(taskId) => setSelectedTaskIdForView(taskId)}
-        onSelectEvent={(eventId) => setSelectedEventIdForView(eventId)}
-        onSelectMemory={(memoryId) => setSelectedMemoryIdForView(memoryId)}
-        onSelectEmail={(emailId) => setSelectedEmailIdForView(emailId)}
-        onSelectChatMessage={(messageId) => setSelectedChatMessageIdForView(messageId)}
-      />
+      <Suspense fallback={null}>
+        <CommandBar 
+          userId={currentUser?.userId}
+          isOpen={isCommandBarOpen}
+          onClose={() => setIsCommandBarOpen(false)}
+          onNavigateTab={(tab) => setCurrentTab(tab)}
+          onSendAssistantPrompt={handleSendAssistantPrompt}
+          onSelectStudent={(studentId) => setSelectedStudentIdForView(studentId)}
+          onSelectTask={(taskId) => setSelectedTaskIdForView(taskId)}
+          onSelectEvent={(eventId) => setSelectedEventIdForView(eventId)}
+          onSelectMemory={(memoryId) => setSelectedMemoryIdForView(memoryId)}
+          onSelectEmail={(emailId) => setSelectedEmailIdForView(emailId)}
+          onSelectChatMessage={(messageId) => setSelectedChatMessageIdForView(messageId)}
+        />
+      </Suspense>
 
     </div>
   );
