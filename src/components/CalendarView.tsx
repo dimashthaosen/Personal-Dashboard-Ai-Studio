@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CalendarEvent } from "../types";
+import { CalendarEvent, Task } from "../types";
 import { 
   Calendar, 
   Plus, 
@@ -20,6 +20,14 @@ import { useFirestoreEvents, useFirestoreTasks, useFirestoreTimetable } from "..
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "motion/react";
+import {
+  STANDARD_SCHOOL_DAY_PERIODS,
+  calculateFreePeriods,
+  detectConflicts,
+  isAllDayEvent,
+  isInvalidEvent,
+  StandardPeriod
+} from "../lib/calendarHelpers";
 
 export default function CalendarView({ 
   userId,
@@ -39,6 +47,7 @@ export default function CalendarView({
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<"agenda" | "intelligence">("agenda");
+  const [allowBreaks, setAllowBreaks] = useState(false);
 
   // Handle deep-linked calendar event selection
   useEffect(() => {
@@ -97,10 +106,44 @@ export default function CalendarView({
   const [eventEnd, setEventEnd] = useState("");
   const [eventLoc, setEventLoc] = useState("");
   const [eventDesc, setEventDesc] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Clear form errors when user typing
+  useEffect(() => {
+    setFormError(null);
+  }, [eventTitle, eventStart, eventEnd]);
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventTitle.trim() || !eventStart || !eventEnd || !userId) return;
+    setFormError(null);
+
+    if (!eventTitle.trim()) {
+      setFormError("Event Title is required.");
+      return;
+    }
+    if (!eventStart) {
+      setFormError("Start Time is required.");
+      return;
+    }
+    if (!eventEnd) {
+      setFormError("End Time is required.");
+      return;
+    }
+
+    const startParts = eventStart.split(":");
+    const endParts = eventEnd.split(":");
+    const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+    const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+
+    if (endMins <= startMins) {
+      setFormError("End Time must be after Start Time.");
+      return;
+    }
+
+    if (!userId) {
+      setFormError("User not authenticated.");
+      return;
+    }
 
     try {
       const year = selectedDate.getFullYear();
@@ -111,11 +154,11 @@ export default function CalendarView({
       const endTimeStr = `${year}-${month}-${day}T${eventEnd}:00`;
 
       await addDoc(collection(db, `users/${userId}/calendarEvents`), {
-          title: eventTitle,
+          title: eventTitle.trim(),
           start: new Date(startTimeStr).toISOString(),
           end: new Date(endTimeStr).toISOString(),
-          location: eventLoc,
-          description: eventDesc,
+          location: eventLoc.trim(),
+          description: eventDesc.trim(),
           createdAt: new Date().toISOString(),
           userId
       });
@@ -128,6 +171,7 @@ export default function CalendarView({
       setShowCreateForm(false);
     } catch (err) {
       console.error(err);
+      setFormError("Failed to save event to database.");
     }
   };
 
@@ -409,6 +453,13 @@ export default function CalendarView({
             </div>
           </div>
 
+          {formError && (
+            <div className="bg-[#fcebeb] border border-[#f5c2c2] text-[#b83232] text-xs font-mono rounded-lg p-3 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
           <div className="pt-2 border-t border-[#ece6db]">
             <button
               type="submit"
@@ -456,7 +507,7 @@ export default function CalendarView({
               ) : filteredEventsForDay.length === 0 ? (
                 <div className="text-center py-16 text-[#8b857b] font-serif italic text-sm space-y-1 animate-fadeIn">
                   <p>Your calendar is clear for this date.</p>
-                  <p className="text-xs font-sans not-italic text-[#a29c91]">Click &ldquo;Book Session&rdquo; above to schedule a lesson, meeting, or event.</p>
+                  <p className="text-xs font-sans not-italic text-[#a29c91]">Click "Book Session" above to schedule a lesson, meeting, or event.</p>
                 </div>
               ) : (
                 <div className="relative border-l border-[#e1d8c6] pl-6 ml-3 space-y-6">
@@ -793,7 +844,7 @@ export default function CalendarView({
                       {filteredEventsForDay.length === 0 ? (
                         <div className="border border-dashed border-[#ece6db] rounded-xl p-6 text-center text-[#8b857b] font-serif italic text-xs space-y-1 animate-fadeIn">
                           <p>No classes or sessions scheduled.</p>
-                          <p className="text-[10px] font-sans not-italic text-[#a29c91]">Click &ldquo;Book Event&rdquo; below to reserve a slot.</p>
+                          <p className="text-[10px] font-sans not-italic text-[#a29c91]">Click "Book Event" below to reserve a slot.</p>
                         </div>
                       ) : (
                         <div className="space-y-2 max-h-[320px] overflow-y-auto pristine-scrollbar pr-1">
@@ -882,22 +933,9 @@ export default function CalendarView({
                           Conflict analysis
                         </span>
                         {(() => {
-                          const conflictsList: Array<{ eventA: CalendarEvent; eventB: CalendarEvent }> = [];
-                          for (let i = 0; i < filteredEventsForDay.length; i++) {
-                            for (let j = i + 1; j < filteredEventsForDay.length; j++) {
-                              const evA = filteredEventsForDay[i];
-                              const evB = filteredEventsForDay[j];
-                              const startA = new Date(evA.start);
-                              const endA = new Date(evA.end);
-                              const startB = new Date(evB.start);
-                              const endB = new Date(evB.end);
-                              if (startA < endB && startB < endA) {
-                                conflictsList.push({ eventA: evA, eventB: evB });
-                              }
-                            }
-                          }
+                          const { conflicts, invalidEvents, allDayEvents } = detectConflicts(filteredEventsForDay);
 
-                          if (conflictsList.length === 0) {
+                          if (conflicts.length === 0 && invalidEvents.length === 0 && allDayEvents.length === 0) {
                             return (
                               <div className="p-2.5 rounded-lg bg-[#e8f0ec] border border-[#d2e3da] flex items-center gap-2 text-[#2d5a4a] text-xs">
                                 <ShieldCheck className="w-4 h-4 flex-shrink-0" />
@@ -908,14 +946,44 @@ export default function CalendarView({
 
                           return (
                             <div className="space-y-1.5">
-                              {conflictsList.map((conflict, idx) => (
-                                <div key={idx} className="p-2.5 rounded-lg bg-redpen/10 border border-redpen/20 flex flex-col gap-1 text-redpen text-xs">
+                              {/* Standard timed conflicts */}
+                              {conflicts.map((conflict, idx) => (
+                                <div key={`conflict-${idx}`} className="p-2.5 rounded-lg bg-redpen/10 border border-redpen/20 flex flex-col gap-1 text-redpen text-xs">
                                   <div className="flex items-center gap-1.5 font-bold font-mono text-[9px] tracking-wide uppercase">
                                     <AlertTriangle className="w-3.5 h-3.5" />
                                     <span>Time Collision Detected</span>
                                   </div>
                                   <p className="font-serif text-[11px] leading-snug">
-                                    &ldquo;{conflict.eventA.title}&rdquo; conflicts with &ldquo;{conflict.eventB.title}&rdquo;.
+                                    "{conflict.eventA.title}" conflicts with "{conflict.eventB.title}".
+                                  </p>
+                                  <p className="text-[9px] font-mono opacity-90">
+                                    Exact overlap: {conflict.overlapStr}
+                                  </p>
+                                </div>
+                              ))}
+
+                              {/* Invalid events */}
+                              {invalidEvents.map((evt, idx) => (
+                                <div key={`invalid-${idx}`} className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex flex-col gap-1 text-amber-800 text-xs">
+                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[9px] tracking-wide uppercase">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    <span>Invalid Timings Warn</span>
+                                  </div>
+                                  <p className="font-serif text-[11px] leading-snug">
+                                    Event "{evt.title}" has invalid start/end times.
+                                  </p>
+                                </div>
+                              ))}
+
+                              {/* All day events */}
+                              {allDayEvents.map((evt, idx) => (
+                                <div key={`allday-${idx}`} className="p-2.5 rounded-lg bg-sky-50 border border-[#bae6fd] flex flex-col gap-1 text-sky-800 text-xs">
+                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[9px] tracking-wide uppercase">
+                                    <Info className="w-3.5 h-3.5" />
+                                    <span>All-Day Event</span>
+                                  </div>
+                                  <p className="font-serif text-[11px] leading-snug">
+                                    "{evt.title}" spans the full day.
                                   </p>
                                 </div>
                               ))}
@@ -926,38 +994,25 @@ export default function CalendarView({
 
                       {/* Section 2: Free Block Detection & Task Suggestion */}
                       <div className="space-y-2">
-                        <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
-                          Today&rsquo;s Free Periods
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
+                            Today's Free Periods
+                          </span>
+                          <label className="flex items-center gap-1 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={allowBreaks}
+                              onChange={(e) => setAllowBreaks(e.target.checked)}
+                              className="w-3 h-3 rounded border-[#e1d8c6] text-[#2d5a4a] focus:ring-0 cursor-pointer"
+                            />
+                            <span className="text-[8px] font-mono font-bold text-[#7a756f] uppercase tracking-wide">
+                              Include Breaks
+                            </span>
+                          </label>
+                        </div>
+
                         {(() => {
-                          const standardPeriods = [
-                            { name: "L1", start: "08:30", end: "09:10" },
-                            { name: "L2", start: "09:20", end: "10:00" },
-                            { name: "L3", start: "10:10", end: "10:50" },
-                            { name: "Break", start: "10:50", end: "11:10" },
-                            { name: "L4", start: "11:10", end: "11:50" },
-                            { name: "L5", start: "12:00", end: "12:40" },
-                            { name: "L6", start: "12:50", end: "13:30" },
-                          ];
-
-                          const parseTimeOnDate = (date: Date, hhmm: string) => {
-                            const result = new Date(date);
-                            const [hh, mm] = hhmm.split(":");
-                            result.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
-                            return result;
-                          };
-
-                          const freePeriods = standardPeriods.filter((period) => {
-                            const pStart = parseTimeOnDate(selectedDate, period.start);
-                            const pEnd = parseTimeOnDate(selectedDate, period.end);
-
-                            const overlapping = filteredEventsForDay.filter((evt) => {
-                              const evtStart = new Date(evt.start);
-                              const evtEnd = new Date(evt.end);
-                              return evtStart < pEnd && pStart < evtEnd;
-                            });
-                            return overlapping.length === 0;
-                          });
+                          const freePeriods = calculateFreePeriods(selectedDate, filteredEventsForDay, allowBreaks);
 
                           if (freePeriods.length === 0) {
                             return (
@@ -967,10 +1022,22 @@ export default function CalendarView({
                             );
                           }
 
-                          // High priority non-done task suggestion
-                          const highPrioritySuggest = tasks
-                            .filter((t) => t.status !== "done" && t.priority === "high")
-                            .slice(0, 1);
+                          // Pending high or urgent priority tasks
+                          const pendingTasks = tasks.filter(
+                            (t) => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")
+                          );
+
+                          // Map slots to tasks
+                          const suggestions: Array<{ slot: StandardPeriod; task: any }> = [];
+                          freePeriods.forEach((slot, idx) => {
+                            // Only suggest for lessons, not breaks, unless explicitly allowed
+                            if (slot.isBreak && !allowBreaks) return;
+                            
+                            const matchedTask = pendingTasks[idx];
+                            if (matchedTask) {
+                              suggestions.push({ slot, task: matchedTask });
+                            }
+                          });
 
                           return (
                             <div className="space-y-2">
@@ -982,44 +1049,56 @@ export default function CalendarView({
                                     title={`${fp.start} - ${fp.end}`}
                                     className="px-2 py-1 text-[9px] font-mono font-bold text-[#2d5a4a] bg-[#e8f0ec] rounded border border-[#d2e3da]"
                                   >
-                                    {fp.name === "Break" ? "Break" : `${fp.name} Period`}
+                                    {fp.name === "Break" ? "Break" : `${fp.name} Period (${fp.start}-${fp.end})`}
                                   </span>
                                 ))}
                               </div>
 
-                              {highPrioritySuggest.map((task) => {
-                                // Match task to first free period if available
-                                const slot = freePeriods[0];
-                                return (
-                                  <div key={task.id} className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-                                    <div className="flex items-start gap-1.5">
-                                      <Zap className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0 animate-bounce" />
-                                      <div className="space-y-0.5">
-                                        <p className="font-mono text-[8px] font-bold text-amber-800 uppercase tracking-wide">
-                                          Suggested Fit in {slot.name} ({slot.start} - {slot.end})
-                                        </p>
-                                        <p className="text-xs font-serif font-bold text-[#1a1612] leading-tight text-left">
-                                          Allocate free time to complete: &ldquo;{task.title}&rdquo;
-                                        </p>
+                              {suggestions.length === 0 ? (
+                                <p className="text-[10px] font-serif italic text-[#8b857b] p-1.5 bg-[#ece6db]/30 rounded-lg text-left">
+                                  No pending high or urgent tasks to suggest for remaining slots today.
+                                </p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {suggestions.map(({ slot, task }) => {
+                                    const priorityLabel = task.priority === "urgent" ? "Urgent Priority" : "High Priority";
+                                    const reason = `${priorityLabel}: The 40-minute ${slot.name} slot (${slot.start} - ${slot.end}) provides an ideal window to focus on ${task.category || "general"} tasks without lesson overlaps.`;
+
+                                    return (
+                                      <div key={`${slot.name}-${task.id}`} className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                                        <div className="flex items-start gap-1.5">
+                                          <Zap className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0 animate-bounce" />
+                                          <div className="space-y-0.5">
+                                            <p className="font-mono text-[8px] font-bold text-amber-800 uppercase tracking-wide">
+                                              Suggested Fit in {slot.name} ({slot.start} - {slot.end})
+                                            </p>
+                                            <p className="text-xs font-serif font-bold text-[#1a1612] leading-tight text-left">
+                                              Allocate free time to complete: "{task.title}"
+                                            </p>
+                                            <p className="text-[10px] font-sans text-ink-600 leading-snug pt-1 text-left">
+                                              <span className="font-bold text-ink-700">Why it fits:</span> {reason}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEventTitle(`Focus Slot: ${task.title}`);
+                                            setEventStart(slot.start);
+                                            setEventEnd(slot.end);
+                                            setEventLoc("Classroom / Staff Room");
+                                            setEventDesc(`Block allocated to finish task: ${task.title}`);
+                                            setShowCreateForm(true);
+                                          }}
+                                          className="w-full text-center py-1 bg-amber-600 hover:bg-amber-700 text-white font-mono text-[8px] font-bold uppercase tracking-wider rounded-md cursor-pointer transition-colors"
+                                        >
+                                          Pre-populate slot in booker
+                                        </button>
                                       </div>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEventTitle(`Focus Slot: ${task.title}`);
-                                        setEventStart(slot.start);
-                                        setEventEnd(slot.end);
-                                        setEventLoc("Classroom / Staff Room");
-                                        setEventDesc(`Block allocated to finish task: ${task.title}`);
-                                        setShowCreateForm(true);
-                                      }}
-                                      className="w-full text-center py-1 bg-amber-600 hover:bg-amber-700 text-white font-mono text-[8px] font-bold uppercase tracking-wider rounded-md cursor-pointer transition-colors"
-                                    >
-                                      Pre-populate slot in booker
-                                    </button>
-                                  </div>
-                                );
-                              })}
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })()}
