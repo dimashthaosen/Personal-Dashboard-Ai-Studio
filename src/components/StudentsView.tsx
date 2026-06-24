@@ -415,7 +415,7 @@ export default function StudentsView({
       {/* Header Block */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-paper-2 pb-5">
         <div>
-          <span className="font-mono text-[10px] text-ink-400 font-bold uppercase tracking-wider block">Institutional Registry</span>
+          <span className="font-mono text-[11px] text-ink-400 font-bold uppercase tracking-wider block">Institutional Registry</span>
           <h2 className="font-serif font-bold text-2xl text-chalk-600 mt-1 select-none">Student Information & Class Database</h2>
           <p className="text-xs text-ink-500 mt-1">
             Official record registry for Class 11A, B, C elective matrices, parent attendance, and senior Sociology indices.
@@ -482,58 +482,58 @@ export default function StudentsView({
         
         <div className="bg-paper-1 border border-paper-2 rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-ink-500">
-            <span className="font-mono text-[9px] uppercase font-bold tracking-wider">Loaded Registry</span>
+            <span className="font-mono text-[11px] uppercase font-bold tracking-wider">Loaded Registry</span>
             <Users className="w-4 h-4 text-chalk-600" />
           </div>
           <div className="mt-2.5">
             <span className="block font-serif text-3xl font-bold text-ink-950">{stats.total}</span>
-            <span className="block text-[10px] text-ink-400 mt-1">Total Student records</span>
+            <span className="block text-[11px] text-ink-400 mt-1">Total Student records</span>
           </div>
         </div>
 
         <div className="bg-paper-1 border border-paper-2 rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-ink-500">
-            <span className="font-mono text-[9px] uppercase font-bold tracking-wider">Class 11A Index</span>
+            <span className="font-mono text-[11px] uppercase font-bold tracking-wider">Class 11A Index</span>
             <span className="font-serif font-black text-xs text-chalk-600 bg-chalk-100 px-1.5 py-0.5 rounded">VVS</span>
           </div>
           <div className="mt-2.5">
             <span className="block font-serif text-3xl font-bold text-ink-950">{stats.class11A}</span>
-            <span className="block text-[10px] text-ink-400 mt-1">Assigned Class Teacher list</span>
+            <span className="block text-[11px] text-ink-400 mt-1">Assigned Class Teacher list</span>
           </div>
         </div>
 
         <div className="bg-paper-1 border border-paper-2 rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-ink-500">
-            <span className="font-mono text-[9px] uppercase font-bold tracking-wider">E3 Sociology Group</span>
+            <span className="font-mono text-[11px] uppercase font-bold tracking-wider">E3 Sociology Group</span>
             <BookOpen className="w-4 h-4 text-amber-600" />
           </div>
           <div className="mt-2.5">
             <span className="block font-serif text-3xl font-bold text-ink-950">{stats.sociology}</span>
-            <span className="block text-[10px] text-ink-400 mt-1">Active sociology students</span>
+            <span className="block text-[11px] text-ink-400 mt-1">Active sociology students</span>
           </div>
         </div>
 
         <div className="bg-paper-1 border border-paper-2 rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-ink-500">
-            <span className="font-mono text-[9px] uppercase font-bold tracking-wider">Discrepancy Flags</span>
+            <span className="font-mono text-[11px] uppercase font-bold tracking-wider">Discrepancy Flags</span>
             <AlertTriangle className={`w-4 h-4 ${stats.needsReview > 0 ? "text-redpen animate-pulse" : "text-ink-300"}`} />
           </div>
           <div className="mt-2.5">
             <span className={`block font-serif text-3xl font-bold ${stats.needsReview > 0 ? "text-redpen" : "text-ink-950"}`}>{stats.needsReview}</span>
-            <span className="block text-[10px] text-ink-400 mt-1">Awaiting school teacher review</span>
+            <span className="block text-[11px] text-ink-400 mt-1">Awaiting school teacher review</span>
           </div>
         </div>
 
         <div className="bg-paper-1 border border-paper-2 col-span-2 lg:col-span-1 rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-ink-500">
-            <span className="font-mono text-[9px] uppercase font-bold tracking-wider">Dominant Comb.</span>
+            <span className="font-mono text-[11px] uppercase font-bold tracking-wider">Dominant Comb.</span>
             <Info className="w-3.5 h-3.5 text-blue-500" />
           </div>
           <div className="mt-2.5">
             <span className="block font-sans text-[11px] font-bold text-ink-800 leading-tight truncate" title={stats.topComb}>
               {stats.topComb.includes("Physics") ? "Medical / Non-Medical Science" : stats.topComb.split(",").slice(0, 2).join(",") + "..."}
             </span>
-            <span className="block text-[10px] text-ink-400 mt-1 block leading-tight">Science & Commerce Electives</span>
+            <span className="block text-[11px] text-ink-400 mt-1 block leading-tight">Science & Commerce Electives</span>
           </div>
         </div>
 
@@ -547,7 +547,7 @@ export default function StudentsView({
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab("directory")}
-              className={`py-3.5 text-xs font-sans font-bold flex items-center gap-1.5 focus:outline-none transition-all border-b-2 ${
+              className={`py-3.5 text-xs font-sans font-bold flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-all border-b-2 ${
                 activeTab === "directory" ? "border-[#2d5a4a] text-[#2d5a4a]" : "border-transparent text-ink-500 hover:text-ink-800"
               }`}
             >
@@ -556,7 +556,7 @@ export default function StudentsView({
             </button>
             <button
               onClick={() => setActiveTab("conflicts")}
-              className={`py-3.5 text-xs font-sans font-bold flex items-center gap-1.5 focus:outline-none transition-all border-b-2 relative ${
+              className={`py-3.5 text-xs font-sans font-bold flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-all border-b-2 relative ${
                 activeTab === "conflicts" ? "border-[#2d5a4a] text-[#2d5a4a]" : "border-transparent text-ink-500 hover:text-ink-800"
               }`}
             >
@@ -568,7 +568,7 @@ export default function StudentsView({
             </button>
             <button
               onClick={() => setActiveTab("import")}
-              className={`py-3.5 text-xs font-sans font-bold flex items-center gap-1.5 focus:outline-none transition-all border-b-2 ${
+              className={`py-3.5 text-xs font-sans font-bold flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-all border-b-2 ${
                 activeTab === "import" ? "border-[#2d5a4a] text-[#2d5a4a]" : "border-transparent text-ink-500 hover:text-ink-800"
               }`}
             >
@@ -577,7 +577,7 @@ export default function StudentsView({
             </button>
           </div>
           
-          <div className="font-mono text-[9px] text-[#2d5a4a] tracking-wider uppercase font-extrabold select-none">
+          <div className="font-mono text-[11px] text-[#2d5a4a] tracking-wider uppercase font-extrabold select-none">
             Vasant Valley Class Registry v2.1
           </div>
         </div>
@@ -596,7 +596,7 @@ export default function StudentsView({
                   placeholder="Query by Student Name, Subject combinations ('Sociology', 'Pure Mathematics')..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-paper-0 border border-paper-2 rounded-lg text-xs text-ink-950 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/30 transition-all font-sans placeholder-ink-400"
+                  className="w-full pl-9 pr-4 py-2 bg-paper-0 border border-paper-2 rounded-lg text-xs text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/30 transition-all font-sans placeholder-ink-400"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="absolute right-3 top-2 text-ink-400 hover:text-ink-700">
@@ -607,11 +607,11 @@ export default function StudentsView({
 
               {/* Class Filter Dropdown */}
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-mono font-bold text-ink-400">Class:</span>
+                <span className="text-[11px] uppercase font-mono font-bold text-ink-400">Class:</span>
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
-                  className="bg-paper-0 border border-paper-2 text-xs py-1.5 px-3 rounded-md text-ink-800 focus:outline-none font-sans"
+                  className="bg-paper-0 border border-paper-2 text-xs py-1.5 px-3 rounded-md text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 font-sans"
                 >
                   <option value="all">All Grades (11ABC)</option>
                   <option value="11A">Class 11A Only</option>
@@ -663,7 +663,7 @@ export default function StudentsView({
                 {students.length === 0 && (
                   <button
                     onClick={handleLoadDemoTemplate}
-                    className="bg-paper-2 hover:bg-paper-3 text-[10px] font-mono font-bold py-1.5 px-3 rounded-md transition-all text-chalk-700 uppercase tracking-wider"
+                    className="bg-paper-2 hover:bg-paper-3 text-[11px] font-mono font-bold py-1.5 px-3 rounded-md transition-all text-chalk-700 uppercase tracking-wider"
                   >
                     Auto-Extract Consolidated PDF Data
                   </button>
@@ -673,7 +673,7 @@ export default function StudentsView({
               <div className="overflow-x-auto border border-paper-2 rounded-lg">
                 <table className="w-full text-left border-collapse bg-paper-0">
                   <thead>
-                    <tr className="bg-paper-1/80 border-b border-paper-2 font-mono text-[9px] uppercase tracking-wider text-ink-500">
+                    <tr className="bg-paper-1/80 border-b border-paper-2 font-mono text-[11px] uppercase tracking-wider text-ink-500">
                       <th className="py-2.5 px-4 font-bold">Full Name</th>
                       <th className="py-2.5 px-3 font-bold">Grade Sec</th>
                       <th className="py-2.5 px-3 font-bold">Subjects / Elective Choices</th>
@@ -700,7 +700,7 @@ export default function StudentsView({
                                 <span className="w-1.5 h-1.5 rounded-full bg-redpen" title="Discrepancy profile" />
                               )}
                             </div>
-                            <div className="text-[10px] text-ink-400 font-mono mt-0.5">
+                            <div className="text-[11px] text-ink-400 font-mono mt-0.5">
                               Roll No: {student.rollNumber || "N/A"}
                             </div>
                           </td>
@@ -711,13 +711,13 @@ export default function StudentsView({
                           </td>
                           <td className="py-3 px-3 max-w-xs truncate">
                             {hasMissingSubjects ? (
-                              <span className="text-redpen font-mono italic text-[10px] bg-red-50 py-0.5 px-1.5 rounded">
+                              <span className="text-redpen font-mono italic text-[11px] bg-red-50 py-0.5 px-1.5 rounded">
                                 No subject array mapped
                               </span>
                             ) : (
                               <div className="flex flex-wrap gap-1">
                                 {student.subjects.map((sub, i) => (
-                                  <span key={i} className="text-[10px] bg-paper-1 border border-paper-2 rounded px-1 text-ink-800">
+                                  <span key={i} className="text-[11px] bg-paper-1 border border-paper-2 rounded px-1 text-ink-800">
                                     {sub}
                                   </span>
                                 ))}
@@ -726,23 +726,23 @@ export default function StudentsView({
                           </td>
                           <td className="py-3 px-3">
                             {student.sociologyStudent ? (
-                              <span className="font-mono text-[9px] font-bold text-emerald-800 bg-emerald-50/70 px-2 py-0.5 rounded-full border border-emerald-500/15 uppercase tracking-wide">
+                              <span className="font-mono text-[11px] font-bold text-emerald-800 bg-emerald-50/70 px-2 py-0.5 rounded-full border border-emerald-500/15 uppercase tracking-wide">
                                 YES (E3)
                               </span>
                             ) : (
-                              <span className="text-[10px] text-ink-400">No</span>
+                              <span className="text-[11px] text-ink-400">No</span>
                             )}
                           </td>
-                          <td className="py-3 px-3 text-[10px] text-ink-500 italic max-w-[120px] truncate">
+                          <td className="py-3 px-3 text-[11px] text-ink-500 italic max-w-[120px] truncate">
                             {student.sourceFiles.slice(0, 2).join(", ")}
                           </td>
                           <td className="py-3 px-4 text-right">
                             {student.needsReview ? (
-                              <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-500/10 rounded px-1.5 py-0.5">
+                              <span className="text-[11px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-500/10 rounded px-1.5 py-0.5">
                                 Review Flag
                               </span>
                             ) : (
-                              <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-500/10 rounded px-1.5 py-0.5">
+                              <span className="text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-500/10 rounded px-1.5 py-0.5">
                                 Verified (100%)
                               </span>
                             )}
@@ -790,9 +790,9 @@ export default function StudentsView({
                       <div className="flex items-start justify-between">
                         <div>
                           <h4 className="font-serif font-bold text-sm text-ink-950">{student.fullName}</h4>
-                          <span className="font-mono text-[9px] text-ink-400">Class {student.classSection} | Roll No: {student.rollNumber || "N/A"}</span>
+                          <span className="font-mono text-[11px] text-ink-400">Class {student.classSection} | Roll No: {student.rollNumber || "N/A"}</span>
                         </div>
-                        <span className={`text-[9px] font-mono font-bold uppercase rounded px-2 py-0.5 ${
+                        <span className={`text-[11px] font-mono font-bold uppercase rounded px-2 py-0.5 ${
                           student.confidence === "low" 
                             ? "bg-red-50 text-redpen border border-redpen/10 animate-pulse" 
                             : "bg-amber-50 text-amber-805 border border-amber-500/10"
@@ -809,10 +809,10 @@ export default function StudentsView({
                       {/* Evidence citation snippet */}
                       {student.sourceEvidence && student.sourceEvidence.length > 0 && (
                         <div className="mt-3 space-y-1.5">
-                          <span className="text-[9px] uppercase font-mono font-black text-ink-400 block tracking-wider">Source Snippet:</span>
+                          <span className="text-[11px] uppercase font-mono font-black text-ink-400 block tracking-wider">Source Snippet:</span>
                           <ul className="space-y-1">
                             {student.sourceEvidence.slice(0, 2).map((snippet, i) => (
-                              <li key={i} className="text-[10px] bg-paper-1 rounded p-1.5 font-mono text-ink-800 italic truncate" title={snippet}>
+                              <li key={i} className="text-[11px] bg-paper-1 rounded p-1.5 font-mono text-ink-800 italic truncate" title={snippet}>
                                 &quot;{snippet}&quot;
                               </li>
                             ))}
@@ -822,10 +822,10 @@ export default function StudentsView({
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-paper-2 flex items-center justify-between">
-                      <div className="text-[10px] text-ink-400">
+                      <div className="text-[11px] text-ink-400">
                         Files: {student.sourceFiles.length} matched sources
                       </div>
-                      <span className="text-[#2d5a4a] text-[10px] font-bold flex items-center gap-0.5">
+                      <span className="text-[#2d5a4a] text-[11px] font-bold flex items-center gap-0.5">
                         Inspect Record Profile <ChevronRight className="w-3.5 h-3.5" />
                       </span>
                     </div>
@@ -879,7 +879,7 @@ export default function StudentsView({
                       e.stopPropagation();
                       handleLoadDemoTemplate();
                     }}
-                    className="bg-[#2d5a4a]/10 hover:bg-[#2d5a4a]/20 text-[#2d5a4a] border border-[#2d5a4a]/25 text-[10px] font-mono font-bold py-1.5 px-3 rounded-md transition-all uppercase tracking-wider"
+                    className="bg-[#2d5a4a]/10 hover:bg-[#2d5a4a]/20 text-[#2d5a4a] border border-[#2d5a4a]/25 text-[11px] font-mono font-bold py-1.5 px-3 rounded-md transition-all uppercase tracking-wider"
                   >
                     Select Pre-compiled High-Confidence PDF Source
                   </button>
@@ -900,7 +900,7 @@ export default function StudentsView({
               <div className="space-y-4 border border-paper-2 rounded-xl p-5 bg-paper-0">
                 <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-paper-2 pb-3.5">
                   <div>
-                    <span className="font-mono text-[9px] bg-amber-100 text-amber-850 px-2 py-0.5 rounded-full font-black uppercase">
+                    <span className="font-mono text-[11px] bg-amber-100 text-amber-850 px-2 py-0.5 rounded-full font-black uppercase">
                       Confirm Ready
                     </span>
                     <h4 className="font-serif font-bold text-base text-ink-950 mt-1">
@@ -919,7 +919,7 @@ export default function StudentsView({
 
                 {/* Conflict notices */}
                 <div className="space-y-2 max-h-60 overflow-y-auto border border-paper-2 rounded-lg p-3 bg-paper-1/40">
-                  <span className="font-mono text-[9px] uppercase tracking-wider font-extrabold text-ink-400 block pb-1">
+                  <span className="font-mono text-[11px] uppercase tracking-wider font-extrabold text-ink-400 block pb-1">
                     Automatic parsing comparative highlights:
                   </span>
                   
@@ -1014,7 +1014,7 @@ export default function StudentsView({
                     <h3 className="font-serif font-bold text-base text-ink-950 truncate leading-snug">
                       Register New Student
                     </h3>
-                    <span className="font-mono text-[9px] uppercase tracking-wider text-ink-450 mt-0.5 block leading-none">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-ink-450 mt-0.5 block leading-none">
                       Manual Student Entry Form
                     </span>
                   </div>
@@ -1033,7 +1033,7 @@ export default function StudentsView({
                 
                 {/* Full Name */}
                 <div className="space-y-1">
-                  <label className="font-mono text-[9px] text-ink-404 uppercase font-black block tracking-wider">
+                  <label className="font-mono text-[11px] text-ink-404 uppercase font-black block tracking-wider">
                     Full Name <span className="text-redpen">*</span>
                   </label>
                   <input
@@ -1042,20 +1042,20 @@ export default function StudentsView({
                     placeholder="e.g., Aahana Sharma"
                     value={newStudentName}
                     onChange={(e) => setNewStudentName(e.target.value)}
-                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
+                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
                   />
                 </div>
 
                 {/* Class & Meta info */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="font-mono text-[9px] text-ink-404 uppercase font-black block tracking-wider">
+                    <label className="font-mono text-[11px] text-ink-404 uppercase font-black block tracking-wider">
                       Grade/Section
                     </label>
                     <select
                       value={newStudentClass}
                       onChange={(e) => setNewStudentClass(e.target.value)}
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
                     >
                       <option value="11A">11A</option>
                       <option value="11B">11B</option>
@@ -1065,7 +1065,7 @@ export default function StudentsView({
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="font-mono text-[9px] text-ink-404 uppercase font-black block tracking-wider">
+                    <label className="font-mono text-[11px] text-ink-404 uppercase font-black block tracking-wider">
                       Roll No
                     </label>
                     <input
@@ -1073,14 +1073,14 @@ export default function StudentsView({
                       placeholder="e.g., 35"
                       value={newStudentRoll}
                       onChange={(e) => setNewStudentRoll(e.target.value)}
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans font-mono"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans font-mono"
                     />
                   </div>
                 </div>
 
                 {/* Electives Matrix Checkboxes */}
                 <div className="space-y-1.5 pt-1">
-                  <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">
+                  <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">
                     Elective Subjects Assignment
                   </span>
                   
@@ -1124,12 +1124,12 @@ export default function StudentsView({
                       placeholder="Or enter custom elective..."
                       value={customSubjectInput}
                       onChange={(e) => setCustomSubjectInput(e.target.value)}
-                      className="flex-1 bg-paper-1 border border-paper-2 rounded-lg p-1.5 text-[11px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
+                      className="flex-1 bg-paper-1 border border-paper-2 rounded-lg p-1.5 text-[11px] text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
                     />
                     <button
                       type="button"
                       onClick={handleAddCustomSubject}
-                      className="bg-paper-2 hover:bg-paper-3 text-ink-800 text-[10px] font-bold px-3 rounded-lg transition-colors font-mono uppercase border border-paper-2"
+                      className="bg-paper-2 hover:bg-paper-3 text-ink-800 text-[11px] font-bold px-3 rounded-lg transition-colors font-mono uppercase border border-paper-2"
                     >
                       Add
                     </button>
@@ -1141,7 +1141,7 @@ export default function StudentsView({
                   <label className="flex items-center justify-between cursor-pointer select-none py-1">
                     <div className="text-xs">
                       <span className="font-bold text-ink-950 block">NCERT Sociology Student</span>
-                      <p className="text-[10px] text-[#2d5a4a] leading-tight font-semibold">Registers in the E3 Senior Sociology registry.</p>
+                      <p className="text-[11px] text-[#2d5a4a] leading-tight font-semibold">Registers in the E3 Senior Sociology registry.</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1154,7 +1154,7 @@ export default function StudentsView({
                   <label className="flex items-center justify-between cursor-pointer select-none py-1 border-t border-paper-2/50">
                     <div className="text-xs">
                       <span className="font-bold text-ink-950 block text-redpen">Flag for Teacher Review</span>
-                      <p className="text-[10px] text-ink-450 leading-tight font-semibold">Mark record as discrepant requiring spelling verification.</p>
+                      <p className="text-[11px] text-ink-450 leading-tight font-semibold">Mark record as discrepant requiring spelling verification.</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1166,7 +1166,7 @@ export default function StudentsView({
 
                   {newStudentNeedsReview && (
                     <div className="space-y-1">
-                      <label className="font-mono text-[9px] text-redpen uppercase font-black block tracking-wider">
+                      <label className="font-mono text-[11px] text-redpen uppercase font-black block tracking-wider">
                         Discrepancy / Review Reason
                       </label>
                       <input
@@ -1174,7 +1174,7 @@ export default function StudentsView({
                         placeholder="e.g. Spelling mismatch on roll lists"
                         value={newStudentReviewReason}
                         onChange={(e) => setNewStudentReviewReason(e.target.value)}
-                        className="w-full bg-paper-1 border border-redpen/20 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-redpen/25 font-sans"
+                        className="w-full bg-paper-1 border border-redpen/20 rounded-lg p-2 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-redpen/25 font-sans"
                       />
                     </div>
                   )}
@@ -1182,14 +1182,14 @@ export default function StudentsView({
 
                 {/* Private Notes */}
                 <div className="space-y-1 pt-1 border-t border-paper-2">
-                  <label className="font-mono text-[9px] text-ink-404 uppercase font-black block tracking-wider">
+                  <label className="font-mono text-[11px] text-ink-404 uppercase font-black block tracking-wider">
                     Teacher Observation Notes
                   </label>
                   <textarea
                     placeholder="Enter private school remarks... (e.g. parent email, meeting logs)"
                     value={newStudentNotes}
                     onChange={(e) => setNewStudentNotes(e.target.value)}
-                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 h-16 resize-none font-sans"
+                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 h-16 resize-none font-sans"
                   />
                 </div>
 
@@ -1201,7 +1201,7 @@ export default function StudentsView({
               <button
                 type="button"
                 onClick={() => setIsAddingStudent(false)}
-                className="bg-paper-2 hover:bg-paper-3 text-ink-800 py-2.5 px-3 rounded-md flex-1 text-center font-bold text-[10px] uppercase font-mono border border-paper-2"
+                className="bg-paper-2 hover:bg-paper-3 text-ink-800 py-2.5 px-3 rounded-md flex-1 text-center font-bold text-[11px] uppercase font-mono border border-paper-2"
               >
                 Cancel
               </button>
@@ -1209,7 +1209,7 @@ export default function StudentsView({
                 type="button"
                 disabled={isUpdating}
                 onClick={handleAddStudentSubmit}
-                className="bg-[#2d5a4a] text-white hover:bg-[#204236] py-2.5 px-3 rounded-md flex-1 text-center font-bold text-[10px] uppercase font-mono shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
+                className="bg-[#2d5a4a] text-white hover:bg-[#204236] py-2.5 px-3 rounded-md flex-1 text-center font-bold text-[11px] uppercase font-mono shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
               >
                 {isUpdating ? "Saving..." : "Add Record"}
               </button>
@@ -1239,7 +1239,7 @@ export default function StudentsView({
                   <h3 className="font-serif font-bold text-base text-ink-950 truncate max-w-[240px] leading-snug">
                     {selectedStudent.fullName}
                   </h3>
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-ink-450 mt-0.5 block leading-none">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-ink-450 mt-0.5 block leading-none">
                     Grade {selectedStudent.classSection} Registry Profile
                   </span>
                 </div>
@@ -1258,11 +1258,11 @@ export default function StudentsView({
               
               {/* Profile Main Fields */}
               <div className="space-y-3 pb-4 border-b border-paper-2">
-                <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">Primary Record Identity</span>
+                <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">Primary Record Identity</span>
                 
                 <div className="space-y-2">
                   <div>
-                    <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Full Student Name</label>
+                    <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Full Student Name</label>
                     <input
                       type="text"
                       value={selectedStudent.fullName || ""}
@@ -1271,13 +1271,13 @@ export default function StudentsView({
                         setSelectedStudent(updated);
                       }}
                       onBlur={() => handleUpdateStudent(selectedStudent)}
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Class & Section</label>
+                      <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Class & Section</label>
                       <input
                         type="text"
                         value={selectedStudent.classSection || ""}
@@ -1287,11 +1287,11 @@ export default function StudentsView({
                         }}
                         onBlur={() => handleUpdateStudent(selectedStudent)}
                         placeholder="e.g. 11 A"
-                        className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 font-mono"
+                        className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Academic Stream</label>
+                      <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Academic Stream</label>
                       <select
                         value={selectedStudent.stream || ""}
                         onChange={(e) => {
@@ -1299,7 +1299,7 @@ export default function StudentsView({
                           setSelectedStudent(updated);
                           handleUpdateStudent(updated);
                         }}
-                        className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
+                        className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
                       >
                         <option value="">Not Assigned</option>
                         <option value="Humanities">Humanities / Arts</option>
@@ -1315,7 +1315,7 @@ export default function StudentsView({
               {/* Administrative IDs */}
               <div className="pb-4 border-b border-paper-2">
                 <div>
-                  <label className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider mb-1.5">Roll Number</label>
+                  <label className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider mb-1.5">Roll Number</label>
                   <input
                     type="text"
                     value={selectedStudent.rollNumber || ""}
@@ -1325,18 +1325,18 @@ export default function StudentsView({
                     }}
                     onBlur={() => handleUpdateStudent(selectedStudent)}
                     placeholder="Roll No"
-                    className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-950 font-mono focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                    className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-950 font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                   />
                 </div>
               </div>
 
               {/* Vasant Valley Details & Demographics */}
               <div className="space-y-3 pb-4 border-b border-paper-2">
-                <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">Vasant Valley Details</span>
+                <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">Vasant Valley Details</span>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">House Affiliation</label>
+                    <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">House Affiliation</label>
                     <select
                       value={selectedStudent.house || ""}
                       onChange={(e) => {
@@ -1344,7 +1344,7 @@ export default function StudentsView({
                         setSelectedStudent(updated);
                         handleUpdateStudent(updated);
                       }}
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 font-sans"
                     >
                       <option value="">Unassigned</option>
                       <option value="Maurya">Maurya</option>
@@ -1355,7 +1355,7 @@ export default function StudentsView({
                   </div>
                   
                   <div>
-                    <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Orientation Group</label>
+                    <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Orientation Group</label>
                     <input
                       type="text"
                       value={selectedStudent.orientationGroup || ""}
@@ -1365,7 +1365,7 @@ export default function StudentsView({
                       }}
                       onBlur={() => handleUpdateStudent(selectedStudent)}
                       placeholder="e.g. OG-3"
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                     />
                   </div>
                 </div>
@@ -1373,10 +1373,10 @@ export default function StudentsView({
 
               {/* Academic Focus & Specialisation */}
               <div className="space-y-3 pb-4 border-b border-paper-2">
-                <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">Academic Profile</span>
+                <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">Academic Profile</span>
                 
                 <div>
-                  <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Academic Specialisation / Focus</label>
+                  <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Academic Specialisation / Focus</label>
                   <input
                     type="text"
                     value={selectedStudent.specialisation || ""}
@@ -1386,14 +1386,14 @@ export default function StudentsView({
                     }}
                     onBlur={() => handleUpdateStudent(selectedStudent)}
                     placeholder="e.g. Sociology Thesis Research, Quiz Rep"
-                    className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                    className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                   />
-                  <span className="text-[9px] text-ink-400 mt-1 block">Highlight outstanding academic projects or representative status.</span>
+                  <span className="text-[11px] text-ink-400 mt-1 block">Highlight outstanding academic projects or representative status.</span>
                 </div>
 
                 {/* Electives Matrix List */}
                 <div className="space-y-2 pt-1">
-                  <label className="text-[10px] font-mono font-bold text-ink-500 block">Mapped Elective Subjects</label>
+                  <label className="text-[11px] font-mono font-bold text-ink-500 block">Mapped Elective Subjects</label>
                   
                   <input
                     type="text"
@@ -1409,7 +1409,7 @@ export default function StudentsView({
                     }}
                     onBlur={() => handleUpdateStudent(selectedStudent)}
                     placeholder="Sociology, History, English, Economics"
-                    className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                    className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                   />
                 </div>
               </div>
@@ -1418,7 +1418,7 @@ export default function StudentsView({
               <div className="border-b border-paper-2 pb-4 flex items-center justify-between">
                 <div className="text-xs">
                   <span className="font-bold text-ink-950 block">NCERT Sociology Enrolment</span>
-                  <p className="text-[10px] text-ink-450 leading-tight">Registered in E3 Sociology list 2026-27.</p>
+                  <p className="text-[11px] text-ink-450 leading-tight">Registered in E3 Sociology list 2026-27.</p>
                 </div>
                 
                 <button
@@ -1428,7 +1428,7 @@ export default function StudentsView({
                     setSelectedStudent(updated);
                     handleUpdateStudent(updated);
                   }}
-                  className={`font-mono text-[9px] font-black uppercase tracking-wider py-1 px-3 border rounded-full transition-all ${
+                  className={`font-mono text-[11px] font-black uppercase tracking-wider py-1 px-3 border rounded-full transition-all ${
                     selectedStudent.sociologyStudent 
                       ? "bg-emerald-50 text-emerald-800 border-emerald-500/10" 
                       : "bg-paper-1 text-ink-500 border-paper-2"
@@ -1440,11 +1440,11 @@ export default function StudentsView({
 
               {/* Student Directory Contacts */}
               <div className="space-y-3 pb-4 border-b border-paper-2">
-                <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">Student Contact Credentials</span>
+                <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">Student Contact Credentials</span>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Student Email</label>
+                    <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Student Email</label>
                     <input
                       type="email"
                       value={selectedStudent.email || ""}
@@ -1454,11 +1454,11 @@ export default function StudentsView({
                       }}
                       onBlur={() => handleUpdateStudent(selectedStudent)}
                       placeholder="dimasht@vasantvalley.edu.in"
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Student Phone</label>
+                    <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Student Phone</label>
                     <input
                       type="tel"
                       value={selectedStudent.phone || ""}
@@ -1468,7 +1468,7 @@ export default function StudentsView({
                       }}
                       onBlur={() => handleUpdateStudent(selectedStudent)}
                       placeholder="+91 XXXXX XXXXX"
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                     />
                   </div>
                 </div>
@@ -1476,11 +1476,11 @@ export default function StudentsView({
 
               {/* Parent / Guardian Coordination */}
               <div className="space-y-3 pb-4 border-b border-paper-2">
-                <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">Parent / Guardian Coordination</span>
+                <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">Parent / Guardian Coordination</span>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Parent's Name</label>
+                    <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Parent's Name</label>
                     <input
                       type="text"
                       value={selectedStudent.parentName || ""}
@@ -1490,11 +1490,11 @@ export default function StudentsView({
                       }}
                       onBlur={() => handleUpdateStudent(selectedStudent)}
                       placeholder="Parent's Name"
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Parent's Contact</label>
+                    <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Parent's Contact</label>
                     <input
                       type="tel"
                       value={selectedStudent.parentContact || ""}
@@ -1504,7 +1504,7 @@ export default function StudentsView({
                       }}
                       onBlur={() => handleUpdateStudent(selectedStudent)}
                       placeholder="+91 XXXXX XXXXX"
-                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                      className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                     />
                   </div>
                 </div>
@@ -1512,7 +1512,7 @@ export default function StudentsView({
 
               {/* Discrepancy / Review Flags */}
               <div className="border-b border-paper-2 pb-4 space-y-2">
-                <span className="font-mono text-[9px] text-ink-404 uppercase font-black block tracking-wider">Discrepancy Status</span>
+                <span className="font-mono text-[11px] text-ink-404 uppercase font-black block tracking-wider">Discrepancy Status</span>
                 
                 <div className="bg-paper-1 rounded-xl p-3 border border-paper-2">
                   <div className="flex items-center justify-between">
@@ -1534,7 +1534,7 @@ export default function StudentsView({
                   </div>
                   {selectedStudent.needsReview && (
                     <div className="mt-2">
-                      <label className="text-[10px] font-mono font-bold text-ink-500 block mb-1">Review Details / Reason</label>
+                      <label className="text-[11px] font-mono font-bold text-ink-500 block mb-1">Review Details / Reason</label>
                       <input
                         type="text"
                         value={selectedStudent.reviewReason || ""}
@@ -1544,7 +1544,7 @@ export default function StudentsView({
                         }}
                         onBlur={() => handleUpdateStudent(selectedStudent)}
                         placeholder="e.g. Discrepancy found during OCR upload."
-                        className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25"
+                        className="w-full bg-paper-1 border border-paper-2 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25"
                       />
                     </div>
                   )}
@@ -1554,7 +1554,7 @@ export default function StudentsView({
               {/* Assessment Progress Comments & Notes */}
               <div className="space-y-4 border-b border-paper-2 pb-4">
                 <div className="space-y-1.5">
-                  <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">Formal Academic Comments</span>
+                  <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">Formal Academic Comments</span>
                   <textarea
                     placeholder="Enter academic feedback, trimester reviews, or specific sociological/GP skill comments..."
                     value={selectedStudent.comments || ""}
@@ -1563,12 +1563,12 @@ export default function StudentsView({
                       setSelectedStudent(updated);
                     }}
                     onBlur={() => handleUpdateStudent(selectedStudent)}
-                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 h-20 resize-none font-sans"
+                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 h-20 resize-none font-sans"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <span className="font-mono text-[9px] text-ink-400 uppercase font-black block tracking-wider">Teacher's Private Observations</span>
+                  <span className="font-mono text-[11px] text-ink-400 uppercase font-black block tracking-wider">Teacher's Private Observations</span>
                   <textarea
                     placeholder="Enter private school remarks... (e.g. parent email logs, homeroom attendance status, Veracross gradebook coordination)"
                     value={selectedStudent.notes || ""}
@@ -1577,24 +1577,24 @@ export default function StudentsView({
                       setSelectedStudent(updated);
                     }}
                     onBlur={() => handleUpdateStudent(selectedStudent)}
-                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2.5 text-xs text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]/25 h-20 resize-none font-sans"
+                    className="w-full bg-paper-1 border border-paper-2 rounded-lg p-2.5 text-xs text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]/25 h-20 resize-none font-sans"
                   />
-                  <span className="text-[9px] text-ink-400 block italic leading-none">All field modifications save automatically on blur.</span>
+                  <span className="text-[11px] text-ink-400 block italic leading-none">All field modifications save automatically on blur.</span>
                 </div>
               </div>
 
               {/* Matched Source Files citations */}
               <div className="space-y-2 pb-4">
-                <span className="font-mono text-[9px] text-ink-403 uppercase font-black block tracking-wider">OCR Verified PDF Mappings</span>
+                <span className="font-mono text-[11px] text-ink-403 uppercase font-black block tracking-wider">OCR Verified PDF Mappings</span>
                 <div className="space-y-1.5">
                   {selectedStudent.sourceFiles && selectedStudent.sourceFiles.length > 0 ? (
                     selectedStudent.sourceFiles.map((file, idx) => (
                       <div key={idx} className="bg-paper-1 border border-paper-2 rounded p-2 flex items-start gap-2">
                         <FileText className="w-3.5 h-3.5 text-ink-400 flex-shrink-0 mt-0.5" />
-                        <div className="text-[10px]">
+                        <div className="text-[11px]">
                           <span className="font-bold block text-ink-900">{file}</span>
                           {selectedStudent.sourceEvidence && selectedStudent.sourceEvidence[idx] && (
-                            <p className="font-mono text-[9px] text-ink-500 italic mt-0.5 leading-tight">
+                            <p className="font-mono text-[11px] text-ink-500 italic mt-0.5 leading-tight">
                               &quot;{selectedStudent.sourceEvidence[idx]}&quot;
                             </p>
                           )}
@@ -1602,7 +1602,7 @@ export default function StudentsView({
                       </div>
                     ))
                   ) : (
-                    <div className="text-[10px] text-ink-450 italic font-mono">No physical OCR source references synced. Entered manually.</div>
+                    <div className="text-[11px] text-ink-450 italic font-mono">No physical OCR source references synced. Entered manually.</div>
                   )}
                 </div>
               </div>
@@ -1619,14 +1619,14 @@ export default function StudentsView({
                   handleUpdateStudent(updated);
                 }}
                 disabled={!selectedStudent.needsReview}
-                className="bg-paper-2 hover:bg-paper-3 text-ink-800 py-2 px-3 rounded-md flex-1 text-center font-bold text-[10px] uppercase font-mono disabled:opacity-50"
+                className="bg-paper-2 hover:bg-paper-3 text-ink-800 py-2 px-3 rounded-md flex-1 text-center font-bold text-[11px] uppercase font-mono disabled:opacity-50"
               >
                 Mark Verified
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedStudent(null)}
-                className="bg-[#2d5a4a] text-white hover:bg-[#204236] py-2 px-3 rounded-md flex-1 text-center font-bold text-[10px] uppercase font-mono shadow-sm"
+                className="bg-[#2d5a4a] text-white hover:bg-[#204236] py-2 px-3 rounded-md flex-1 text-center font-bold text-[11px] uppercase font-mono shadow-sm"
               >
                 Close Profile
               </button>

@@ -60,7 +60,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
           <button 
             type="button"
             onClick={onSwitchAccount}
-            className="text-[9px] font-mono tracking-wider font-bold text-[#2d5a4a] bg-[#e8f0ec] hover:bg-[#d2e3da] border border-[#d2e3da] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 focus:outline-none uppercase"
+            className="text-[11px] font-mono tracking-wider font-bold text-[#2d5a4a] bg-[#e8f0ec] hover:bg-[#d2e3da] border border-[#d2e3da] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 uppercase"
           >
             <Settings className="w-3.5 h-3.5" />
             SWITCH ACCOUNT
@@ -73,8 +73,8 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
           </div>
           <div>
             <span className="font-serif font-bold text-sm text-[#1a1612] block leading-tight">{currentUser.name}</span>
-            <span className="font-mono text-[10px] text-[#8b857b] block uppercase mt-0.5">{currentUser.email} | PRIMARY SYNC</span>
-            <span className="font-mono text-[8px] tracking-wider font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-md mt-1.5 inline-block">
+            <span className="font-mono text-[11px] text-[#4a4540] block uppercase mt-0.5">{currentUser.email} | PRIMARY SYNC</span>
+            <span className="font-mono text-[11px] tracking-wider font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-md mt-1.5 inline-block">
               VASANT VALLEY FA CULTY ADMINISTRATOR
             </span>
           </div>
@@ -85,14 +85,14 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
           <div className="bg-[#f3ede2] border border-[#e1d8c6] rounded-md p-3.5 text-xs flex justify-between items-center mb-2 animate-fadeIn">
             <div>
               <span className="font-serif font-bold text-xs text-[#1a1612] block mb-0.5">{currentUser.email}</span>
-              <span className="text-[#8b857b] font-mono text-[9px] uppercase tracking-wider block">WORKSPACE EDITION (ACTIVE)</span>
+              <span className="text-[#4a4540] font-mono text-[11px] uppercase tracking-wider block">WORKSPACE EDITION (ACTIVE)</span>
             </div>
             <input type="checkbox" checked readOnly className="w-4 h-4 rounded text-[#2d5a4a] focus:ring-0 checked:bg-[#2d5a4a]" />
           </div>
           <div className="bg-[#fcf9f3] border border-[#e1d8c6] border-dashed rounded-md p-3.5 text-xs flex justify-between items-center opacity-65">
             <div>
-              <span className="font-serif font-bold text-xs text-[#8b857b] block mb-0.5">Add an Alias or Secondary Account</span>
-              <span className="text-[#8b857b] font-serif italic text-[11px] block">Switch the primary account using the option above to download secondary inbox syncs.</span>
+              <span className="font-serif font-bold text-xs text-[#4a4540] block mb-0.5">Add an Alias or Secondary Account</span>
+              <span className="text-[#4a4540] font-serif italic text-[11px] block">Switch the primary account using the option above to download secondary inbox syncs.</span>
             </div>
           </div>
         </div>
@@ -112,10 +112,10 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
                 <span className="font-serif font-bold text-sm text-[#1a1612] block leading-snug">{item.name}</span>
                 <span className="text-[#4a4540] font-sans text-xs block pr-6 leading-relaxed max-w-xl">{item.description}</span>
               </div>
-              <span className={`font-mono text-[9px] px-2.5 py-1 rounded-full inline-block font-bold tracking-wider uppercase whitespace-nowrap self-start sm:self-center border ${
+              <span className={`font-mono text-[11px] px-2.5 py-1 rounded-full inline-block font-bold tracking-wider uppercase whitespace-nowrap self-start sm:self-center border ${
                 item.type === "active" 
                   ? "bg-[#e8f0ec] border-[#d2e3da] text-[#2d5a4a]" 
-                  : "bg-[#fcf9f3] border-[#e1d8c6] text-[#8b857b]"
+                  : "bg-[#fcf9f3] border-[#e1d8c6] text-[#4a4540]"
               }`}>
                 {item.status}
               </span>
@@ -148,15 +148,15 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
           Workspace Configuration Checklist
         </h3>
 
-        <div className="font-mono text-[10px] uppercase tracking-wider pt-1 divide-y divide-[#ece6db]">
+        <div className="font-mono text-[11px] uppercase tracking-wider pt-1 divide-y divide-[#ece6db]">
           {envs.map((env, idx) => (
             <div key={idx} className="py-2.5 flex items-center justify-between first:pt-1 last:pb-1">
               <span className="text-[#1a1612] font-bold">{env.key}</span>
               <div className="flex items-center gap-3">
-                <span className="text-[#8b857b] text-[9px] tracking-wider font-semibold">
+                <span className="text-[#4a4540] text-[11px] tracking-wider font-semibold">
                   {env.required ? "REQUIRED" : "OPTIONAL"}
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-bold border ${
+                <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${
                   env.status === "Loaded" || env.status === "Connected" || env.status === "Wired"
                     ? "bg-[#e8f0ec] border-[#d2e3da] text-[#2d5a4a]"
                     : "bg-[#fcf9f3] border-[#b83232]/25 text-[#b83232]"

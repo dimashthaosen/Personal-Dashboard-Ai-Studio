@@ -9,6 +9,7 @@ export interface AgentEvent {
   contents?: any[];
   batch?: any[];
   message?: string;
+  result?: any;
 }
 
 export async function runAssistantAgent({

@@ -269,7 +269,7 @@ export default function EmailView({
           ...(googleToken ? { "Authorization": `Bearer ${googleToken}` } : {})
         },
         body: JSON.stringify({
-          to: selectedEmail.fromEmail || selectedEmail.fromStr,
+          to: selectedEmail.fromEmail || selectedEmail.from,
           subject: selectedEmail.subject.toLowerCase().startsWith("re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject}`,
           body: replyDraft,
           emailId: selectedEmail.id
@@ -306,13 +306,13 @@ export default function EmailView({
             <div className="flex bg-[#ece6db]/50 p-1 rounded-lg">
               <button
                 onClick={() => setActiveTab("inbox")}
-                className={`px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors ${activeTab === 'inbox' ? 'bg-white text-[#2d5a4a] shadow-sm' : 'text-[#8b857b] hover:text-[#4a4540]'}`}
+                className={`px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider rounded-md transition-colors ${activeTab === 'inbox' ? 'bg-white text-[#2d5a4a] shadow-sm' : 'text-[#4a4540] hover:text-[#4a4540]'}`}
               >
                 Inbox
               </button>
               <button
                 onClick={() => setActiveTab("sent")}
-                className={`px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors ${activeTab === 'sent' ? 'bg-white text-[#2d5a4a] shadow-sm' : 'text-[#8b857b] hover:text-[#4a4540]'}`}
+                className={`px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider rounded-md transition-colors ${activeTab === 'sent' ? 'bg-white text-[#2d5a4a] shadow-sm' : 'text-[#4a4540] hover:text-[#4a4540]'}`}
               >
                 Sent
               </button>
@@ -324,7 +324,7 @@ export default function EmailView({
         </div>
         <div className="flex items-center gap-3">
           {isSyncingBackground && (
-            <span className="flex items-center gap-1.5 text-[10px] font-mono font-medium text-[#2d5a4a] bg-[#e8f0ec] px-2.5 py-1.5 rounded-lg border border-[#d2e3da]/60 animate-pulse">
+            <span className="flex items-center gap-1.5 text-[11px] font-mono font-medium text-[#2d5a4a] bg-[#e8f0ec] px-2.5 py-1.5 rounded-lg border border-[#d2e3da]/60 animate-pulse">
               <RefreshCw className="w-3 h-3 animate-spin" />
               Syncing...
             </span>
@@ -334,7 +334,7 @@ export default function EmailView({
             <div className="flex items-center gap-2 border border-[#d2e3da] bg-[#e8f0ec] rounded-lg pl-3 pr-1.5 py-1 hover:shadow-[0_1px_3px_rgba(26,22,18,0.06)] transition-all">
               <div className="flex items-center gap-1.5 pr-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
-                <span className="text-[10px] font-mono font-bold text-[#2d5a4a] uppercase tracking-wider">
+                <span className="text-[11px] font-mono font-bold text-[#2d5a4a] uppercase tracking-wider">
                   {currentUser?.email || "Gmail"}
                 </span>
               </div>
@@ -343,7 +343,7 @@ export default function EmailView({
                 type="button"
                 onClick={() => fetchEmails(true)}
                 disabled={loading || isSyncingBackground}
-                className="text-[9px] font-mono tracking-wider font-bold text-[#2d5a4a] bg-[#fcf9f3]/90 hover:bg-[#ece6db]/50 border border-[#d2e3da] px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 focus:outline-none uppercase disabled:opacity-50"
+                className="text-[11px] font-mono tracking-wider font-bold text-[#2d5a4a] bg-[#fcf9f3]/90 hover:bg-[#ece6db]/50 border border-[#d2e3da] px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 uppercase disabled:opacity-50"
                 title="Force refresh"
               >
                 <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
@@ -353,7 +353,7 @@ export default function EmailView({
               <button 
                 type="button"
                 onClick={onSwitchAccount}
-                className="text-[9px] font-mono tracking-wider font-bold text-[#8a3324] hover:bg-[#faebe8] border border-[#f3d3cb] px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 focus:outline-none uppercase"
+                className="text-[11px] font-mono tracking-wider font-bold text-[#8a3324] hover:bg-[#faebe8] border border-[#f3d3cb] px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 uppercase"
               >
                 <Settings className="w-3.5 h-3.5" />
                 CHANGE
@@ -361,15 +361,15 @@ export default function EmailView({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold tracking-wider uppercase bg-[#ece6db] text-[#4a4540] border border-[#e1d8c6]">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase bg-[#ece6db] text-[#4a4540] border border-[#e1d8c6]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#8b857b]" />
-                STANDALONE INBOX
+                STANDALONE Inbox
               </span>
               <button 
                 type="button"
                 onClick={() => fetchEmails(true)}
                 disabled={loading || isSyncingBackground}
-                className="text-[9px] font-mono tracking-wider font-bold text-[#4a4540] bg-[#fcf9f3]/90 hover:bg-[#ece6db]/50 border border-[#e1d8c6] px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 focus:outline-none uppercase"
+                className="text-[11px] font-mono tracking-wider font-bold text-[#4a4540] bg-[#fcf9f3]/90 hover:bg-[#ece6db]/50 border border-[#e1d8c6] px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 uppercase"
               >
                 <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
                 REFRESH
@@ -387,13 +387,13 @@ export default function EmailView({
           {/* Email Search Bar */}
           <div className="p-3.5 bg-[#fcf9f3]">
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8b857b]/70" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4a4540]/70" />
               <input
                 type="text"
                 placeholder="Search sender or keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-white border border-[#e1d8c6] rounded-xl text-xs font-serif text-[#1a1612] placeholder-[#8b857b]/50 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a] focus:border-[#2d5a4a] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]"
+                className="w-full pl-9 pr-4 py-2 bg-white border border-[#e1d8c6] rounded-xl text-xs font-serif text-[#1a1612] placeholder-[#8b857b]/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a] focus:border-[#2d5a4a] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]"
               />
             </div>
           </div>
@@ -405,12 +405,12 @@ export default function EmailView({
               <div className="h-10 shimmer-skeleton rounded"></div>
             </div>
           ) : emails.length === 0 ? (
-            <div className="p-10 text-center text-[#8b857b] font-serif italic text-sm space-y-1.5 animate-fadeIn">
+            <div className="p-10 text-center text-[#4a4540] font-serif italic text-sm space-y-1.5 animate-fadeIn">
               <p>Your inbox is empty.</p>
               <p className="text-xs font-sans not-italic text-[#a29c91]">No synchronized teacher or school emails are loaded.</p>
             </div>
           ) : filteredEmails.length === 0 ? (
-            <div className="p-10 text-center text-[#8b857b] font-serif italic text-sm space-y-1.5 animate-fadeIn">
+            <div className="p-10 text-center text-[#4a4540] font-serif italic text-sm space-y-1.5 animate-fadeIn">
               <p>No matching emails found.</p>
               <p className="text-xs font-sans not-italic text-[#a29c91]">Try adjusting your key phrase query or reset the search input.</p>
             </div>
@@ -432,7 +432,7 @@ export default function EmailView({
                     setDraftSuccess(false);
                     setCopiedDraft(false);
                   }}
-                  className={`w-full text-left p-4.5 flex gap-3.5 focus:outline-none transition-colors relative ${
+                  className={`w-full text-left p-4.5 flex gap-3.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-colors relative ${
                     isSelected ? "bg-[#f5f1e8]" : "hover:bg-[#ece6db]/30"
                   }`}
                 >
@@ -444,17 +444,17 @@ export default function EmailView({
                   
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex justify-between items-baseline gap-2">
-                      <span className="font-mono text-[9px] text-[#7a756f] font-bold tracking-wide uppercase truncate">
+                      <span className="font-mono text-[11px] text-[#4a4540] font-bold tracking-wide uppercase truncate">
                         {email.fromName}
                       </span>
-                      <span className="font-mono text-[8px] text-[#8b857b] uppercase flex-shrink-0">{formattedDate}</span>
+                      <span className="font-mono text-[11px] text-[#4a4540] uppercase flex-shrink-0">{formattedDate}</span>
                     </div>
                     <h4 className={`font-serif text-xs font-bold text-[#1a1612] truncate ${email.needsReply ? "text-[#8a3324] font-bold" : ""}`}>
                       {email.subject}
                     </h4>
-                    <p className="text-xs text-[#8b857b] truncate leading-normal italic font-serif">{email.snippet}</p>
+                    <p className="text-xs text-[#4a4540] truncate leading-normal italic font-serif">{email.snippet}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#8b857b]/50 self-center hidden sm:block" />
+                  <ChevronRight className="w-4 h-4 text-[#4a4540]/50 self-center hidden sm:block" />
                 </button>
               );
             })
@@ -473,12 +473,12 @@ export default function EmailView({
                     {selectedEmail.subject}
                   </h3>
                   {selectedEmail.needsReply && (
-                    <span className="font-mono text-[9px] font-bold text-[#8a3324] border border-[#f3d3cb] bg-[#faebe8] uppercase tracking-wider px-2.5 py-1 rounded-md flex-shrink-0 mt-0.5">
+                    <span className="font-mono text-[11px] font-bold text-[#8a3324] border border-[#f3d3cb] bg-[#faebe8] uppercase tracking-wider px-2.5 py-1 rounded-md flex-shrink-0 mt-0.5">
                       ACTION REQUIRED
                     </span>
                   )}
                 </div>
-                <div className="flex justify-between items-center text-[10px] text-[#8b857b] font-mono mt-3 uppercase tracking-wider">
+                <div className="flex justify-between items-center text-[11px] text-[#4a4540] font-mono mt-3 uppercase tracking-wider">
                   <span>{activeTab === 'sent' ? 'TO' : 'FROM'}: {selectedEmail.from}</span>
                   <span>{new Date(selectedEmail.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long" })}</span>
                 </div>
@@ -495,7 +495,7 @@ export default function EmailView({
                   type="button"
                   onClick={() => handleSummariseEmail(selectedEmail.id)}
                   disabled={summarising}
-                  className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#2d5a4a] bg-[#e8f0ec] hover:bg-[#d2e3da] border border-[#d2e3da] px-3.5 py-2 rounded-md transition-all cursor-pointer focus:outline-none flex items-center gap-1.5 disabled:opacity-50"
+                  className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#2d5a4a] bg-[#e8f0ec] hover:bg-[#d2e3da] border border-[#d2e3da] px-3.5 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   {summarising ? "Summarising..." : "AI Analyse Message"}
@@ -505,7 +505,7 @@ export default function EmailView({
                   type="button"
                   onClick={() => handleDraftReply(selectedEmail.id)}
                   disabled={draftingReply}
-                  className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#1d2d5a] bg-[#e0eaf5] hover:bg-[#c7daf0] border border-[#b8cfe8] px-3.5 py-2 rounded-md transition-all cursor-pointer focus:outline-none flex items-center gap-1.5 disabled:opacity-50"
+                  className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#1d2d5a] bg-[#e0eaf5] hover:bg-[#c7daf0] border border-[#b8cfe8] px-3.5 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" />
                   {draftingReply ? "Formulating Draft..." : "AI Compose Reply"}
@@ -515,7 +515,7 @@ export default function EmailView({
               {/* AI Summary result */}
               {summaryOutput && (
                 <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[14px] p-4 shadow-sm space-y-2.5 animate-fade-up">
-                  <h4 className="font-mono text-[9px] text-[#2d5a4a] font-bold uppercase tracking-wider flex items-center gap-1.5 border-b border-[#ece6db] pb-1.5">
+                  <h4 className="font-mono text-[11px] text-[#2d5a4a] font-bold uppercase tracking-wider flex items-center gap-1.5 border-b border-[#ece6db] pb-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-[#2d5a4a]" />
                     Interactive Bullet Analysis
                   </h4>
@@ -541,14 +541,14 @@ export default function EmailView({
               {replyDraft && (
                 <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[14px] p-4.5 shadow-sm space-y-3 animate-fade-up">
                   <div className="flex justify-between items-center border-b border-[#ece6db] pb-2">
-                    <h4 className="font-mono text-[9px] text-[#1d2d5a] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <h4 className="font-mono text-[11px] text-[#1d2d5a] font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Send className="w-3.5 h-3.5" />
                       Suggested Reply Draft
                     </h4>
                     <button
                       type="button"
                       onClick={handleCopyDraft}
-                      className="font-mono text-[9px] font-bold uppercase text-[#8b857b] hover:text-[#2d5a4a] flex items-center gap-1 focus:outline-none cursor-pointer"
+                      className="font-mono text-[11px] font-bold uppercase text-[#4a4540] hover:text-[#2d5a4a] flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer"
                     >
                       {copiedDraft ? (
                         <>
@@ -564,19 +564,19 @@ export default function EmailView({
                     </button>
                   </div>
                   <textarea
-                    className="w-full text-xs text-[#2c2724] leading-relaxed font-sans bg-[#f3ede2] p-4 rounded-md border border-[#e1d8c6] h-60 resize-y focus:outline-none focus:ring-1 focus:ring-[#8b857b]"
+                    className="w-full text-xs text-[#2c2724] leading-relaxed font-sans bg-[#f3ede2] p-4 rounded-md border border-[#e1d8c6] h-60 resize-y focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#8b857b]"
                     value={replyDraft}
                     onChange={(e) => setReplyDraft(e.target.value)}
                   />
                   <div className="flex justify-between items-center mt-2">
-                    <p className="font-serif italic text-[10px] text-[#8b857b] pl-1 h-auto leading-normal">
+                    <p className="font-serif italic text-[11px] text-[#4a4540] pl-1 h-auto leading-normal">
                       Approved standard guidelines apply. This response uses your personal biography style preference from Assistant Core Memory.
                     </p>
                     <button
                       type="button"
                       onClick={handleSaveDraft}
                       disabled={savingDraft || !replyDraft.trim()}
-                      className="font-mono text-[10px] font-bold uppercase tracking-wider text-white bg-[#2d5a4a] hover:bg-[#1f4236] border border-[#1f4236] px-4 py-2 rounded-md transition-all cursor-pointer focus:outline-none flex items-center gap-1.5 disabled:opacity-50"
+                      className="font-mono text-[11px] font-bold uppercase tracking-wider text-white bg-[#2d5a4a] hover:bg-[#1f4236] border border-[#1f4236] px-4 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 disabled:opacity-50"
                     >
                       {savingDraft ? (
                          "Saving..."
@@ -592,7 +592,7 @@ export default function EmailView({
 
             </div>
           ) : (
-            <div className="p-16 text-center text-[#8b857b] font-serif italic text-sm">
+            <div className="p-16 text-center text-[#4a4540] font-serif italic text-sm">
               Please select a syllabus message to begin academic parsing.
             </div>
           )}

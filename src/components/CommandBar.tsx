@@ -398,7 +398,7 @@ export default function CommandBar({
       // Show interactive quick actions list
       return (
         <div className="space-y-3 p-1">
-          <div className="px-2 pb-1.5 pt-1 text-[10px] font-mono font-bold text-[#2d5a4a] border-b border-[#ece6db] uppercase tracking-wider flex items-center gap-1.5 select-none">
+          <div className="px-2 pb-1.5 pt-1 text-[11px] font-mono font-bold text-[#2d5a4a] border-b border-[#ece6db] uppercase tracking-wider flex items-center gap-1.5 select-none">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Interactive Quick Actions</span>
           </div>
@@ -439,14 +439,14 @@ export default function CommandBar({
                       {item.title}
                     </p>
                     {item.subtitle && (
-                      <p className="text-[10px] font-mono text-[#8b857b] truncate uppercase tracking-tight">
+                      <p className="text-[11px] font-mono text-[#4a4540] truncate uppercase tracking-tight">
                         {item.subtitle}
                       </p>
                     )}
                   </div>
 
                   {isActive && (
-                    <span className="flex items-center gap-1 text-[8px] font-mono font-bold text-[#2d5a4a] tracking-wider uppercase select-none self-center bg-[#2d5a4a]/10 px-1.5 py-0.5 rounded">
+                    <span className="flex items-center gap-1 text-[11px] font-mono font-bold text-[#2d5a4a] tracking-wider uppercase select-none self-center bg-[#2d5a4a]/10 px-1.5 py-0.5 rounded">
                       <CornerDownLeft className="w-2.5 h-2.5" />
                       RUN
                     </span>
@@ -457,14 +457,14 @@ export default function CommandBar({
           </div>
 
           <div className="pt-4 pb-2 px-2 text-center select-none space-y-2">
-            <p className="text-[11px] font-serif italic text-[#8b857b]">
+            <p className="text-[11px] font-serif italic text-[#4a4540]">
               Need help? Search the database or let the Assistant do the heavy lifting!
             </p>
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ece6db]/55 text-[#4a4540]">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#ece6db]/55 text-[#4a4540]">
                 "Show pending Class 9 tasks"
               </span>
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ece6db]/55 text-[#4a4540]">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#ece6db]/55 text-[#4a4540]">
                 "Find grading style memory"
               </span>
             </div>
@@ -475,7 +475,7 @@ export default function CommandBar({
 
     if (resultItems.length === 0) {
       return (
-        <div className="py-12 px-4 text-center select-none space-y-2 text-[#8b857b]/80">
+        <div className="py-12 px-4 text-center select-none space-y-2 text-[#4a4540]/80">
           <p className="font-serif italic text-xs">No local records match &ldquo;{queryText}&rdquo;.</p>
           <button
             type="button"
@@ -487,7 +487,7 @@ export default function CommandBar({
               }
               onClose();
             }}
-            className="inline-flex items-center gap-1 bg-[#2d5a4a] text-white font-mono text-[10px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-md hover:bg-[#3a7560] cursor-pointer animate-fadeIn"
+            className="inline-flex items-center gap-1 bg-[#2d5a4a] text-white font-mono text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-md hover:bg-[#3a7560] cursor-pointer animate-fadeIn"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Ask Assistant Instantly
@@ -515,9 +515,9 @@ export default function CommandBar({
 
           return (
             <div key={cat.id} className="space-y-1">
-              <div className="px-2 text-[10px] font-mono font-bold text-[#8b857b] uppercase tracking-wider mb-1.5 select-none border-b border-[#ece6db]/60 pb-1 flex items-center justify-between">
+              <div className="px-2 text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1.5 select-none border-b border-[#ece6db]/60 pb-1 flex items-center justify-between">
                 <span>{cat.label}</span>
-                <span className="text-[9px] font-normal text-[#8b857b]/65 lowercase">
+                <span className="text-[11px] font-normal text-[#4a4540]/65 lowercase">
                   ({catItems.length} match{catItems.length > 1 ? "es" : ""})
                 </span>
               </div>
@@ -559,14 +559,14 @@ export default function CommandBar({
                           {item.title}
                         </p>
                         {item.subtitle && (
-                          <p className="text-[10px] font-mono text-[#8b857b] truncate uppercase tracking-tight">
+                          <p className="text-[11px] font-mono text-[#4a4540] truncate uppercase tracking-tight">
                             {item.subtitle}
                           </p>
                         )}
                       </div>
 
                       {isActive && (
-                        <span className="flex items-center gap-1 text-[8px] font-mono font-bold text-[#2d5a4a] tracking-wider uppercase select-none self-center bg-[#2d5a4a]/10 px-1.5 py-0.5 rounded">
+                        <span className="flex items-center gap-1 text-[11px] font-mono font-bold text-[#2d5a4a] tracking-wider uppercase select-none self-center bg-[#2d5a4a]/10 px-1.5 py-0.5 rounded">
                           <CornerDownLeft className="w-2.5 h-2.5" />
                           RUN
                         </span>
@@ -601,15 +601,15 @@ export default function CommandBar({
               setSelectedIndex(0);
             }}
             placeholder="Search tasks, calendar, memory, unread mail details..."
-            className="w-full text-sm bg-transparent border-none text-ink-950 outline-none placeholder:text-[#8b857b]/65 font-serif italic"
+            className="w-full text-sm bg-transparent border-none text-ink-950 outline-none placeholder:text-[#4a4540]/90 font-serif italic"
           />
-          <span className="text-[10px] font-mono font-bold text-[#8b857b] border border-[#e1d8c6] px-2 py-0.5 rounded-[5px] bg-[#f3ede2] tracking-wider select-none">
+          <span className="text-[11px] font-mono font-bold text-[#4a4540] border border-[#e1d8c6] px-2 py-0.5 rounded-[5px] bg-[#f3ede2] tracking-wider select-none">
             ESC
           </span>
           <button 
             type="button" 
             onClick={onClose} 
-            className="text-ink-300 hover:text-ink-600 focus:outline-none"
+            className="text-ink-300 hover:text-ink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
           >
             <X className="w-4 h-4" />
           </button>
@@ -621,10 +621,10 @@ export default function CommandBar({
         </div>
 
         {/* Dynamic keyboard guidelines */}
-        <div className="px-4.5 py-2.5 bg-[#f3ede2] text-[10px] font-mono text-[#8b857b] border-t border-[#ece6db] flex items-center justify-between select-none">
+        <div className="px-4.5 py-2.5 bg-[#f3ede2] text-[11px] font-mono text-[#4a4540] border-t border-[#ece6db] flex items-center justify-between select-none">
           <div className="flex items-center gap-3">
             <span>UP/DOWN TO NAVIGATE</span>
-            <span className="text-[#8b857b]/50">|</span>
+            <span className="text-[#4a4540]/50">|</span>
             <span>ENTER TO RUN</span>
           </div>
           <span>CTRL+K TO TOGGLE</span>

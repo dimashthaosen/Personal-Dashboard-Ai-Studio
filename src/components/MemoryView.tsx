@@ -296,7 +296,7 @@ export default function MemoryView({
         </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="bg-[#2d5a4a] hover:bg-[#3a7560] font-mono text-[11px] font-bold text-[#fcf9f3] px-4 py-2.5 rounded-[8px] transition-all focus:outline-none cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
+          className="bg-[#2d5a4a] hover:bg-[#3a7560] font-mono text-[11px] font-bold text-[#fcf9f3] px-4 py-2.5 rounded-[8px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
         >
           <Plus className="w-4 h-4 text-white" />
           {showCreateForm ? "Cancel" : "Add Memory"}
@@ -314,23 +314,23 @@ export default function MemoryView({
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Key Context Identifier *</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Key Context Identifier *</label>
                 <input
                   type="text"
                   required
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
                   placeholder="e.g. Timetable Standard Periods or Writing Style..."
-                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a] placeholder:italic"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a] placeholder:italic"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Context Category</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Context Category</label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none uppercase"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 uppercase"
                 >
                   {categories.filter(c => c !== "all").map(cat => (
                     <option key={cat} value={cat}>
@@ -342,14 +342,14 @@ export default function MemoryView({
             </div>
 
             <div>
-              <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Constant Value / Description *</label>
+              <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Constant Value / Description *</label>
               <textarea
                 required
                 value={newValue}
                 onChange={(e) => setNewValue(e.target.value)}
                 placeholder="Declare standard pointers or biographies the assistant should use for all unread mails, worksheets, and schedule creations..."
                 rows={3}
-                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a] resize-none placeholder:italic"
+                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a] resize-none placeholder:italic"
               />
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function MemoryView({
           <div className="pt-2 border-t border-[#ece6db]">
             <button
               type="submit"
-              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[10px] font-bold px-5 py-2.5 rounded-md uppercase tracking-wider shadow-sm focus:outline-none cursor-pointer"
+              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[11px] font-bold px-5 py-2.5 rounded-md uppercase tracking-wider shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer"
             >
               Learn Biography Element
             </button>
@@ -372,7 +372,7 @@ export default function MemoryView({
             key={cat}
             type="button"
             onClick={() => setCategoryFilter(cat)}
-            className={`font-mono text-[9px] uppercase tracking-wider px-3.5 py-1.5 rounded-full border transition-all focus:outline-none cursor-pointer ${
+            className={`font-mono text-[11px] uppercase tracking-wider px-3.5 py-1.5 rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer ${
               categoryFilter === cat
                 ? "bg-[#2d5a4a] border-[#2d5a4a] text-white font-semibold"
                 : "bg-[#fcf9f3] text-[#4a4540] border border-[#e1d8c6] hover:bg-[#ece6db]/50"
@@ -391,7 +391,7 @@ export default function MemoryView({
             <div className="h-20 bg-[#ece6db]/50 animate-pulse rounded"></div>
           </div>
         ) : filteredMemories.length === 0 ? (
-          <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-10 text-center font-serif text-sm text-[#8b857b] italic space-y-1.5 animate-fadeIn">
+          <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-10 text-center font-serif text-sm text-[#4a4540] italic space-y-1.5 animate-fadeIn">
             <p>Your memory bank is empty.</p>
             <p className="text-xs font-sans not-italic text-[#a29c91]">Click &ldquo;Add Memory&rdquo; above to store custom curriculum parameters, reminders, or formatting choices.</p>
           </div>
@@ -431,13 +431,13 @@ export default function MemoryView({
                     {!isEditing ? (
                       <span className="font-serif font-bold text-sm text-[#1a1612]">{mem.key}</span>
                     ) : (
-                      <span className="font-mono text-[9px] text-[#7a756f] uppercase font-bold">Editing Context Item</span>
+                      <span className="font-mono text-[11px] text-[#4a4540] uppercase font-bold">Editing Context Item</span>
                     )}
-                    <span className="font-mono text-[9px] text-[#2d5a4a] uppercase bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-md">
+                    <span className="font-mono text-[11px] text-[#2d5a4a] uppercase bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-md">
                       {categoriesLabels[mem.category] || mem.category}
                     </span>
                     {isSystem && (
-                      <span className={`font-mono text-[9px] uppercase px-2 py-0.5 rounded-md border ${
+                      <span className={`font-mono text-[11px] uppercase px-2 py-0.5 rounded-md border ${
                         isSystemOverridden 
                           ? "bg-[#fdf2e9] text-[#b0601a] border-[#f5d0b3]" 
                           : "bg-[#f4f4f5] text-[#52525b] border-[#e4e4e7]"
@@ -453,7 +453,7 @@ export default function MemoryView({
                       <>
                         <button
                           onClick={() => handleStartEditing(mem)}
-                          className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#3a7560] p-1.5 focus:outline-none flex items-center gap-0.5 cursor-pointer"
+                          className="font-mono text-[11px] text-[#2d5a4a] hover:text-[#3a7560] p-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-0.5 cursor-pointer"
                         >
                           <Edit2 className="w-3 h-3" />
                           EDIT
@@ -461,7 +461,7 @@ export default function MemoryView({
                         {(isSystemOverridden || !isSystem) && (
                           <button
                             onClick={() => handleDeleteMemory(mem.id)}
-                            className="font-mono text-[10px] text-ink-500 hover:text-[#b83232] p-1.5 focus:outline-none flex items-center gap-0.5 cursor-pointer"
+                            className="font-mono text-[11px] text-ink-500 hover:text-[#b83232] p-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-0.5 cursor-pointer"
                             title={isSystemOverridden ? "Reset this memory to the system default template" : "Wipe this memory from your brain"}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -473,14 +473,14 @@ export default function MemoryView({
                       <>
                         <button
                           onClick={() => handleSaveEdit(mem.id)}
-                          className="font-mono text-[10px] text-chalk-600 p-1 focus:outline-none flex items-center gap-0.5 font-bold cursor-pointer"
+                          className="font-mono text-[11px] text-chalk-600 p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-0.5 font-bold cursor-pointer"
                         >
                           <Check className="w-3.5 h-3.5 text-chalk-600" />
                           SAVE
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="font-mono text-[10px] text-ink-500 p-1 focus:outline-none flex items-center gap-0.5 cursor-pointer"
+                          className="font-mono text-[11px] text-ink-500 p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-0.5 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                           CANCEL
@@ -498,21 +498,21 @@ export default function MemoryView({
                   <div className="space-y-3 bg-[#f3ede2]/30 p-3 rounded-lg border border-[#e1d8c6]/50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[9px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Key Context Identifier *</label>
+                        <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Key Context Identifier *</label>
                         <input
                           type="text"
                           required
                           value={editKey}
                           onChange={(e) => setEditKey(e.target.value)}
-                          className="w-full text-xs px-3 py-2 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-ink-950 focus:outline-none focus:border-[#2d5a4a]"
+                          className="w-full text-xs px-3 py-2 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a]"
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Context Category</label>
+                        <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Context Category</label>
                         <select
                           value={editCategory}
                           onChange={(e) => setEditCategory(e.target.value)}
-                          className="w-full text-xs px-3 py-2 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-[#1a1612] focus:outline-none uppercase"
+                          className="w-full text-xs px-3 py-2 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 uppercase"
                         >
                           {categories.filter(c => c !== "all").map(cat => (
                             <option key={cat} value={cat}>
@@ -523,13 +523,13 @@ export default function MemoryView({
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[9px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Constant Value / Description *</label>
+                      <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Constant Value / Description *</label>
                       <textarea
                         required
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
                         rows={3}
-                        className="w-full text-xs p-2.5 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-ink-950 focus:outline-none focus:border-[#2d5a4a] resize-none font-serif italic"
+                        className="w-full text-xs p-2.5 rounded border border-[#e1d8c6] bg-[#fcf9f3] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a] resize-none font-serif italic"
                       />
                     </div>
                   </div>
@@ -541,10 +541,10 @@ export default function MemoryView({
                     <button
                       type="button"
                       onClick={() => handleToggleUseInReplies(mem)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium border transition-colors cursor-pointer ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium border transition-colors cursor-pointer ${
                         mem.useInReplies 
                           ? "bg-[#e8f0ec] text-[#2d5a4a] border-[#d2e3da]" 
-                          : "bg-white text-[#8b857b] border-[#e1d8c6] hover:bg-[#ece6db]/30"
+                          : "bg-white text-[#4a4540] border-[#e1d8c6] hover:bg-[#ece6db]/30"
                       }`}
                     >
                       <MessageSquare className="w-3 h-3" />
@@ -554,10 +554,10 @@ export default function MemoryView({
                     <button
                       type="button"
                       onClick={() => handleToggleDoNotUseAutomatically(mem)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium border transition-colors cursor-pointer ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium border transition-colors cursor-pointer ${
                         mem.doNotUseAutomatically 
                           ? "bg-red-50 text-red-700 border-red-200" 
-                          : "bg-white text-[#8b857b] border-[#e1d8c6] hover:bg-[#ece6db]/30"
+                          : "bg-white text-[#4a4540] border-[#e1d8c6] hover:bg-[#ece6db]/30"
                       }`}
                     >
                       <EyeOff className="w-3 h-3" />
@@ -565,7 +565,7 @@ export default function MemoryView({
                     </button>
                   </div>
 
-                  <div className="text-[9px] font-mono text-[#8b857b] pr-1 pl-0.5">
+                  <div className="text-[11px] font-mono text-[#4a4540] pr-1 pl-0.5">
                     <span>RECORD CREATION: {new Date(mem.createdAt || mem.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
                     <span className="mx-2">|</span>
                     <span>UPDATED: {new Date(mem.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>

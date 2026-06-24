@@ -19,7 +19,7 @@ const renderers = {
   li: ({ children }: any) => <li className="text-sm font-serif text-[#2c2724] leading-relaxed mb-0.5">{children}</li>,
   h1: ({ children }: any) => <h1 className="text-base font-serif font-bold text-[#1a1612] mt-2.5 mb-1">{children}</h1>,
   h2: ({ children }: any) => <h2 className="text-sm font-serif font-bold text-[#1a1612] mt-2 mb-1">{children}</h2>,
-  h3: ({ children }: any) => <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-[#7a756f] mt-2 mb-1">{children}</h3>,
+  h3: ({ children }: any) => <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-[#4a4540] mt-2 mb-1">{children}</h3>,
   a: ({ href, children }: any) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#2d5a4a] hover:underline font-mono text-xs font-bold">{children}</a>,
   em: ({ children }: any) => <em className="italic text-[#4a4540]">{children}</em>,
   code: ({ children }: any) => <code className="bg-[#ece6db]/60 px-1 py-0.5 rounded font-mono text-[11px] font-medium text-[#2d5a4a]">{children}</code>
@@ -506,7 +506,7 @@ export default function ChatView({
           <Sparkles className="w-5 h-5 text-[#2d5a4a]" />
           <div>
             <h3 className="font-serif font-bold text-sm text-[#1a1612]">Assistant</h3>
-            <p className="font-sans text-[10px] text-[#2d5a4a] font-medium">Using your dashboard context</p>
+            <p className="font-sans text-[11px] text-[#2d5a4a] font-medium">Using your dashboard context</p>
           </div>
         </div>
         
@@ -514,7 +514,7 @@ export default function ChatView({
           <button
             type="button"
             onClick={handleClearHistory}
-            className="text-[#8b857b] hover:text-[#b83232] hover:bg-[#f5f1e8] p-2 rounded-lg transition-all focus:outline-none cursor-pointer"
+            className="text-[#4a4540] hover:text-[#b83232] hover:bg-[#f5f1e8] p-2 rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer"
             title="Clear Chat History"
           >
             <Trash2 className="w-4 h-4" />
@@ -530,7 +530,7 @@ export default function ChatView({
           </div>
           <div>
             <h4 className="font-serif font-semibold text-base text-[#1a1612]">How can I help?</h4>
-            <p className="font-serif italic text-xs text-[#8b857b] max-w-sm mt-1 leading-relaxed">
+            <p className="font-serif italic text-xs text-[#4a4540] max-w-sm mt-1 leading-relaxed">
               Find files, draft lesson materials, reference class structures, and organize tasks securely using your dashboard context.
             </p>
           </div>
@@ -541,7 +541,7 @@ export default function ChatView({
                 type="button"
                 key={idx}
                 onClick={() => handleSendMessage(chip)}
-                className="p-3.5 bg-[#fcf9f3] border border-[#e1d8c6] hover:border-[#2d5a4a] rounded-lg text-xs text-[#4a4540] font-serif italic text-left leading-normal hover:bg-[#f3ede2] hover:text-[#2d5a4a] transition-all focus:outline-none cursor-pointer"
+                className="p-3.5 bg-[#fcf9f3] border border-[#e1d8c6] hover:border-[#2d5a4a] rounded-lg text-xs text-[#4a4540] font-serif italic text-left leading-normal hover:bg-[#f3ede2] hover:text-[#2d5a4a] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer"
               >
                 {chip}
               </button>
@@ -586,7 +586,7 @@ export default function ChatView({
                   ) : (
                     <div className="flex items-start gap-2.5">
                       {isError && <AlertTriangle className="w-4.5 h-4.5 text-rose-600 flex-shrink-0 mt-0.5" />}
-                      {isCancel && <XCircle className="w-4.5 h-4.5 text-[#8b857b] flex-shrink-0 mt-0.5" />}
+                      {isCancel && <XCircle className="w-4.5 h-4.5 text-[#4a4540] flex-shrink-0 mt-0.5" />}
                       <div className="markdown-body flex-1 min-w-0">
                         <ReactMarkdown components={renderers}>
                           {cleanContentForDisplay(msg.content)}
@@ -596,8 +596,8 @@ export default function ChatView({
                   )}
 
                   <div
-                    className={`text-[8px] font-mono mt-1.5 uppercase ${
-                      msg.role === "user" ? "text-[#e8f0ec]" : "text-[#8b857b]"
+                    className={`text-[11px] font-mono mt-1.5 uppercase ${
+                      msg.role === "user" ? "text-[#e8f0ec]" : "text-[#4a4540]"
                     }`}
                   >
                     {new Date(msg.timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
@@ -635,7 +635,7 @@ export default function ChatView({
           {/* Render server-side executed tools log */}
           {executedTools.length > 0 && (
             <div className="p-3 bg-[#e8f0ec]/80 border border-[#d1e2da] rounded-xl text-xs space-y-1.5 max-w-[480px] my-1.5 animate-fadeIn">
-              <p className="font-sans text-[10px] font-bold text-[#2d5a4a] uppercase tracking-wider mb-1 flex items-center gap-1">
+              <p className="font-sans text-[11px] font-bold text-[#2d5a4a] uppercase tracking-wider mb-1 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2d5a4a] animate-pulse" />
                 Checked actual data sources:
               </p>
@@ -672,12 +672,12 @@ export default function ChatView({
                     </p>
 
                     <div className="p-2.5 bg-[#f3ede2] rounded-lg border border-[#e1d8c6] text-[11px] font-mono space-y-1 text-[#4a4540]">
-                      <p className="font-bold uppercase text-[9px] tracking-wide text-[#7a756f] border-b border-[#e1d8c6] pb-1">
+                      <p className="font-bold uppercase text-[11px] tracking-wide text-[#4a4540] border-b border-[#e1d8c6] pb-1">
                         Tool: {item.tool}
                       </p>
                       {Object.entries(item.args || {}).map(([k, v]) => (
                         <div key={k} className="flex justify-between py-0.5">
-                          <span className="text-[#8b857b] lowercase">{k}:</span>
+                          <span className="text-[#4a4540] lowercase">{k}:</span>
                           <span className="font-bold text-[#2d5a4a] max-w-[200px] truncate text-right">{String(v)}</span>
                         </div>
                       ))}
@@ -726,12 +726,12 @@ export default function ChatView({
             onChange={(e) => setUserInput(e.target.value)}
             disabled={loading}
             placeholder={loading ? "Thinking..." : "Ask a question or request an action..."}
-            className="flex-1 text-xs bg-[#f3ede2] border border-[#e1d8c6] rounded-md px-3.5 py-3 text-[#1a1612] focus:outline-none focus:border-[#2d5a4a] disabled:opacity-50 transition-colors placeholder:italic placeholder:text-[#8b857b]/60"
+            className="flex-1 text-xs bg-[#f3ede2] border border-[#e1d8c6] rounded-md px-3.5 py-3 text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a] disabled:opacity-50 transition-colors placeholder:italic placeholder:text-[#4a4540]/60"
           />
           <button
             type="submit"
             disabled={!userInput.trim() || loading}
-            className="text-[#2d5a4a] hover:text-[#3a7560] disabled:opacity-45 p-1 rounded-full focus:outline-none transition-colors cursor-pointer"
+            className="text-[#2d5a4a] hover:text-[#3a7560] disabled:opacity-45 p-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-colors cursor-pointer"
           >
             <ArrowUpCircle className="w-8 h-8 stroke-[1.5]" />
           </button>

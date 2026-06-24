@@ -4,6 +4,7 @@ import { Plus, Trash2, Calendar, AlertCircle, Check } from "lucide-react";
 import { useFirestoreTasks } from "../lib/hooks";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { getCategoryColor } from "../lib/uiColors";
 
 export default function TasksView({ 
   userId,
@@ -130,7 +131,7 @@ export default function TasksView({
         </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="bg-chalk-600 hover:bg-[#3a7560] font-mono text-[11px] font-bold text-[#fcf9f3] px-4 py-2.5 rounded-[8px] transition-all focus:outline-none cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
+          className="bg-chalk-600 hover:bg-[#3a7560] font-mono text-[11px] font-bold text-[#fcf9f3] px-4 py-2.5 rounded-[8px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
         >
           <Plus className="w-4 h-4 text-[#fcf9f3]" />
           {showCreateForm ? "Cancel Form" : "Log New Task"}
@@ -144,45 +145,45 @@ export default function TasksView({
           
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Task Title *</label>
+              <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Task Title *</label>
               <input
                 type="text"
                 required
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
                 placeholder="e.g. Prepare Chapter Review Notes on Nationalism..."
-                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-chalk-600 placeholder:italic placeholder:font-light"
+                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-chalk-600 placeholder:italic placeholder:font-light"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Description Brief</label>
+              <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Description Brief</label>
               <textarea
                 value={taskDesc}
                 onChange={(e) => setTaskDesc(e.target.value)}
                 placeholder="Include key details, syllabus sub-topics, or materials to prepare..."
                 rows={2}
-                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-chalk-600 resize-none placeholder:italic placeholder:font-light"
+                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-chalk-600 resize-none placeholder:italic placeholder:font-light"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Deadline Target</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Deadline Target</label>
                 <input
                   type="date"
                   value={taskDeadline}
                   onChange={(e) => setTaskDeadline(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus:border-chalk-600"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-chalk-600"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Priority Scale</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Priority Scale</label>
                 <select
                   value={taskPriority}
                   onChange={(e) => setTaskPriority(e.target.value as any)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
                 >
                   <option value="low">Low Priority</option>
                   <option value="medium">Medium Priority</option>
@@ -192,11 +193,11 @@ export default function TasksView({
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Category Code</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Category Code</label>
                 <select
                   value={taskCategory}
                   onChange={(e) => setTaskCategory(e.target.value as any)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
                 >
                   <option value="school">School Work</option>
                   <option value="personal">Personal Routine</option>
@@ -212,7 +213,7 @@ export default function TasksView({
           <div className="pt-2">
             <button
               type="submit"
-              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-xs px-5 py-2.5 rounded shadow-sm focus:outline-none transition-all uppercase tracking-wider font-semibold"
+              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-xs px-5 py-2.5 rounded shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-all uppercase tracking-wider font-semibold"
             >
               Add Task to Planner
             </button>
@@ -224,7 +225,7 @@ export default function TasksView({
       <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[14px] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
         {/* Status filter pills in paper surface background, green check/uncheck indicators */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="font-mono text-[9px] text-[#7a756f] font-bold uppercase tracking-[0.14em] mr-2">LEDGER STATUS:</span>
+          <span className="font-mono text-[11px] text-[#4a4540] font-bold uppercase tracking-[0.14em] mr-2">LEDGER STATUS:</span>
           {[
             { tag: "", label: "All Lists" },
             { tag: "pending", label: "Pending" },
@@ -236,7 +237,7 @@ export default function TasksView({
               key={item.tag}
               type="button"
               onClick={() => setStatusFilter(item.tag)}
-              className={`font-sans text-xs px-3.5 py-1.5 rounded-full border transition-all flex items-center gap-1.5 focus:outline-none ${
+              className={`font-sans text-xs px-3.5 py-1.5 rounded-full border transition-all flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 ${
                 statusFilter === item.tag
                   ? "bg-[#e8f0ec] border-[#d2e3da] text-[#2d5a4a] font-bold"
                   : "bg-[#fcf9f3] border border-[#e1d8c6] text-[#4a4540] hover:bg-[#ece6db]/50 font-normal"
@@ -251,11 +252,11 @@ export default function TasksView({
         {/* Categories / Priorities selectors */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] text-[#7a756f] uppercase font-bold tracking-wider">PRIORITY:</span>
+            <span className="font-mono text-[11px] text-[#4a4540] uppercase font-bold tracking-wider">PRIORITY:</span>
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="font-sans text-xs bg-[#f3ede2] border border-[#e1d8c6] p-1.5 rounded-md text-[#1a1612] focus:outline-none"
+              className="font-sans text-xs bg-[#f3ede2] border border-[#e1d8c6] p-1.5 rounded-md text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
             >
               <option value="">All Priorities</option>
               <option value="urgent">Urgent</option>
@@ -266,11 +267,11 @@ export default function TasksView({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] text-[#7a756f] uppercase font-bold tracking-wider">CATEGORY:</span>
+            <span className="font-mono text-[11px] text-[#4a4540] uppercase font-bold tracking-wider">CATEGORY:</span>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="font-sans text-xs bg-[#f3ede2] border border-[#e1d8c6] p-1.5 rounded-md text-[#1a1612] focus:outline-none"
+              className="font-sans text-xs bg-[#f3ede2] border border-[#e1d8c6] p-1.5 rounded-md text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
             >
               <option value="">All Categories</option>
               <option value="school">School Work</option>
@@ -294,7 +295,7 @@ export default function TasksView({
             <div className="h-6 w-4/5 shimmer-skeleton rounded" />
           </div>
         ) : tasks.length === 0 ? (
-          <div className="p-12 text-center text-[#8b857b] font-serif italic text-sm space-y-1.5">
+          <div className="p-12 text-center text-[#4a4540] font-serif italic text-sm space-y-1.5">
             <p>Your task list is clear. No active tasks found.</p>
             <p className="text-xs font-sans not-italic text-[#a29c91]">Plan and add a task above, or ask the Assistant to draft action items.</p>
           </div>
@@ -308,7 +309,7 @@ export default function TasksView({
 
           if (filtered.length === 0) {
             return (
-              <div className="p-12 text-center text-[#8b857b] font-serif italic text-sm space-y-1">
+              <div className="p-12 text-center text-[#4a4540] font-serif italic text-sm space-y-1">
                 <p>No tasks match the active filters.</p>
                 <p className="text-xs font-sans not-italic text-[#a29c91]">Adjust or clear your filters to display other items.</p>
               </div>
@@ -346,7 +347,7 @@ export default function TasksView({
                     {/* Task details descriptions */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[8px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                        <span className={`text-[11px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                           task.status === "in_progress" ? "bg-[#dbeafe] text-[#1e40af]" :
                           task.status === "waiting" ? "bg-[#fef3c7] text-[#92400e]" :
                           task.status === "done" ? "bg-[#d1fae5] text-[#065f46]" :
@@ -356,23 +357,23 @@ export default function TasksView({
                           {task.status.replace("_", " ")}
                         </span>
                         <span className={`priority-dot ${task.priority}`} title={`Priority: ${task.priority}`} />
-                        <span className={`font-sans text-xs text-[#1a1612] ${isCompleted ? "line-through text-[#8b857b]/75 italic" : "font-medium"}`}>
+                        <span className={`font-sans text-xs text-[#1a1612] ${isCompleted ? "line-through text-[#4a4540]/75 italic" : "font-medium"}`}>
                           {task.title}
                         </span>
                       </div>
 
                       {task.description && (
-                        <p className={`text-xs text-[#4a4540] mt-1 pl-4 leading-relaxed ${isCompleted ? "text-[#8b857b]/65" : ""}`}>
+                        <p className={`text-xs text-[#4a4540] mt-1 pl-4 leading-relaxed ${isCompleted ? "text-[#4a4540]/65" : ""}`}>
                           {task.description}
                         </p>
                       )}
 
-                      <div className="flex items-center gap-3 mt-1.5 pl-4 text-[10px] font-mono text-[#8b857b] whitespace-nowrap">
-                        <span className="capitalize bg-[#ece6db]/50 px-2 py-0.5 rounded border border-[#ece6db]">
+                      <div className="flex items-center gap-3 mt-1.5 pl-4 text-[11px] font-mono text-[#4a4540] whitespace-nowrap">
+                        <span className={`capitalize px-2 py-0.5 rounded border ${getCategoryColor(task.category)}`}>
                           {task.category}
                         </span>
                         {task.deadline && (
-                          <span className="flex items-center gap-1 text-[#8b857b]">
+                          <span className="flex items-center gap-1 text-[#4a4540]">
                             <Calendar className="w-3.5 h-3.5" />
                             {new Date(task.deadline).toLocaleDateString("en-GB", {
                               day: "numeric",
@@ -389,7 +390,7 @@ export default function TasksView({
                       <select
                         value={task.status}
                         onChange={(e) => handleDropdownStatusChange(task, e.target.value as any)}
-                        className="font-mono text-[10px] bg-[#f3ede2] border border-[#e1d8c6] rounded px-1.5 py-1 text-[#4a4540] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none"
+                        className="font-mono text-[11px] bg-[#f3ede2] border border-[#e1d8c6] rounded px-1.5 py-1 text-[#4a4540] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
                       >
                         <option value="pending">Pending</option>
                         <option value="in_progress">In Progress</option>
@@ -401,7 +402,7 @@ export default function TasksView({
                       <button
                         type="button"
                         onClick={() => handleDeleteTask(task.id)}
-                        className="text-[#8b857b] hover:text-[#b83232] p-1 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none"
+                        className="text-[#4a4540] hover:text-[#b83232] p-1 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
                         title="Remove action item"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

@@ -184,7 +184,7 @@ async function startServer() {
       if (err.message && err.message.includes("403")) {
         return res.status(403).json({ error: "reauth_required" });
       }
-      sendServerError(res, err);
+      sendServerError(res, err, "POST /api/emails/draft");
     }
   });
 

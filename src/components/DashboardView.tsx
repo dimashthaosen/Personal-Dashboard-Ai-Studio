@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Email, DailyPlan } from "../types";
-import { AlertCircle, Calendar, Clock, Sparkles, X } from "lucide-react";
+import { AlertCircle, Clock, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreStudents, useFirestoreTimetable } from "../lib/hooks";
@@ -14,15 +14,10 @@ interface DashboardViewProps {
 
 export default function DashboardView({ onNavigate, googleToken, userId }: DashboardViewProps) {
   const { tasks, loading: loadingTasks } = useFirestoreTasks(userId);
-  const { events, loading: loadingEvents } = useFirestoreEvents(userId);
+  const { events } = useFirestoreEvents(userId);
   const { memoryItems } = useFirestoreMemory(userId);
   const { students } = useFirestoreStudents(userId);
   const { timetable } = useFirestoreTimetable(userId);
-
-  const totalStudentsCount = students.length;
-  const class11ACount = students.filter(s => s.classSection === "11A").length;
-  const sociologyCount = students.filter(s => s.sociologyStudent).length;
-  const needsReviewCount = students.filter(s => s.needsReview).length;
 
   const [emails, setEmails] = useState<Email[]>(() => {
     try {
@@ -44,8 +39,15 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     return localStorage.getItem(`dailyPlan_timestamp_${userId || "default"}`);
   });
 
-  const [loadingEmails, setLoadingEmails] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     fetchEmails();
@@ -58,14 +60,11 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
 
     if (cached) {
       setEmails(cached.data);
-      setLoadingEmails(false);
       
       // If still fresh, skip network call completely!
       if (now - cached.timestamp < REFRESH_COOLDOWN) {
         return;
       }
-    } else {
-      setLoadingEmails(true);
     }
 
     try {
@@ -81,12 +80,10 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
         setEmails(data);
         saveCachedEmails("inbox", data);
       } catch (e) {
-        throw new Error("Invalid format");
+        throw new Error("Invalid format", { cause: e });
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoadingEmails(false);
     }
   };
 
@@ -117,7 +114,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
         localStorage.setItem(`dailyPlan_${userId || "default"}`, JSON.stringify(data.plan));
         localStorage.setItem(`dailyPlan_timestamp_${userId || "default"}`, timestampStr);
       } catch (e) {
-        throw new Error("Invalid response");
+        throw new Error("Invalid response", { cause: e });
       }
     } catch (err) {
       console.error(err);
@@ -187,6 +184,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     id: `tt-${t.day}-${t.period}`,
     title: `${t.subject} (Class ${t.classSection})`,
     start: t.startTime,
+    end: t.endTime,
     isTimetable: true,
     venue: t.room || t.venue || "Classroom",
   }));
@@ -195,24 +193,30 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     id: evt.id,
     title: evt.title,
     start: formatTimeLabel(evt.start),
+    end: formatTimeLabel(evt.end),
     isTimetable: false,
     venue: evt.location || "",
   }));
+
+const parseTime = (timeStr: string) => {
+    if (!timeStr) return 0;
+    const match = timeStr.match(/(\d+):(\d+)\s*(am|pm)?/i);
+    if (!match) return 0;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const ampm = match[3] ? match[3].toLowerCase() : "";
+    if (ampm === "pm" && hours < 12) hours += 12;
+    if (ampm === "am" && hours === 12) hours = 0;
+    if (!ampm && hours < 8) {
+      hours += 12;
+    }
+    return hours * 60 + minutes;
+  };
 
   const combinedTodaySlots = [
     ...mappedTimetableToday,
     ...mappedCalendarToday,
   ].sort((a, b) => {
-    const parseTime = (timeStr: string) => {
-      const match = timeStr.match(/(\d+):(\d+)\s*(am|pm)/i);
-      if (!match) return 0;
-      let hours = parseInt(match[1], 10);
-      const minutes = parseInt(match[2], 10);
-      const ampm = match[3].toLowerCase();
-      if (ampm === "pm" && hours < 12) hours += 12;
-      if (ampm === "am" && hours === 12) hours = 0;
-      return hours * 60 + minutes;
-    };
     return parseTime(a.start) - parseTime(b.start);
   });
 
@@ -223,11 +227,94 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     year: "numeric"
   });
 
+  const formatMinsToTime = (mins: number) => {
+    const hours = Math.floor(mins / 60);
+    const m = mins % 60;
+    const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+    return `${displayHours}:${m.toString().padStart(2, "0")}`;
+  };
+
+  const SCALE = 1.8; // px per minute
+  const nowMins = currentTime.getHours() * 60 + currentTime.getMinutes();
+
+  // Construct complete continuous slots including free periods and breaks
+  const parsedSlots = combinedTodaySlots.map((s) => {
+    const startMins = parseTime(s.start);
+    const endMins = parseTime(s.end);
+    return {
+      ...s,
+      startMins,
+      endMins,
+    };
+  }).filter(s => s.startMins > 0 && s.endMins > s.startMins);
+
+  parsedSlots.sort((a, b) => a.startMins - b.startMins);
+
+  const finalSlots: any[] = [];
+  let lastEnd = 480; // 8:00 AM
+
+  parsedSlots.forEach((slot, i) => {
+    const startMins = slot.startMins;
+    
+    if (startMins > lastEnd) {
+      const gap = startMins - lastEnd;
+      const isLunchTime = (lastEnd >= 720 && lastEnd <= 770) || (startMins >= 750 && startMins <= 810);
+      
+      if (gap >= 30) {
+        if (isLunchTime) {
+          finalSlots.push({
+            id: `lunch-${lastEnd}-${startMins}`,
+            title: "Lunch",
+            startMins: lastEnd,
+            endMins: startMins,
+            isLunch: true,
+          });
+        } else {
+          finalSlots.push({
+            id: `free-${lastEnd}-${startMins}`,
+            title: "Free period",
+            subtitle: `${gap} min · good prep window`,
+            startMins: lastEnd,
+            endMins: startMins,
+            isFree: true,
+          });
+        }
+      } else {
+        finalSlots.push({
+          id: `break-${lastEnd}-${startMins}`,
+          title: isLunchTime ? "Lunch break" : "Short break",
+          gap: gap,
+          startMins: lastEnd,
+          endMins: startMins,
+          isBreak: true,
+        });
+      }
+    }
+    
+    finalSlots.push(slot);
+    lastEnd = Math.max(lastEnd, slot.endMins);
+  });
+
+  // Fill end of day until 3:00 PM (900 mins)
+  if (lastEnd < 900 && parsedSlots.length > 0) {
+    const gap = 900 - lastEnd;
+    if (gap >= 30) {
+      finalSlots.push({
+        id: `free-${lastEnd}-900`,
+        title: "Free period",
+        subtitle: `${gap} min · end of day prep`,
+        startMins: lastEnd,
+        endMins: 900,
+        isFree: true,
+      });
+    }
+  }
+
   return (
     <div className="animate-fade-up max-w-[1100px] mx-auto space-y-7">
       {/* Planner Header under a hairline */}
       <div className="border-b border-paper-3 pb-4">
-        <p className="font-mono text-[10px] tracking-[0.16em] text-[#7a756f] uppercase font-bold">DAILY JOURNAL</p>
+        <p className="font-mono text-[11px] tracking-[0.16em] text-[#4a4540] uppercase font-bold">DAILY JOURNAL</p>
         <h2 className="font-serif text-3xl font-normal text-[#1a1612] mt-1.5">{displayDateStr}</h2>
         <p className="font-serif italic text-xs text-[#4a4540] mt-1 pl-0.5">
           "The silent half of teaching is planning the next day with quiet composure."
@@ -247,14 +334,14 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
               <AlertCircle className="w-4 h-4 text-[#b83232] stroke-[1.8]" />
               Needs Attention
             </h3>
-            <span className="font-mono text-[9px] text-[#b83232] font-bold uppercase tracking-[0.12em] bg-[#f7e4e1] border border-[#e3c4be] px-2 py-0.5 rounded-full leading-none">
+            <span className="font-mono text-[11px] text-[#b83232] font-bold uppercase tracking-[0.12em] bg-[#f7e4e1] border border-[#e3c4be] px-2 py-0.5 rounded-full leading-none">
               {needsAttentionList.length} {needsAttentionList.length === 1 ? "Alert" : "Alerts"}
             </span>
           </div>
 
           <div className="space-y-3.5 pt-1 pl-2">
             {needsAttentionList.length === 0 ? (
-              <p className="font-sans italic text-xs text-[#8b857b]">All caught up. No urgent items require attention.</p>
+              <p className="font-sans italic text-xs text-[#4a4540]">All caught up. No urgent items require attention.</p>
             ) : (
               needsAttentionList.map((item) => (
                 <div 
@@ -269,10 +356,10 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                         {item.title}
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`font-mono text-[8px] px-1 py-0.2 rounded border uppercase font-bold leading-none ${item.badgeBg}`}>
+                        <span className={`font-mono text-[11px] px-1 py-0.2 rounded border uppercase font-bold leading-none ${item.badgeBg}`}>
                           {item.badge}
                         </span>
-                        <span className="font-mono text-[9px] text-[#8b857b] uppercase tracking-wider truncate">
+                        <span className="font-mono text-[11px] text-[#4a4540] uppercase tracking-wider truncate">
                           {item.subtitle}
                         </span>
                       </div>
@@ -282,7 +369,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                         e.stopPropagation();
                         setDismissedAlerts(prev => [...prev, item.id]);
                       }}
-                      className="absolute right-0 top-0.5 opacity-0 group-hover:opacity-100 p-0.5 text-[#8b857b] hover:text-[#b83232] transition-opacity focus:outline-none"
+                      className="absolute right-0 top-0.5 opacity-0 group-hover:opacity-100 p-0.5 text-[#4a4540] hover:text-[#b83232] transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
                       title="Dismiss"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -301,14 +388,14 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
               <Clock className="w-4 h-4 text-[#b8860b] stroke-[1.8]" />
               Awaiting Reply
             </h3>
-            <span className="font-mono text-[9px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-full leading-none">
+            <span className="font-mono text-[11px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2 py-0.5 rounded-full leading-none">
               {unreadReplies.length} Awaiting
             </span>
           </div>
 
           <div className="space-y-3 pt-1">
             {unreadReplies.length === 0 ? (
-              <p className="font-sans italic text-xs text-[#8b857b]">All clear! No current emails awaiting a reply.</p>
+              <p className="font-sans italic text-xs text-[#4a4540]">All clear! No current emails awaiting a reply.</p>
             ) : (
               unreadReplies.slice(0, 5).map((e) => (
                 <div 
@@ -319,7 +406,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                   <p className="font-sans font-bold text-[#1a1612] text-xs leading-tight truncate group-hover:text-[#2d5a4a] transition-colors" title={e.subject}>
                     {e.subject}
                   </p>
-                  <p className="font-mono text-[9px] text-[#8b857b] uppercase tracking-wider truncate">
+                  <p className="font-mono text-[11px] text-[#4a4540] uppercase tracking-wider truncate">
                     FROM: {e.fromName.toUpperCase()}
                   </p>
                   <button 
@@ -327,7 +414,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                       evt.stopPropagation();
                       setDismissedAlerts(prev => [...prev, `email-${e.id}`]);
                     }}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-0.5 text-[#8b857b] hover:text-[#b83232] transition-opacity focus:outline-none"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-0.5 text-[#4a4540] hover:text-[#b83232] transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
                     title="Dismiss"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -339,7 +426,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
             <div className="pt-1.5">
               <button
                 onClick={() => onNavigate("email")}
-                className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#3a7560] font-bold tracking-wider uppercase flex items-center gap-1 focus:outline-none transition-colors"
+                className="font-mono text-[11px] text-[#2d5a4a] hover:text-[#3a7560] font-bold tracking-wider uppercase flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-colors"
               >
                 Open inbox →
               </button>
@@ -350,122 +437,303 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
       </div>
 
       {/* Today's Timetable Grid Row */}
-      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
-        <div className="flex items-center justify-between border-b border-[#ece6db] pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-serif font-black text-xs text-[#2d5a4a] bg-[#e8f0ec] px-2 py-0.5 rounded border border-[#d2e3da]">
-              TODAY'S SCHEDULE
-            </span>
-            <h3 className="font-serif font-bold text-sm text-[#1a1612] truncate">
-              {todayDayName}'s Teaching & Periods Flow
+      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#ece6db] pb-3 gap-3">
+          <div className="space-y-1 text-left">
+            <h3 className="font-serif font-bold text-2xl text-[#1a1612]">
+              Today's schedule
             </h3>
+            <p className="font-sans text-xs text-[#4a4540]/85">
+              {displayDateStr}
+            </p>
           </div>
-          <button
-            onClick={() => onNavigate("timetable")}
-            className="font-mono text-[9px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-2 py-0.5 rounded-[6px] transition-all focus:outline-none"
-          >
-            Manage Timetable →
-          </button>
+          <div className="flex items-center gap-3 self-start sm:self-center">
+            {/* Realtime Live Pill */}
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-[#faebe8] border border-[#f3d3cb] text-[#b83232] rounded-full text-[11px] font-sans font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#b83232] animate-pulse"></span>
+              <span>now · {currentTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+            <button
+              onClick={() => onNavigate("timetable")}
+              className="font-mono text-[11px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-3 py-1 rounded-[6px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
+            >
+              Manage Timetable →
+            </button>
+          </div>
+        </div>
+
+        {/* Legend row */}
+        <div className="flex items-center gap-5 text-[11px] text-[#4a4540] font-sans font-medium py-1">
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 rounded bg-[#e8f0ec] border border-[#cbe3d6] inline-block"></span>
+            <span>Teaching</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 rounded bg-[#e8eef7] border border-[#c1d4eb] inline-block"></span>
+            <span>Meeting</span>
+          </div>
+          <div className="flex items-center gap-2 flex-nowrap">
+            <span className="w-3.5 h-3.5 rounded border border-dashed border-[#e1d8c6] inline-block"></span>
+            <span>Free / gap</span>
+          </div>
         </div>
 
         {timetable.length === 0 ? (
-          <div className="flex items-center justify-between py-2 text-xs text-[#8b857b] italic font-serif">
+          <div className="flex items-center justify-between py-2 text-xs text-[#4a4540] italic font-serif">
             <span>Your weekly school timetable has not been loaded yet.</span>
             <button
               onClick={() => onNavigate("timetable")}
-              className="text-[#2d5a4a] font-mono text-[10px] font-bold uppercase tracking-wider"
+              className="text-[#2d5a4a] font-mono text-[11px] font-bold uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40"
             >
               Parse PDF Data →
             </button>
           </div>
         ) : todayDayName === "Saturday" || todayDayName === "Sunday" ? (
           <div className="py-8 text-center bg-white border border-[#e1d8c6] rounded-xl">
-            <p className="font-serif italic text-xs text-[#8b857b]">
+            <p className="font-serif italic text-xs text-[#4a4540]">
               It's the weekend! No teaching or periods are scheduled for today ({todayDayName}).
             </p>
             <button
               onClick={() => onNavigate("timetable")}
-              className="mt-3 font-mono text-[9px] text-[#2d5a4a] border border-[#d2e3da] px-3 py-1 rounded-[6px] hover:bg-[#2d5a4a] hover:text-white transition-all"
+              className="mt-3 font-mono text-[11px] text-[#2d5a4a] border border-[#d2e3da] px-3 py-1 rounded-[6px] hover:bg-[#2d5a4a] hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40"
             >
               View Full Weekly Timetable
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
-            {[
-              { label: "LESSON 1", startTime: "8:10 am" },
-              { label: "LESSON 2", startTime: "8:50 am" },
-              { label: "LESSON 3", startTime: "9:45 am" },
-              { label: "LESSON 4", startTime: "10:25 am" },
-              { label: "LESSON 5", startTime: "11:15 am" },
-              { label: "LESSON 6", startTime: "11:53 am" },
-              { label: "LESSON 7", startTime: "12:31 pm" },
-              { label: "LESSON 8", startTime: "1:45 pm" },
-              { label: "LESSON 9", startTime: "2:23 pm" },
-            ].map((period) => {
-              const cell = timetable.find(
-                (entry) =>
-                  entry.day.toLowerCase() === todayDayName.toLowerCase() &&
-                  entry.period.toUpperCase().includes(period.label.toUpperCase())
-              );
+          <div className="relative mt-2">
+            {/* Desktop View (Time proportional) */}
+            <div className="hidden md:block relative border-l border-[#e1d8c6] ml-16 pb-4">
+              {/* Hour markers 8am to 3pm */}
+              {[8, 9, 10, 11, 12, 13, 14, 15].map(hour => (
+                <div key={hour} className="absolute w-full border-t border-[#ece6db]/60 z-0" style={{ top: `${(hour * 60 - 480) * SCALE}px` }}>
+                  <span className="absolute -left-16 -top-2.5 w-12 text-right font-mono text-[11px] text-[#4a4540]">
+                    {hour === 12 ? '12 pm' : hour > 12 ? `${hour - 12} pm` : `${hour} am`}
+                  </span>
+                </div>
+              ))}
+              
+              {/* Current time marker line */}
+              {(() => {
+                if (nowMins >= 480 && nowMins <= 900) {
+                  const nowTop = (nowMins - 480) * SCALE;
+                  return (
+                    <div className="absolute w-[calc(100%-1rem)] z-10 pointer-events-none ml-4" style={{ top: `${nowTop}px` }}>
+                      {/* Red dot on the left axis */}
+                      <div className="absolute -left-[21px] -top-[5px] w-2.5 h-2.5 rounded-full bg-[#b83232]"></div>
+                      {/* Continuous red strike line */}
+                      <div className="w-full border-t-2 border-[#b83232]"></div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
-              return (
-                <div
-                  key={period.label}
-                  className={`flex flex-col justify-between border rounded-xl p-3 min-h-[110px] transition-all duration-200 hover:shadow-sm ${
-                    cell
-                      ? cell.needsReview
-                        ? "bg-amber-50/40 border-amber-200 hover:bg-amber-50/70"
-                        : "bg-[#e8f0ec]/50 border-[#cbe3d6] hover:bg-[#e8f0ec]/80"
-                      : "bg-white/40 border-dashed border-[#e1d8c6] hover:bg-white/80"
-                  }`}
-                >
-                  {/* Top segment: timing / period */}
-                  <div className="border-b border-[#ece6db]/50 pb-1.5 mb-1.5 flex justify-between items-center">
-                    <span className="font-mono text-[8px] font-bold text-[#8b857b]">
-                      L{period.label.split(" ")[1]}
-                    </span>
-                    <span className="font-mono text-[8px] text-[#8b857b]">
-                      {period.startTime}
-                    </span>
-                  </div>
-
-                  {/* Middle segment: content or free state */}
-                  <div className="flex-1 flex flex-col justify-center">
-                    {cell ? (
-                      <div className="space-y-0.5">
-                        <p className="font-sans font-bold text-[11px] text-ink-900 leading-tight line-clamp-2" title={cell.subject}>
-                          {cell.subject}
-                        </p>
-                        <p className="font-mono text-[8px] text-ink-500 font-semibold leading-none">
-                          Class {cell.classSection}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-1">
-                        <span className="font-sans italic text-[10px] text-[#b1aaa0] tracking-wide">
-                          Free Period
+              {/* Render slots and free periods */}
+              <div className="relative w-full ml-4" style={{ height: `${(15 * 60 - 480) * SCALE}px` }}>
+                {finalSlots.map((slot) => {
+                  const top = (slot.startMins - 480) * SCALE;
+                  const height = (slot.endMins - slot.startMins) * SCALE;
+                  
+                  if (slot.isLunch || slot.isBreak) {
+                    return (
+                      <div 
+                        key={slot.id} 
+                        className="absolute w-[calc(100%-1rem)] flex items-center justify-center text-[#4a4540]/60 italic font-serif text-xs select-none"
+                        style={{ top: `${top}px`, height: `${height}px` }}
+                      >
+                        <span>
+                          {slot.isLunch 
+                            ? `Lunch · ${formatMinsToTime(slot.startMins)}–${formatMinsToTime(slot.endMins)}` 
+                            : `Short break · ${slot.gap} min`}
                         </span>
                       </div>
-                    )}
-                  </div>
+                    );
+                  }
 
-                  {/* Bottom segment: room & teacher code */}
-                  {cell && (
-                    <div className="border-t border-[#ece6db]/50 pt-1.5 mt-1.5 flex items-center justify-between text-[8px] font-mono text-[#8b857b]">
-                      <span className="truncate max-w-[50px]" title={cell.room || cell.venue}>
-                        {cell.room || cell.venue || "Room"}
-                      </span>
-                      <span className="uppercase text-[7px] bg-black/5 px-1 py-0.5 rounded font-bold leading-none">
-                        {cell.teacherCode}
-                      </span>
+                  const isPast = slot.endMins <= nowMins;
+                  const isCurrent = nowMins >= slot.startMins && nowMins < slot.endMins;
+
+                  const leftBarBg = slot.isFree 
+                    ? "" 
+                    : slot.isTimetable 
+                      ? "bg-[#2d5a4a]" 
+                      : "bg-[#2c4a7c]";
+
+                  return (
+                    <div 
+                      key={slot.id} 
+                      className={`absolute w-[calc(100%-1rem)] rounded-[12px] border transition-all duration-200 hover:shadow-sm overflow-hidden flex ${
+                        slot.isFree 
+                          ? "border-2 border-dashed border-[#e1d8c6] hover:bg-[#fcf9f3]/40 bg-transparent" 
+                          : isPast 
+                            ? "bg-[#f5f1e8] border-[#ece6db] opacity-75" 
+                            : isCurrent 
+                              ? "bg-white border-[#2d5a4a] border-2 shadow-[0_4px_12px_-4px_rgba(45,90,74,0.15)] z-2" 
+                              : slot.isTimetable 
+                                ? "bg-[#e8f0ec]/40 border-[#cbe3d6]" 
+                                : "bg-[#e8eef7]/40 border-[#c1d4eb]"
+                      }`}
+                      style={{ top: `${top}px`, height: `${height}px` }}
+                    >
+                      {/* Left thick accent bar */}
+                      {!slot.isFree && (
+                        <div className={`w-[4px] self-stretch ${leftBarBg} ${isPast ? "opacity-60" : ""}`} />
+                      )}
+
+                      {/* Inner layout (col-1: Time, col-2: divider, col-3: Info, col-4: status/badge) */}
+                      <div className="flex-1 flex items-center justify-between px-4 py-1">
+                        {/* Left Column: Time */}
+                        <div className="w-[85px] flex-shrink-0 text-left">
+                          <span className={`font-mono text-xs ${
+                            isPast ? "text-[#4a4540]/65 line-through" : isCurrent ? "text-[#b83232] font-bold" : "text-[#4a4540]"
+                          }`}>
+                            {formatMinsToTime(slot.startMins)}–{formatMinsToTime(slot.endMins)}
+                          </span>
+                        </div>
+
+                        {/* Divider Line */}
+                        <div className={`h-8 w-[1px] ${slot.isFree ? "border-l border-dashed border-[#e1d8c6]" : "bg-[#e1d8c6]/60"} mx-2 flex-shrink-0`} />
+
+                        {/* Middle Column: Title & Subtitle */}
+                        <div className="flex-grow min-w-0 px-2 text-left">
+                          {slot.isFree ? (
+                            <>
+                              <h4 className="font-serif italic text-[14px] text-[#4a4540] font-semibold">Free period</h4>
+                              <p className="font-sans text-[11px] text-[#4a4540]/70 truncate">{slot.subtitle}</p>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className={`font-sans font-bold text-sm leading-tight truncate ${
+                                isPast ? "text-[#4a4540]/75 line-through italic" : slot.isTimetable ? "text-[#2d5a4a]" : "text-[#2c4a7c]"
+                              }`}>
+                                {slot.title}
+                              </h4>
+                              <p className="font-sans text-[11px] text-[#4a4540]/80 mt-0.5 truncate">
+                                {slot.isTimetable 
+                                  ? `${slot.title.includes("Class") ? "" : "Class "}${slot.classSection || ""} · Room ${slot.venue || "Room"}`
+                                  : slot.venue || "No location"}
+                              </p>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Right Column: Status / Action Badge */}
+                        <div className="flex-shrink-0 pl-2">
+                          {isPast ? (
+                            <span className="font-serif italic text-xs text-[#4a4540]/60 select-none">done</span>
+                          ) : isCurrent ? (
+                            <span className="font-mono text-[10px] bg-[#2d5a4a] text-white px-2.5 py-0.5 rounded-full tracking-wider font-bold uppercase leading-none">
+                              NOW
+                            </span>
+                          ) : slot.isFree ? (
+                            <span 
+                              onClick={() => onNavigate("tasks")}
+                              className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#1f4236] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer select-none"
+                            >
+                              ↳ slot a task
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mobile View (Stacked Agenda) */}
+            <div className="md:hidden space-y-3">
+              {finalSlots.length === 0 ? (
+                <div className="text-center py-6 border border-dashed border-[#e1d8c6] rounded-xl">
+                  <span className="font-sans italic text-[11px] text-[#4a4540]">No events or periods scheduled.</span>
                 </div>
-              );
-            })}
+              ) : (
+                finalSlots.map((slot) => {
+                  if (slot.isLunch || slot.isBreak) {
+                    return (
+                      <div key={slot.id} className="text-center py-2 text-[#4a4540]/60 italic font-serif text-xs">
+                        {slot.isLunch 
+                          ? `Lunch · ${formatMinsToTime(slot.startMins)}–${formatMinsToTime(slot.endMins)}` 
+                          : `Short break · ${slot.gap} min`}
+                      </div>
+                    );
+                  }
+
+                  const isPast = slot.endMins <= nowMins;
+                  const isCurrent = nowMins >= slot.startMins && nowMins < slot.endMins;
+
+                  let bgClass = slot.isTimetable ? "bg-[#e8f0ec] border-[#cbe3d6]" : "bg-[#e8eef7] border-[#c1d4eb]";
+                  let textClass = slot.isTimetable ? "text-[#2d5a4a]" : "text-[#2c4a7c]";
+                  
+                  if (slot.isFree) {
+                    bgClass = "border-2 border-dashed border-[#e1d8c6] bg-transparent";
+                    textClass = "text-[#4a4540]";
+                  } else if (isPast) {
+                    bgClass = "bg-[#f5f1e8] border-[#ece6db] opacity-75";
+                    textClass = "text-[#4a4540]";
+                  } else if (isCurrent) {
+                    bgClass = "bg-white border-[#2d5a4a] border-2 shadow-sm";
+                  }
+
+                  const leftBarBg = slot.isFree 
+                    ? "" 
+                    : slot.isTimetable 
+                      ? "bg-[#2d5a4a]" 
+                      : "bg-[#2c4a7c]";
+
+                  return (
+                    <div 
+                      key={slot.id} 
+                      className={`border rounded-xl overflow-hidden flex transition-all ${bgClass} ${isCurrent ? "ring-2 ring-[#2d5a4a] ring-offset-1" : ""}`}
+                    >
+                      {!slot.isFree && (
+                        <div className={`w-[4px] self-stretch ${leftBarBg} ${isPast ? "opacity-60" : ""}`} />
+                      )}
+                      <div className="flex-1 p-3 flex justify-between items-center gap-2">
+                        <div className="text-left">
+                          {slot.isFree ? (
+                            <>
+                              <h4 className="font-serif italic text-xs text-[#4a4540] font-semibold">Free period</h4>
+                              <p className="font-mono text-[11px] text-[#4a4540]/70 mt-0.5">{formatMinsToTime(slot.startMins)} – {formatMinsToTime(slot.endMins)}</p>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className={`font-sans font-bold text-xs ${textClass} ${isPast ? "line-through italic text-[#4a4540]/60" : ""}`}>
+                                {slot.title}
+                              </h4>
+                              <p className="font-mono text-[11px] text-[#4a4540] mt-0.5">
+                                {formatMinsToTime(slot.startMins)} – {formatMinsToTime(slot.endMins)}
+                                {slot.venue && ` · ${slot.venue}`}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0">
+                          {isPast ? (
+                            <span className="font-serif italic text-[11px] text-[#4a4540]/60">done</span>
+                          ) : isCurrent ? (
+                            <span className="font-mono text-[10px] bg-[#2d5a4a] text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                              NOW
+                            </span>
+                          ) : slot.isFree ? (
+                            <span 
+                              onClick={() => onNavigate("tasks")}
+                              className="font-mono text-[10px] text-[#2d5a4a] font-bold uppercase tracking-wider cursor-pointer"
+                            >
+                              ↳ slot a task
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
+
       </div>
 
       {/* Two lower cards (left ≈1fr, right ≈1.1fr) */}
@@ -475,16 +743,16 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
         <div className="lg:col-span-5 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between border-b border-[#ece6db] pb-3">
             <h3 className="font-serif font-bold text-base text-[#1a1612]">Active Tasks</h3>
-            <span className="font-mono text-[10px] text-[#8b857b] font-bold uppercase tracking-[0.12em]">
+            <span className="font-mono text-[11px] text-[#4a4540] font-bold uppercase tracking-[0.12em]">
               {activeTasks.length} {activeTasks.length === 1 ? "remain" : "remain"}
             </span>
           </div>
 
           <div className="space-y-4 flex-1">
             {loadingTasks ? (
-              <p className="font-sans text-xs text-[#8b857b]">Loading tasks...</p>
+              <p className="font-sans text-xs text-[#4a4540]">Loading tasks...</p>
             ) : activeTasks.length === 0 ? (
-              <p className="font-sans italic text-xs text-[#8b857b]">All clear! No current active tasks.</p>
+              <p className="font-sans italic text-xs text-[#4a4540]">All clear! No current active tasks.</p>
             ) : (
               activeTasks.slice(0, 5).map((t) => {
                 let priorityColor = "#2d5a4a"; // neutral
@@ -503,7 +771,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                       <span className="font-sans text-xs text-[#1a1612] font-semibold block leading-snug truncate" title={t.title}>
                         {t.title}
                       </span>
-                      <span className="font-mono text-[9px] text-[#8b857b] uppercase tracking-wider block mt-0.5">
+                      <span className="font-mono text-[11px] text-[#4a4540] uppercase tracking-wider block mt-0.5">
                         {t.category}
                       </span>
                     </div>
@@ -523,19 +791,19 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                 Today's Brief
               </h3>
               {generatedAt && (
-                <p className="text-[10px] font-mono text-[#8b857b] lowercase">
+                <p className="text-[11px] font-mono text-[#4a4540] lowercase">
                   calculated at: {generatedAt}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2.5 py-0.5 rounded-full leading-none whitespace-nowrap">
+              <span className="font-mono text-[11px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2.5 py-0.5 rounded-full leading-none whitespace-nowrap">
                 {dailyPlan ? "Grounded" : "Not Built"}
               </span>
               <button
                 onClick={generatePlan}
                 disabled={generatingPlan}
-                className="font-mono text-[10px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-2.5 py-1 rounded-[8px] transition-all focus:outline-none disabled:opacity-50 inline-block cursor-pointer select-none"
+                className="font-mono text-[11px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-2.5 py-1 rounded-[8px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 disabled:opacity-50 inline-block cursor-pointer select-none"
                 title="Regenerates Today's Brief based on current live context data"
               >
                 {generatingPlan ? "Structuring..." : dailyPlan ? "Refresh Brief" : "Generate Brief"}
@@ -553,7 +821,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                   <h4 className="font-serif font-bold text-sm text-[#1a1612] animate-pulse">
                     Structuring Pointwise Daily Brief...
                   </h4>
-                  <p className="font-mono text-[9px] text-[#8b857b] uppercase tracking-widest leading-none mt-1">
+                  <p className="font-mono text-[11px] text-[#4a4540] uppercase tracking-widest leading-none mt-1">
                     Processing inbox, active tasks, & scheduled periods
                   </p>
                 </div>
@@ -564,7 +832,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                   {dailyPlan.content}
                 </ReactMarkdown>
                 <div className="pt-3 border-t border-[#ece6db] mt-4">
-                  <p className="font-serif italic text-[11px] text-[#8b857b]">
+                  <p className="font-serif italic text-[11px] text-[#4a4540]">
                      Grounded dynamically in active parent communications and scheduled periods. Listed items are sorted chronologically where scheduled.
                   </p>
                 </div>
@@ -578,14 +846,14 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
                   <h4 className="font-serif font-bold text-sm text-[#1a1612]">
                     No Active Daily Brief Built Yet
                   </h4>
-                  <p className="font-sans text-xs text-[#7a756f] max-w-[320px]">
+                  <p className="font-sans text-xs text-[#4a4540] max-w-[320px]">
                     Process your real-time emails, active task schedules, and calendar periods into a custom POINTWISE agenda.
                   </p>
                 </div>
                 <button
                   onClick={generatePlan}
                   disabled={generatingPlan}
-                  className="font-mono text-[10px] text-[#fcf9f3] bg-[#2d5a4a] hover:bg-[#3a7560] border border-transparent px-4 py-2 rounded-lg transition-all font-bold uppercase tracking-wider disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
+                  className="font-mono text-[11px] text-[#fcf9f3] bg-[#2d5a4a] hover:bg-[#3a7560] border border-transparent px-4 py-2 rounded-lg transition-all font-bold uppercase tracking-wider disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   Create Daily Brief

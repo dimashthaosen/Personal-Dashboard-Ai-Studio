@@ -313,12 +313,12 @@ export default function CalendarView({
               {getHeaderTitle()}
             </h2>
             {isSameDay(selectedDate, new Date()) && viewMode === "day" && (
-              <span className="font-mono text-[9px] font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d2e3da] rounded px-1.5 py-0.5 select-none uppercase">
+              <span className="font-mono text-[11px] font-bold text-[#2d5a4a] bg-[#e8f0ec] border border-[#d2e3da] rounded px-1.5 py-0.5 select-none uppercase">
                 Today
               </span>
             )}
           </div>
-          <p className="font-serif italic text-xs text-[#8b857b] mt-1 pl-0.5">
+          <p className="font-serif italic text-xs text-[#4a4540] mt-1 pl-0.5">
             Synchronized calendar for Vasant Valley school re-openings, academic cycle audits, and session coordination.
           </p>
         </div>
@@ -334,10 +334,10 @@ export default function CalendarView({
                 id={`btn-view-${mode}`}
                 type="button"
                 onClick={() => setViewMode(mode as "month" | "week" | "day")}
-                className={`px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
+                className={`px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
                   viewMode === mode
                     ? "bg-[#2d5a4a] text-white shadow-[0_2px_4px_rgba(26,22,18,0.1)]"
-                    : "text-[#7a756f] hover:text-[#1a1612]"
+                    : "text-[#4a4540] hover:text-[#1a1612]"
                 }`}
               >
                 {mode}
@@ -350,7 +350,7 @@ export default function CalendarView({
               type="button"
               id="btn-calendar-prev"
               onClick={() => adjustDate(-1)}
-              className="p-2 border border-[#e1d8c6] bg-[#fcf9f3] hover:bg-[#ece6db]/50 rounded-[6px] focus:outline-none transition-colors cursor-pointer"
+              className="p-2 border border-[#e1d8c6] bg-[#fcf9f3] hover:bg-[#ece6db]/50 rounded-[6px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4 text-[#4a4540]" />
             </button>
@@ -358,7 +358,7 @@ export default function CalendarView({
               type="button"
               id="btn-calendar-today"
               onClick={handleChooseToday}
-              className="font-mono text-[10px] font-bold uppercase tracking-wider border border-[#e1d8c6] bg-[#fcf9f3] hover:bg-[#ece6db]/50 px-3.5 py-2.2 rounded-[6px] focus:outline-none transition-colors cursor-pointer"
+              className="font-mono text-[11px] font-bold uppercase tracking-wider border border-[#e1d8c6] bg-[#fcf9f3] hover:bg-[#ece6db]/50 px-3.5 py-2.2 rounded-[6px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-colors cursor-pointer"
             >
               Today
             </button>
@@ -366,7 +366,7 @@ export default function CalendarView({
               type="button"
               id="btn-calendar-next"
               onClick={() => adjustDate(1)}
-              className="p-2 border border-[#e1d8c6] bg-[#fcf9f3] hover:bg-[#ece6db]/50 rounded-[6px] focus:outline-none transition-colors cursor-pointer"
+              className="p-2 border border-[#e1d8c6] bg-[#fcf9f3] hover:bg-[#ece6db]/50 rounded-[6px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 transition-colors cursor-pointer"
             >
               <ChevronRight className="w-4 h-4 text-[#4a4540]" />
             </button>
@@ -385,7 +385,7 @@ export default function CalendarView({
             <button 
               type="button" 
               onClick={() => setShowCreateForm(false)}
-              className="font-mono text-[9px] font-bold uppercase text-[#b83232] hover:underline"
+              className="font-mono text-[11px] font-bold uppercase text-[#b83232] hover:underline"
             >
               Cancel
             </button>
@@ -393,61 +393,61 @@ export default function CalendarView({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Event Title *</label>
+              <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Event Title *</label>
               <input
                 type="text"
                 required
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
                 placeholder="e.g. Swadeshi Shark Tank presentation, Class 10 sociology lecture..."
-                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a] placeholder:italic"
+                className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a] placeholder:italic"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Start Time *</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Start Time *</label>
                 <input
                   type="time"
                   required
                   value={eventStart}
                   onChange={(e) => setEventStart(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a]"
+                  className="w-full text-xs px-3.5 py-2 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">End Time *</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">End Time *</label>
                 <input
                   type="time"
                   required
                   value={eventEnd}
                   onChange={(e) => setEventEnd(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a]"
+                  className="w-full text-xs px-3.5 py-2 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Location</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Location</label>
                 <input
                   type="text"
                   value={eventLoc}
                   onChange={(e) => setEventLoc(e.target.value)}
                   placeholder="e.g. Activity Room, Gym Area, Senior Hall"
-                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a] placeholder:italic"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a] placeholder:italic"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-[#7a756f] uppercase tracking-wider mb-1">Brief Description</label>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Brief Description</label>
                 <input
                   type="text"
                   value={eventDesc}
                   onChange={(e) => setEventDesc(e.target.value)}
                   placeholder="e.g. Conduct debate trials, mark performance outline..."
-                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus:border-[#2d5a4a] placeholder:italic"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-ink-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a] placeholder:italic"
                 />
               </div>
             </div>
@@ -463,7 +463,7 @@ export default function CalendarView({
           <div className="pt-2 border-t border-[#ece6db]">
             <button
               type="submit"
-              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[10px] font-bold px-5 py-2.5 rounded-md uppercase tracking-wider shadow-sm focus:outline-none cursor-pointer"
+              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[11px] font-bold px-5 py-2.5 rounded-md uppercase tracking-wider shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 cursor-pointer"
             >
               Add Session to Schedule
             </button>
@@ -493,7 +493,7 @@ export default function CalendarView({
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(true)}
-                  className="text-[#2d5a4a] hover:text-[#3a7560] font-mono text-[9px] font-bold uppercase tracking-wider flex items-center gap-1"
+                  className="text-[#2d5a4a] hover:text-[#3a7560] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" /> Book Session
                 </button>
@@ -505,7 +505,7 @@ export default function CalendarView({
                   <div className="h-14 bg-[#ece6db]/50 rounded-[8px] animate-pulse"></div>
                 </div>
               ) : filteredEventsForDay.length === 0 ? (
-                <div className="text-center py-16 text-[#8b857b] font-serif italic text-sm space-y-1 animate-fadeIn">
+                <div className="text-center py-16 text-[#4a4540] font-serif italic text-sm space-y-1 animate-fadeIn">
                   <p>Your calendar is clear for this date.</p>
                   <p className="text-xs font-sans not-italic text-[#a29c91]">Click "Book Session" above to schedule a lesson, meeting, or event.</p>
                 </div>
@@ -537,7 +537,7 @@ export default function CalendarView({
                         <span className="absolute -left-[32px] top-1.5 w-3 h-3 rounded-full border-2 border-[#f5f1e8] bg-[#2d5a4a]" />
 
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-[9px] font-mono text-[#2d5a4a] font-bold uppercase tracking-wider">
+                          <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#2d5a4a] font-bold uppercase tracking-wider">
                             <Clock className="w-3.5 h-3.5" />
                             <span>{startFormatted} - {endFormatted}</span>
                           </div>
@@ -553,7 +553,7 @@ export default function CalendarView({
                           )}
 
                           {event.location && (
-                            <div className="flex items-center gap-1 text-[9px] font-mono text-[#8b857b] pt-0.5 uppercase tracking-wide">
+                            <div className="flex items-center gap-1 text-[11px] font-mono text-[#4a4540] pt-0.5 uppercase tracking-wide">
                               <MapPin className="w-3.5 h-3.5" />
                               <span>{event.location}</span>
                             </div>
@@ -579,7 +579,7 @@ export default function CalendarView({
                     {/* Days of the week header labels */}
                     <div className="grid grid-cols-7 gap-1 text-center border-b border-[#e1d8c6] pb-2">
                       {weekdayLabels.map((lbl, idx) => (
-                        <div key={lbl} className="font-mono text-[9px] font-bold text-[#7a756f] uppercase tracking-wider">
+                        <div key={lbl} className="font-mono text-[11px] font-bold text-[#4a4540] uppercase tracking-wider">
                           {lbl}
                         </div>
                       ))}
@@ -634,7 +634,7 @@ export default function CalendarView({
                                   <div
                                     key={evt.id}
                                     title={evt.title}
-                                    className={`text-[8px] font-sans truncate px-1 py-0.5 rounded leading-none ${
+                                    className={`text-[11px] font-sans truncate px-1 py-0.5 rounded leading-none ${
                                       isSelected
                                         ? "bg-white/20 text-white"
                                         : "bg-[#e8f0ec] text-[#2d5a4a] border border-[#d2e3da]"
@@ -644,7 +644,7 @@ export default function CalendarView({
                                   </div>
                                 ))}
                                 {dayEvents.length > 2 && (
-                                  <div className={`text-[7px] font-mono text-right font-bold ${isSelected ? "text-white/80" : "text-[#8b857b]"}`}>
+                                  <div className={`text-[11px] font-mono text-right font-bold ${isSelected ? "text-white/80" : "text-[#4a4540]"}`}>
                                     +{dayEvents.length - 2} more
                                   </div>
                                 )}
@@ -668,15 +668,15 @@ export default function CalendarView({
                               dIdx % 7 === 0 ? "left-0" : dIdx % 7 === 6 ? "right-0" : "left-1/2 -translate-x-1/2"
                             } mb-2 z-50 w-56 bg-[#fcf9f3] border border-[#e1d8c6] rounded-xl shadow-xl p-3 text-[#1a1612] pointer-events-none hidden group-hover:block transition-all animate-fade-in`}>
                               <div className="border-b border-[#ece6db] pb-1.5 mb-2">
-                                <span className="font-mono text-[8px] font-bold text-[#8b857b] uppercase tracking-wider block">
+                                <span className="font-mono text-[11px] font-bold text-[#4a4540] uppercase tracking-wider block">
                                   {day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
                                 </span>
-                                <span className="text-[10px] font-serif font-bold text-[#2d5a4a]">
+                                <span className="text-[11px] font-serif font-bold text-[#2d5a4a]">
                                   {dayEvents.length === 0 ? "Free Period" : `${dayEvents.length} ${dayEvents.length === 1 ? "Event" : "Events"}`}
                                 </span>
                               </div>
                               {dayEvents.length === 0 ? (
-                                <p className="text-[10px] font-serif italic text-[#8b857b] leading-tight">
+                                <p className="text-[11px] font-serif italic text-[#4a4540] leading-tight">
                                   No sessions scheduled on this day.
                                 </p>
                               ) : (
@@ -689,15 +689,15 @@ export default function CalendarView({
                                     return (
                                       <div key={evt.id} className="space-y-1 text-left">
                                         <div className="flex items-center gap-1.5">
-                                          <span className="font-mono text-[7px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1 rounded uppercase tracking-wide">
+                                          <span className="font-mono text-[11px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1 rounded uppercase tracking-wide">
                                             {sStr}
                                           </span>
                                         </div>
-                                        <h5 className="font-sans font-semibold text-[10px] text-[#1a1612] leading-tight whitespace-normal">
+                                        <h5 className="font-sans font-semibold text-[11px] text-[#1a1612] leading-tight whitespace-normal">
                                           {evt.title}
                                         </h5>
                                         {evt.location && (
-                                          <p className="font-mono text-[7px] text-[#8b857b] truncate">
+                                          <p className="font-mono text-[11px] text-[#4a4540] truncate">
                                             🏢 {evt.location}
                                           </p>
                                         )}
@@ -740,18 +740,18 @@ export default function CalendarView({
                             <div className="space-y-1">
                               {/* Day Name & Date Text */}
                               <div className="flex items-center justify-between border-b pb-1.5 border-[#e1d8c6]/50">
-                                <span className={`font-mono text-[10px] font-bold uppercase ${isSelected ? "text-white/80" : "text-[#7a756f]"}`}>
+                                <span className={`font-mono text-[11px] font-bold uppercase ${isSelected ? "text-white/80" : "text-[#4a4540]"}`}>
                                   {day.toLocaleDateString("en-GB", { weekday: "short" })}
                                 </span>
                                 {isToday && (
-                                  <span className={`text-[8px] font-mono px-1 py-0.2 rounded-md ${isSelected ? "bg-white text-[#2d5a4a]" : "bg-[#e8f0ec] text-[#2d5a4a]"}`}>
+                                  <span className={`text-[11px] font-mono px-1 py-0.2 rounded-md ${isSelected ? "bg-white text-[#2d5a4a]" : "bg-[#e8f0ec] text-[#2d5a4a]"}`}>
                                     LIVE
                                   </span>
                                 )}
                               </div>
                               <div className="pt-0.5">
                                 <span className="font-serif text-lg font-bold block">{day.getDate()}</span>
-                                <span className={`text-[9px] font-sans ${isSelected ? "text-white/80" : "text-[#8b857b]"}`}>
+                                <span className={`text-[11px] font-sans ${isSelected ? "text-white/80" : "text-[#4a4540]"}`}>
                                   {day.toLocaleDateString("en-GB", { month: "short" })}
                                 </span>
                               </div>
@@ -763,7 +763,7 @@ export default function CalendarView({
                                 <div
                                   key={evt.id}
                                   title={evt.title}
-                                  className={`p-1.5 rounded text-[9px] font-sans leading-snug truncate ${
+                                  className={`p-1.5 rounded text-[11px] font-sans leading-snug truncate ${
                                     isSelected
                                       ? "bg-white/10 hover:bg-white/20 text-white"
                                       : "bg-[#f5efe4] hover:bg-[#ece6db] text-[#1a1612] border border-[#e1d8c6]/50"
@@ -773,12 +773,12 @@ export default function CalendarView({
                                 </div>
                               ))}
                               {dayEvents.length > 3 && (
-                                <div className={`text-[8px] font-mono text-center font-bold pb-1 ${isSelected ? "text-white/90" : "text-[#8b857b]"}`}>
+                                <div className={`text-[11px] font-mono text-center font-bold pb-1 ${isSelected ? "text-white/90" : "text-[#4a4540]"}`}>
                                   + {dayEvents.length - 3} others
                                 </div>
                               )}
                               {dayEvents.length === 0 && (
-                                <p className={`text-[9px] font-serif italic ${isSelected ? "text-white/50" : "text-[#8b857b]"}`}>
+                                <p className={`text-[11px] font-serif italic ${isSelected ? "text-white/50" : "text-[#4a4540]"}`}>
                                   No plans
                                 </p>
                               )}
@@ -793,7 +793,7 @@ export default function CalendarView({
                 {/* Tip/Info box */}
                 <div className="mt-4 p-3 bg-[#f3ede2] border border-[#e1d8c6] rounded-xl flex items-start gap-2">
                   <Info className="w-4 h-4 text-[#2d5a4a] mt-0.5 flex-shrink-0" />
-                  <p className="text-[10px] sm:text-xs font-serif text-[#4a4540] leading-snug">
+                  <p className="text-[11px] sm:text-xs font-serif text-[#4a4540] leading-snug">
                     <span className="font-bold">Proplanner Tip:</span> Click on any date cell to show its scheduled events. Double click any day inside the calendar grid to jump directly into its full chronological <strong>Day Timeline agenda</strong>.
                   </p>
                 </div>
@@ -807,10 +807,10 @@ export default function CalendarView({
                   <button
                     type="button"
                     onClick={() => setActiveSidebarTab("agenda")}
-                    className={`flex-1 py-1.5 text-center font-mono text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                    className={`flex-1 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                       activeSidebarTab === "agenda"
                         ? "bg-[#2d5a4a] text-white shadow-sm"
-                        : "text-[#7a756f] hover:text-[#1a1612]"
+                        : "text-[#4a4540] hover:text-[#1a1612]"
                     }`}
                   >
                     Day Agenda
@@ -818,10 +818,10 @@ export default function CalendarView({
                   <button
                     type="button"
                     onClick={() => setActiveSidebarTab("intelligence")}
-                    className={`flex-1 py-1.5 text-center font-mono text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       activeSidebarTab === "intelligence"
                         ? "bg-[#2d5a4a] text-white shadow-sm"
-                        : "text-[#7a756f] hover:text-[#1a1612]"
+                        : "text-[#4a4540] hover:text-[#1a1612]"
                     }`}
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
@@ -832,7 +832,7 @@ export default function CalendarView({
                 {activeSidebarTab === "agenda" ? (
                   <div className="space-y-4 flex flex-col flex-1">
                     <div className="border-b border-[#ece6db] pb-2">
-                      <span className="font-mono text-[9px] font-bold text-[#8b857b] uppercase tracking-widest block">
+                      <span className="font-mono text-[11px] font-bold text-[#4a4540] uppercase tracking-widest block">
                         Focus Day Agenda
                       </span>
                       <h3 className="font-serif font-bold text-base text-[#1a1612] mt-0.5">
@@ -842,9 +842,9 @@ export default function CalendarView({
 
                     <div className="space-y-3 flex-1">
                       {filteredEventsForDay.length === 0 ? (
-                        <div className="border border-dashed border-[#ece6db] rounded-xl p-6 text-center text-[#8b857b] font-serif italic text-xs space-y-1 animate-fadeIn">
+                        <div className="border border-dashed border-[#ece6db] rounded-xl p-6 text-center text-[#4a4540] font-serif italic text-xs space-y-1 animate-fadeIn">
                           <p>No classes or sessions scheduled.</p>
-                          <p className="text-[10px] font-sans not-italic text-[#a29c91]">Click "Book Event" below to reserve a slot.</p>
+                          <p className="text-[11px] font-sans not-italic text-[#a29c91]">Click "Book Event" below to reserve a slot.</p>
                         </div>
                       ) : (
                         <div className="space-y-2 max-h-[320px] overflow-y-auto pristine-scrollbar pr-1">
@@ -863,14 +863,14 @@ export default function CalendarView({
                                 key={evt.id}
                                 className="p-3 rounded-xl bg-[#f5efe4] border border-[#e1d8c6] hover:border-[#2d5a4a]/40 transition-all space-y-1.5"
                               >
-                                <span className="font-mono text-[8px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1.5 py-0.5 rounded uppercase tracking-wider block w-max">
+                                <span className="font-mono text-[11px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1.5 py-0.5 rounded uppercase tracking-wider block w-max">
                                   {startStr} - {endStr}
                                 </span>
                                 <h4 className="font-sans font-bold text-xs text-[#1a1612] leading-tight">
                                   {evt.title}
                                 </h4>
                                 {evt.location && (
-                                  <span className="font-mono text-[8px] text-[#8b857b] flex items-center gap-0.5">
+                                  <span className="font-mono text-[11px] text-[#4a4540] flex items-center gap-0.5">
                                     <MapPin className="w-2.5 h-2.5" />
                                     {evt.location}
                                   </span>
@@ -894,7 +894,7 @@ export default function CalendarView({
                             setEventDesc("");
                             setShowCreateForm(true);
                           }}
-                          className="w-full bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[10px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="w-full bg-[#2d5a4a] hover:bg-[#3a7560] text-white font-mono text-[11px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           Book Event
@@ -904,7 +904,7 @@ export default function CalendarView({
                           type="button"
                           id="btn-goto-day-mode"
                           onClick={() => setViewMode("day")}
-                          className="w-full border border-[#e1d8c6] bg-white hover:bg-[#faf7f2] text-ink-950 font-mono text-[10px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="w-full border border-[#e1d8c6] bg-white hover:bg-[#faf7f2] text-ink-950 font-mono text-[11px] font-bold py-2.5 rounded-lg transition-colors uppercase tracking-wider text-center flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           Detailed Timeline View
@@ -916,7 +916,7 @@ export default function CalendarView({
                   // CALENDAR INTELLIGENCE INSIGHTS LAYER
                   <div className="space-y-4 flex flex-col flex-1 animate-fadeIn">
                     <div className="border-b border-[#ece6db] pb-2">
-                      <span className="font-mono text-[9px] font-bold text-[#2d5a4a] uppercase tracking-widest block">
+                      <span className="font-mono text-[11px] font-bold text-[#2d5a4a] uppercase tracking-widest block">
                         Schedule intelligence
                       </span>
                       <h3 className="font-serif font-bold text-sm text-[#1a1612] mt-0.5 flex items-center gap-1">
@@ -929,7 +929,7 @@ export default function CalendarView({
                       
                       {/* Section 1: Conflict Detection */}
                       <div className="space-y-1.5">
-                        <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
+                        <span className="text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider block">
                           Conflict analysis
                         </span>
                         {(() => {
@@ -949,14 +949,14 @@ export default function CalendarView({
                               {/* Standard timed conflicts */}
                               {conflicts.map((conflict, idx) => (
                                 <div key={`conflict-${idx}`} className="p-2.5 rounded-lg bg-redpen/10 border border-redpen/20 flex flex-col gap-1 text-redpen text-xs">
-                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[9px] tracking-wide uppercase">
+                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[11px] tracking-wide uppercase">
                                     <AlertTriangle className="w-3.5 h-3.5" />
                                     <span>Time Collision Detected</span>
                                   </div>
                                   <p className="font-serif text-[11px] leading-snug">
                                     "{conflict.eventA.title}" conflicts with "{conflict.eventB.title}".
                                   </p>
-                                  <p className="text-[9px] font-mono opacity-90">
+                                  <p className="text-[11px] font-mono opacity-90">
                                     Exact overlap: {conflict.overlapStr}
                                   </p>
                                 </div>
@@ -965,7 +965,7 @@ export default function CalendarView({
                               {/* Invalid events */}
                               {invalidEvents.map((evt, idx) => (
                                 <div key={`invalid-${idx}`} className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex flex-col gap-1 text-amber-800 text-xs">
-                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[9px] tracking-wide uppercase">
+                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[11px] tracking-wide uppercase">
                                     <AlertTriangle className="w-3.5 h-3.5" />
                                     <span>Invalid Timings Warn</span>
                                   </div>
@@ -978,7 +978,7 @@ export default function CalendarView({
                               {/* All day events */}
                               {allDayEvents.map((evt, idx) => (
                                 <div key={`allday-${idx}`} className="p-2.5 rounded-lg bg-sky-50 border border-[#bae6fd] flex flex-col gap-1 text-sky-800 text-xs">
-                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[9px] tracking-wide uppercase">
+                                  <div className="flex items-center gap-1.5 font-bold font-mono text-[11px] tracking-wide uppercase">
                                     <Info className="w-3.5 h-3.5" />
                                     <span>All-Day Event</span>
                                   </div>
@@ -995,7 +995,7 @@ export default function CalendarView({
                       {/* Section 2: Free Block Detection & Task Suggestion */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
+                          <span className="text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider block">
                             Today's Free Periods
                           </span>
                           <label className="flex items-center gap-1 cursor-pointer select-none">
@@ -1005,7 +1005,7 @@ export default function CalendarView({
                               onChange={(e) => setAllowBreaks(e.target.checked)}
                               className="w-3 h-3 rounded border-[#e1d8c6] text-[#2d5a4a] focus:ring-0 cursor-pointer"
                             />
-                            <span className="text-[8px] font-mono font-bold text-[#7a756f] uppercase tracking-wide">
+                            <span className="text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wide">
                               Include Breaks
                             </span>
                           </label>
@@ -1016,7 +1016,7 @@ export default function CalendarView({
 
                           if (freePeriods.length === 0) {
                             return (
-                              <p className="text-[11px] font-serif italic text-[#8b857b] p-1">
+                              <p className="text-[11px] font-serif italic text-[#4a4540] p-1">
                                 Fully booked today. No free teaching slots.
                               </p>
                             );
@@ -1047,7 +1047,7 @@ export default function CalendarView({
                                   <span
                                     key={fp.name}
                                     title={`${fp.start} - ${fp.end}`}
-                                    className="px-2 py-1 text-[9px] font-mono font-bold text-[#2d5a4a] bg-[#e8f0ec] rounded border border-[#d2e3da]"
+                                    className="px-2 py-1 text-[11px] font-mono font-bold text-[#2d5a4a] bg-[#e8f0ec] rounded border border-[#d2e3da]"
                                   >
                                     {fp.name === "Break" ? "Break" : `${fp.name} Period (${fp.start}-${fp.end})`}
                                   </span>
@@ -1055,7 +1055,7 @@ export default function CalendarView({
                               </div>
 
                               {suggestions.length === 0 ? (
-                                <p className="text-[10px] font-serif italic text-[#8b857b] p-1.5 bg-[#ece6db]/30 rounded-lg text-left">
+                                <p className="text-[11px] font-serif italic text-[#4a4540] p-1.5 bg-[#ece6db]/30 rounded-lg text-left">
                                   No pending high or urgent tasks to suggest for remaining slots today.
                                 </p>
                               ) : (
@@ -1069,13 +1069,13 @@ export default function CalendarView({
                                         <div className="flex items-start gap-1.5">
                                           <Zap className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0 animate-bounce" />
                                           <div className="space-y-0.5">
-                                            <p className="font-mono text-[8px] font-bold text-amber-800 uppercase tracking-wide">
+                                            <p className="font-mono text-[11px] font-bold text-amber-800 uppercase tracking-wide">
                                               Suggested Fit in {slot.name} ({slot.start} - {slot.end})
                                             </p>
                                             <p className="text-xs font-serif font-bold text-[#1a1612] leading-tight text-left">
                                               Allocate free time to complete: "{task.title}"
                                             </p>
-                                            <p className="text-[10px] font-sans text-ink-600 leading-snug pt-1 text-left">
+                                            <p className="text-[11px] font-sans text-ink-600 leading-snug pt-1 text-left">
                                               <span className="font-bold text-ink-700">Why it fits:</span> {reason}
                                             </p>
                                           </div>
@@ -1090,7 +1090,7 @@ export default function CalendarView({
                                             setEventDesc(`Block allocated to finish task: ${task.title}`);
                                             setShowCreateForm(true);
                                           }}
-                                          className="w-full text-center py-1 bg-amber-600 hover:bg-amber-700 text-white font-mono text-[8px] font-bold uppercase tracking-wider rounded-md cursor-pointer transition-colors"
+                                          className="w-full text-center py-1 bg-amber-600 hover:bg-amber-700 text-white font-mono text-[11px] font-bold uppercase tracking-wider rounded-md cursor-pointer transition-colors"
                                         >
                                           Pre-populate slot in booker
                                         </button>
@@ -1106,7 +1106,7 @@ export default function CalendarView({
 
                       {/* Section 3: Weekly Burden / Burnout Index */}
                       <div className="space-y-2 pt-1">
-                        <span className="text-[9px] font-mono font-bold text-[#8b857b] uppercase tracking-wider block">
+                        <span className="text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider block">
                           Weekly Workload Burden
                         </span>
                         {(() => {
@@ -1142,7 +1142,7 @@ export default function CalendarView({
 
                                 return (
                                   <div key={mIdx} className="space-y-1">
-                                    <div className="flex items-center justify-between text-[9px] font-mono select-none">
+                                    <div className="flex items-center justify-between text-[11px] font-mono select-none">
                                       <span className={`font-bold ${m.isTarget ? "text-[#2d5a4a] underline decoration-wavy pl-0.5" : "text-[#4a4540]"}`}>
                                         {m.dayName.toUpperCase()} {m.dateNum}
                                       </span>

@@ -257,7 +257,7 @@ export default function App() {
                   V
                 </div>
                 <div className="space-y-0.5">
-                  <p className="font-mono text-[9px] text-[#fcf9f3]/70 uppercase tracking-[0.16em] font-semibold leading-none pt-0.5">
+                  <p className="font-mono text-[11px] text-[#fcf9f3]/70 uppercase tracking-[0.16em] font-semibold leading-none pt-0.5">
                     VASANT VALLEY SCHOOL
                   </p>
                   <h1 className="font-serif font-semibold text-lg text-[#fcf9f3] tracking-tight">
@@ -269,7 +269,7 @@ export default function App() {
 
             {/* Display message */}
             <div className="my-10 relative z-10 space-y-4">
-              <p className="font-mono text-[10px] text-[#fcf9f3]/65 uppercase tracking-[0.12em] font-medium">
+              <p className="font-mono text-[11px] text-[#fcf9f3]/65 uppercase tracking-[0.12em] font-medium">
                 {loginTodayMono}
               </p>
               <h2 className="font-serif text-[38px] leading-[1.1] font-normal text-[#fcf9f3] tracking-tight">
@@ -310,7 +310,7 @@ export default function App() {
 
             <div className="max-w-xs w-full mx-auto space-y-8 my-auto">
               <div className="space-y-2">
-                <p className="font-mono text-[9px] text-[#7a756f] tracking-[0.16em] uppercase font-bold leading-none">
+                <p className="font-mono text-[11px] text-[#7a756f] tracking-[0.16em] uppercase font-bold leading-none">
                   STAFFROOM ENTRANCE
                 </p>
                 <h3 className="font-serif text-[32px] font-medium text-[#1a1612] tracking-tight leading-tight">
@@ -435,18 +435,18 @@ export default function App() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMobileDrawerOpen(true)}
-            className="p-1.5 hover:bg-paper-2 rounded focus:outline-none"
+            className="p-1.5 hover:bg-paper-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40"
           >
             <Menu className="w-5 h-5 text-ink-900" />
           </button>
-          <span className="font-serif font-black text-sm text-chalk-600 uppercase tracking-tight">VVS Assistant</span>
+          <span className="font-serif font-black text-sm text-chalk-600 uppercase tracking-tight">Faculty Planner</span>
           {!isOnline && (
-            <span className="bg-redpen/10 text-redpen border border-redpen/20 px-1 py-0.5 rounded font-mono text-[7px] font-bold uppercase tracking-wider animate-pulse">
+            <span className="bg-redpen/10 text-redpen border border-redpen/20 px-1 py-0.5 rounded font-mono text-[11px] font-bold uppercase tracking-wider animate-pulse">
               Off
             </span>
           )}
         </div>
-        <div className="font-mono text-[10px] text-ink-500 uppercase tracking-wider">{activeTitle}</div>
+        <div className="font-sans font-bold text-sm text-[#4a4540]">{activeTitle}</div>
       </div>
 
       {/* MOBILE SLIDE-OUT DRAWER */}
@@ -470,7 +470,7 @@ export default function App() {
             <div className="space-y-6">
               {/* Header */}
               <div className="border-b border-paper-2 pb-3">
-                <span className="font-mono text-[9px] text-ink-500 font-bold uppercase block">{todayStr}</span>
+                <span className="font-mono text-[11px] text-ink-500 font-bold uppercase block">{todayStr}</span>
                 <span className="font-serif font-bold text-sm text-chalk-600 block leading-snug">Vasant Valley School</span>
               </div>
 
@@ -478,7 +478,7 @@ export default function App() {
               <div className="space-y-4">
                 {sections.map((sec, idx) => (
                   <div key={idx} className="space-y-1.5">
-                    <span className="font-mono text-[9px] text-ink-500 tracking-wider uppercase block">{sec.label}</span>
+                    <span className="font-sans text-sm text-[#4a4540] font-medium block pb-1 border-b border-[#e1d8c6] mb-2">{sec.label}</span>
                     <ul className="space-y-1">
                       {sec.items.map((item) => (
                         <li key={item.id}>
@@ -512,7 +512,7 @@ export default function App() {
                 </div>
                 <div className="truncate">
                   <span className="block truncate font-bold text-ink-950">{currentUser.name}</span>
-                  <span className="block truncate font-mono text-[10px] text-ink-300 font-normal">{currentUser.email}</span>
+                  <span className="block truncate font-mono text-[11px] text-ink-300 font-normal">{currentUser.email}</span>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -521,13 +521,13 @@ export default function App() {
                     setCurrentTab("settings");
                     setMobileDrawerOpen(false);
                   }}
-                  className="font-mono text-[10px] text-ink-500 hover:text-chalk-600 border border-paper-2 bg-paper-0 p-1.5 rounded flex-1 text-center"
+                  className="font-mono text-[11px] text-ink-500 hover:text-chalk-600 border border-paper-2 bg-paper-0 p-1.5 rounded flex-1 text-center"
                 >
                   Configure
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="font-mono text-[10px] text-redpen hover:border-redpen border border-paper-2 bg-paper-0 p-1.5 rounded flex-1 text-center font-bold"
+                  className="font-mono text-[11px] text-redpen hover:border-redpen border border-paper-2 bg-paper-0 p-1.5 rounded flex-1 text-center font-bold"
                 >
                   Sign Out
                 </button>
@@ -551,17 +551,17 @@ export default function App() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h1 className="font-serif font-bold text-sm text-chalk-600 tracking-tight leading-none">Faculty Planner</h1>
                   {!isOnline && (
-                    <span className="bg-redpen/10 text-redpen border border-redpen/20 px-1 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wider animate-pulse">
+                    <span className="bg-redpen/10 text-redpen border border-redpen/20 px-1 py-0.5 rounded font-mono text-[11px] font-bold uppercase tracking-wider animate-pulse">
                       Disconnected
                     </span>
                   )}
                 </div>
-                <p className="font-sans text-[10px] text-ink-400 mt-0.5 leading-none">Vasant Valley School</p>
+                <p className="font-sans text-[11px] text-ink-400 mt-0.5 leading-none">Vasant Valley School</p>
               </div>
             </div>
             {/* Mono date line under a hairline */}
             <div className="mt-3.5 pt-2 border-t border-[#ece6db]">
-              <span className="font-mono text-[9px] text-[#7a756f] font-bold uppercase tracking-[0.16em]">
+              <span className="font-sans text-sm font-semibold text-[#4a4540]">
                 {todayStr.toUpperCase()}
               </span>
             </div>
@@ -578,7 +578,7 @@ export default function App() {
                 <Search className="w-4 h-4 text-[#8b857b] group-hover:text-ink-600 transition-colors" />
                 <span className="font-serif italic text-[#8b857b] group-hover:text-ink-600 transition-colors">Search anything...</span>
               </div>
-              <span className="text-[8px] font-mono font-semibold bg-[#ece6db]/60 border border-[#e1d8c6] px-1.5 py-0.5 rounded text-[#4a4540] tracking-wider">
+              <span className="text-[11px] font-mono font-semibold bg-[#ece6db]/60 border border-[#e1d8c6] px-1.5 py-0.5 rounded text-[#4a4540] tracking-wider">
                 Ctrl+K
               </span>
             </button>
@@ -588,7 +588,7 @@ export default function App() {
           <div className="space-y-5">
             {sections.map((sec, idx) => (
               <div key={idx} className="space-y-2">
-                <span className="font-mono text-[9px] text-ink-400 font-bold tracking-[0.18em] uppercase block px-1">
+                <span className="font-mono text-[11px] text-ink-400 font-bold tracking-[0.18em] uppercase block px-1">
                   {sec.label.toUpperCase()}
                 </span>
                 <ul className="space-y-1">
@@ -612,7 +612,7 @@ export default function App() {
                           </div>
                           {/* Alert label if email */}
                           {item.id === "email" && emails.filter(e => e.needsReply).length > 0 && (
-                            <span className="bg-[#b83232] text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                            <span className="bg-[#b83232] text-white font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-full leading-none">
                               {emails.filter(e => e.needsReply).length}
                             </span>
                           )}
@@ -636,7 +636,7 @@ export default function App() {
               <span className="font-sans font-bold text-xs text-ink-900 block truncate leading-tight">
                 {currentUser?.name || "Devendra Verma"}
               </span>
-              <span className="font-mono text-[9px] text-ink-400 block truncate leading-none mt-0.5">
+              <span className="font-mono text-[11px] text-ink-400 block truncate leading-none mt-0.5">
                 {currentUser?.username || "dverma"}
               </span>
             </div>
@@ -645,7 +645,7 @@ export default function App() {
           <div className="grid grid-cols-2 gap-1.5 pt-1">
             <button
               onClick={() => setCurrentTab("settings")}
-              className={`font-mono text-[9px] text-[#4a4540] hover:text-[#2d5a4a] bg-transparent hover:bg-[#e8f0ec] border border-[#e1d8c6] py-1.5 rounded-md flex items-center justify-center gap-1 focus:outline-none transition-colors uppercase tracking-wider font-semibold ${
+              className={`font-mono text-[11px] text-[#4a4540] hover:text-[#2d5a4a] bg-transparent hover:bg-[#e8f0ec] border border-[#e1d8c6] py-1.5 rounded-md flex items-center justify-center gap-1 focus:outline-none transition-colors uppercase tracking-wider font-semibold ${
                 currentTab === "settings" && "bg-chalk-100 border-[#d2e3da] text-chalk-700"
               }`}
             >
@@ -654,7 +654,7 @@ export default function App() {
             </button>
             <button
               onClick={handleLogout}
-              className="font-mono text-[9px] text-[#4a4540] hover:text-[#b83232] bg-transparent hover:bg-red-50 border border-[#e1d8c6] py-1.5 rounded-md flex items-center justify-center gap-1 focus:outline-none transition-colors uppercase tracking-wider font-semibold"
+              className="font-mono text-[11px] text-[#4a4540] hover:text-[#b83232] bg-transparent hover:bg-red-50 border border-[#e1d8c6] py-1.5 rounded-md flex items-center justify-center gap-1 focus:outline-none transition-colors uppercase tracking-wider font-semibold"
             >
               <LogOut className="w-3 h-3" />
               Sign Out

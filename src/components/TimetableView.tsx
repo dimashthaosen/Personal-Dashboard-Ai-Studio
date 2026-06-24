@@ -206,7 +206,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-2">
           <div className="w-8 h-8 border-4 border-[#2d5a4a] border-t-transparent rounded-full animate-spin"></div>
-          <span className="font-mono text-xs text-[#7a756f]">Loading schedule...</span>
+          <span className="font-mono text-xs text-[#4a4540]">Loading schedule...</span>
         </div>
       </div>
     );
@@ -220,7 +220,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
           <h1 className="font-serif font-semibold text-2xl text-ink-900 tracking-tight">
             Teacher Time Table
           </h1>
-          <p className="text-xs text-[#7a756f] mt-1 font-serif italic">
+          <p className="text-xs text-[#4a4540] mt-1 font-serif italic">
             Integrate teaching periods, supervision duties, and tutorial blocks.
           </p>
         </div>
@@ -259,9 +259,9 @@ export default function TimetableView({ userId }: TimetableViewProps) {
           
           <div className="space-y-2">
             <h2 className="font-serif font-bold text-lg text-ink-900">Import Your Teacher Time Table</h2>
-            <p className="text-xs text-[#7a756f] max-w-md mx-auto leading-relaxed">
+            <p className="text-xs text-[#4a4540] max-w-md mx-auto leading-relaxed">
               We identified your Vasant Valley School timetable PDF at: <br />
-              <code className="bg-paper-1 border border-[#ece6db] px-2 py-1 rounded text-[10px] select-all block mt-1.5 text-ink-800 font-mono">
+              <code className="bg-paper-1 border border-[#ece6db] px-2 py-1 rounded text-[11px] select-all block mt-1.5 text-ink-800 font-mono">
                 C:\Users\dimas\Documents\School Work\Time Table\Teacher Time Tables\Social Science II_DT.pdf
               </code>
             </p>
@@ -294,7 +294,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
               </div>
               <div>
                 <h3 className="font-serif font-bold text-sm text-ink-900">Confirm Timetable Import</h3>
-                <p className="text-[10px] text-[#7a756f] font-mono mt-0.5">
+                <p className="text-[11px] text-[#4a4540] font-mono mt-0.5">
                   Source: {preview.records[0]?.sourceFile} | {preview.records.length} periods extracted
                 </p>
               </div>
@@ -321,21 +321,21 @@ export default function TimetableView({ userId }: TimetableViewProps) {
           {/* Stats cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white p-3 rounded-xl border border-[#ece6db]">
-              <span className="text-[10px] text-ink-400 font-mono uppercase block">Total Rows</span>
+              <span className="text-[11px] text-ink-400 font-mono uppercase block">Total Rows</span>
               <span className="text-xl font-bold text-ink-900 mt-1 block">{preview.records.length}</span>
             </div>
             <div className="bg-white p-3 rounded-xl border border-[#ece6db]">
-              <span className="text-[10px] text-[#9a6a24] font-mono uppercase block">Needs Review</span>
+              <span className="text-[11px] text-[#9a6a24] font-mono uppercase block">Needs Review</span>
               <span className="text-xl font-bold text-[#9a6a24] mt-1 block">
                 {preview.records.filter((r) => r.needsReview).length}
               </span>
             </div>
             <div className="bg-white p-3 rounded-xl border border-[#ece6db]">
-              <span className="text-[10px] text-[#2d5a4a] font-mono uppercase block">Duplicate Rows</span>
+              <span className="text-[11px] text-[#2d5a4a] font-mono uppercase block">Duplicate Rows</span>
               <span className="text-xl font-bold text-[#2d5a4a] mt-1 block">{preview.duplicateCount}</span>
             </div>
             <div className="bg-white p-3 rounded-xl border border-[#ece6db]">
-              <span className="text-[10px] text-ink-500 font-mono uppercase block">New Insertions</span>
+              <span className="text-[11px] text-ink-500 font-mono uppercase block">New Insertions</span>
               <span className="text-xl font-bold text-ink-800 mt-1 block">{preview.newCount}</span>
             </div>
           </div>
@@ -362,7 +362,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
           {/* Extracted Rows list */}
           <div className="bg-white rounded-xl border border-[#ece6db] overflow-hidden max-h-72 overflow-y-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#fcf9f3] text-ink-500 border-b border-[#ece6db] font-mono text-[10px] sticky top-0">
+              <thead className="bg-[#fcf9f3] text-ink-500 border-b border-[#ece6db] font-mono text-[11px] sticky top-0">
                 <tr>
                   <th className="p-3">Day / Period</th>
                   <th className="p-3">Subject</th>
@@ -377,7 +377,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
                     <td className="p-3 font-semibold">
                       <div className="flex items-center gap-1.5">
                         <span className="text-ink-900">{r.day}</span>
-                        <span className="text-[10px] text-ink-400 font-mono">({r.period})</span>
+                        <span className="text-[11px] text-ink-400 font-mono">({r.period})</span>
                       </div>
                     </td>
                     <td className="p-3">
@@ -389,11 +389,11 @@ export default function TimetableView({ userId }: TimetableViewProps) {
                     <td className="p-3 text-ink-500">{r.startTime} &ndash; {r.endTime}</td>
                     <td className="p-3 text-right">
                       {r.needsReview ? (
-                        <span className="text-[#a66e1e] font-bold bg-amber-100/50 px-1.5 py-0.5 rounded text-[10px]">
+                        <span className="text-[#a66e1e] font-bold bg-amber-100/50 px-1.5 py-0.5 rounded text-[11px]">
                           Review
                         </span>
                       ) : (
-                        <span className="text-emerald-700 font-bold bg-emerald-100/40 px-1.5 py-0.5 rounded text-[10px]">
+                        <span className="text-emerald-700 font-bold bg-emerald-100/40 px-1.5 py-0.5 rounded text-[11px]">
                           High
                         </span>
                       )}
@@ -414,14 +414,14 @@ export default function TimetableView({ userId }: TimetableViewProps) {
             <div className="bg-white border border-[#e2dacb] rounded-2xl shadow-sm overflow-hidden">
               <div className="p-4 bg-[#fcf9f3] border-b border-[#ece6db] flex items-center justify-between">
                 <span className="font-serif font-bold text-xs text-ink-900">VVS WEEKLY GRID VIEW</span>
-                <span className="font-mono text-[9px] text-[#7a756f] uppercase tracking-wider">Class Days (Mon-Fri)</span>
+                <span className="font-mono text-[11px] text-[#4a4540] uppercase tracking-wider">Class Days (Mon-Fri)</span>
               </div>
 
               <div className="overflow-x-auto">
                 <div className="min-w-[700px]">
                   {/* Grid header */}
                   <div className="grid grid-cols-6 border-b border-[#ece6db] bg-[#fcf9f3]/40">
-                    <div className="p-3 border-r border-[#ece6db] font-mono text-[10px] text-[#7a756f] uppercase font-bold text-center flex items-center justify-center">
+                    <div className="p-3 border-r border-[#ece6db] font-mono text-[11px] text-[#4a4540] uppercase font-bold text-center flex items-center justify-center">
                       Period
                     </div>
                     {daysOfWeek.map((day) => (
@@ -440,10 +440,10 @@ export default function TimetableView({ userId }: TimetableViewProps) {
                       <div key={period.label} className="grid grid-cols-6 items-stretch">
                         {/* Left column: timing */}
                         <div className="p-3 border-r border-[#ece6db] bg-[#fcf9f3]/20 flex flex-col justify-center items-center text-center">
-                          <span className="font-mono text-[10px] font-bold text-ink-800 tracking-tight">
+                          <span className="font-mono text-[11px] font-bold text-ink-800 tracking-tight">
                             {period.label.split(" ")[1] || period.label}
                           </span>
-                          <span className="text-[9px] font-mono text-[#8b857b] mt-0.5">
+                          <span className="text-[11px] font-mono text-[#4a4540] mt-0.5">
                             {period.startTime}
                           </span>
                         </div>
@@ -474,23 +474,23 @@ export default function TimetableView({ userId }: TimetableViewProps) {
                                         <AlertTriangle className="w-3 h-3 text-amber-600 flex-shrink-0" />
                                       )}
                                     </div>
-                                    <span className="font-mono text-[10px] text-ink-500 font-semibold block leading-none">
+                                    <span className="font-mono text-[11px] text-ink-500 font-semibold block leading-none">
                                       Class {cell.classSection}
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center justify-between text-[9px] font-mono text-[#8b857b] border-t border-black/[0.03] pt-1 mt-1.5">
+                                  <div className="flex items-center justify-between text-[11px] font-mono text-[#4a4540] border-t border-black/[0.03] pt-1 mt-1.5">
                                     <span className="truncate max-w-[55px]">
                                       {cell.room || cell.venue || "Class"}
                                     </span>
-                                    <span className="text-[8px] uppercase px-1 rounded bg-black/5">
+                                    <span className="text-[11px] uppercase px-1 rounded bg-black/5">
                                       {cell.teacherCode}
                                     </span>
                                   </div>
                                 </>
                               ) : (
                                 <div className="flex items-center justify-center h-full">
-                                  <span className="text-[9px] font-mono text-[#b1aaa0] tracking-wider uppercase opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-[11px] font-mono text-[#b1aaa0] tracking-wider uppercase opacity-0 group-hover:opacity-100 transition-opacity">
                                     Free
                                   </span>
                                 </div>
@@ -516,7 +516,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
               </div>
 
               {freePeriods.length === 0 ? (
-                <p className="text-xs text-[#7a756f] italic">No free periods scheduled for today (or it is a weekend).</p>
+                <p className="text-xs text-[#4a4540] italic">No free periods scheduled for today (or it is a weekend).</p>
               ) : (
                 <div className="space-y-2">
                   {freePeriods.map((fp, i) => (
@@ -526,11 +526,11 @@ export default function TimetableView({ userId }: TimetableViewProps) {
                     >
                       <div className="space-y-0.5">
                         <span className="font-bold text-ink-900">{fp.label}</span>
-                        <p className="text-[10px] text-[#7a756f] font-mono">
+                        <p className="text-[11px] text-[#4a4540] font-mono">
                           {fp.startTime} &ndash; {fp.endTime}
                         </p>
                       </div>
-                      <span className="px-2 py-0.5 font-mono text-[9px] font-bold text-[#2d5a4a] bg-emerald-50 rounded-md border border-emerald-100 uppercase">
+                      <span className="px-2 py-0.5 font-mono text-[11px] font-bold text-[#2d5a4a] bg-emerald-50 rounded-md border border-emerald-100 uppercase">
                         Unassigned
                       </span>
                     </div>
@@ -561,7 +561,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
                       <p className="font-bold">{conf.description}</p>
                       <div className="space-y-1 pl-2 border-l border-red-200">
                         {conf.entries.map((ent: any, j: number) => (
-                          <p key={j} className="text-[10px] text-red-700">
+                          <p key={j} className="text-[11px] text-red-700">
                             Class: {ent.classSection} &bull; {ent.subject} ({ent.startTime})
                           </p>
                         ))}
@@ -578,10 +578,10 @@ export default function TimetableView({ userId }: TimetableViewProps) {
                 <BookOpen className="w-4 h-4 text-[#2d5a4a]" />
                 <span>Schedule Reference</span>
               </div>
-              <p className="leading-relaxed text-[11px] text-[#7a756f]">
+              <p className="leading-relaxed text-[11px] text-[#4a4540]">
                 All timetable listings are automatically mapped in your calendar, daily planner assistant briefings, and command searches.
               </p>
-              <div className="text-[10px] space-y-1 font-mono text-[#8b857b]">
+              <div className="text-[11px] space-y-1 font-mono text-[#4a4540]">
                 <p>&bull; 8I: Social Science II</p>
                 <p>&bull; 11 E3: Class 11 Elective Sociology</p>
                 <p>&bull; 12 E1: Class 12 Elective Sociology</p>

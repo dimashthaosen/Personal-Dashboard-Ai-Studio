@@ -373,10 +373,10 @@ ${pedaMix}
             <div className="space-y-6 pb-6">
               {/* Course Selection */}
               <div>
-                <label className="block font-mono text-[10px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Subject & Grade</label>
+                <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Subject & Grade</label>
                 <div className="relative">
                   <select
-                    className="w-full appearance-none bg-paper-0 border border-paper-3 rounded-lg px-3 py-2.5 text-sm font-sans font-medium text-ink-900 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a]"
+                    className="w-full appearance-none bg-paper-0 border border-paper-3 rounded-lg px-3 py-2.5 text-sm font-sans font-medium text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a]"
                     value={courseId}
                     onChange={(e) => setCourseId(e.target.value)}
                   >
@@ -391,7 +391,7 @@ ${pedaMix}
               {/* Cycle & Week */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-mono text-[10px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Learning Cycle</label>
+                  <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Learning Cycle</label>
                   <select
                     className="w-full appearance-none bg-paper-0 border border-paper-3 rounded-lg px-3 py-2 text-sm font-medium text-ink-900 text-ellipsis overflow-hidden"
                     value={learningCycleIndex}
@@ -403,7 +403,7 @@ ${pedaMix}
                   </select>
                 </div>
                 <div>
-                  <label className="block font-mono text-[10px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Week</label>
+                  <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Week</label>
                   <select
                     className="w-full appearance-none bg-paper-0 border border-paper-3 rounded-lg px-3 py-2 text-sm font-medium text-ink-900"
                     value={week}
@@ -418,7 +418,7 @@ ${pedaMix}
 
               {/* Lesson Format Settings */}
               <div>
-                <label className="block font-mono text-[10px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Pedagogy & Pacing</label>
+                <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Pedagogy & Pacing</label>
                 <div className="p-3 bg-chalk-100 rounded-lg border border-chalk-500/10 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-ink-800">Lessons per week</span>
@@ -433,7 +433,7 @@ ${pedaMix}
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-ink-500 mb-1 block">Pedagogical Rhythm</span>
+                    <span className="text-[11px] uppercase font-mono tracking-wider text-ink-500 mb-1 block">Pedagogical Rhythm</span>
                     <select
                       className="w-full text-xs py-1.5 px-2 bg-paper-0 border border-paper-3 rounded"
                       value={pedagogicalMix}
@@ -446,7 +446,7 @@ ${pedaMix}
                     </select>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-ink-500 mb-1 block">Language Tone</span>
+                    <span className="text-[11px] uppercase font-mono tracking-wider text-ink-500 mb-1 block">Language Tone</span>
                     <select
                       className="w-full text-xs py-1.5 px-2 bg-paper-0 border border-paper-3 rounded"
                       value={languageTone}
@@ -461,10 +461,10 @@ ${pedaMix}
 
               {/* Custom Source material / Pacing Assistant */}
               <div>
-                <label className="block font-mono text-[10px] text-ink-500 uppercase tracking-widest mb-1.5 font-bold">Custom Extracurricular Material (Optional)</label>
-                <p className="text-[10px] text-ink-400 mb-2 leading-tight">Paste a handout or article here, or upload a .docx/.txt to get AI lesson division recommendations.</p>
+                <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-1.5 font-bold">Custom Extracurricular Material (Optional)</label>
+                <p className="text-[11px] text-ink-400 mb-2 leading-tight">Paste a handout or article here, or upload a .docx/.txt to get AI lesson division recommendations.</p>
                 <textarea
-                  className="w-full h-24 bg-paper-0 border border-paper-3 rounded-lg p-2 text-xs font-serif leading-relaxed text-ink-800 focus:outline-none focus:ring-1 focus:ring-[#2d5a4a] resize-none"
+                  className="w-full h-24 bg-paper-0 border border-paper-3 rounded-lg p-2 text-xs font-serif leading-relaxed text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:ring-1 focus:ring-[#2d5a4a] resize-none"
                   placeholder="Paste article, case study, or handout text here..."
                   value={customSourceMaterial}
                   onChange={(e) => setCustomSourceMaterial(e.target.value)}
@@ -472,11 +472,11 @@ ${pedaMix}
                 
                 <div className="flex gap-2 mt-2">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.docx" onChange={handleFileUpload} />
-                  <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider font-bold text-ink-500 hover:text-ink-800 border border-paper-3 bg-paper-0 px-2 py-1.5 rounded">
+                  <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 text-[11px] font-mono uppercase tracking-wider font-bold text-ink-500 hover:text-ink-800 border border-paper-3 bg-paper-0 px-2 py-1.5 rounded">
                     <Upload className="w-3 h-3" /> Upload .docx
                   </button>
                   {customSourceMaterial.trim() && !pacingOptions && !appliedPacing && (
-                    <button onClick={getPacingRecommendation} disabled={gettingPacing} className="flex flex-1 justify-center items-center gap-1 text-[10px] font-mono uppercase tracking-wider font-bold text-[#b75a1c] hover:bg-[#b75a1c]/10 border border-[#b75a1c]/30 bg-orange-50/50 px-2 py-1.5 rounded disabled:opacity-50">
+                    <button onClick={getPacingRecommendation} disabled={gettingPacing} className="flex flex-1 justify-center items-center gap-1 text-[11px] font-mono uppercase tracking-wider font-bold text-[#b75a1c] hover:bg-[#b75a1c]/10 border border-[#b75a1c]/30 bg-orange-50/50 px-2 py-1.5 rounded disabled:opacity-50">
                       {gettingPacing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                       Pacing AI Recommendations
                     </button>
@@ -490,7 +490,7 @@ ${pedaMix}
                     <h4 className="text-xs font-bold font-sans text-orange-900 mb-1 flex items-center gap-1.5 z-10 relative">
                       Pacing Recommendation
                     </h4>
-                    <p className="text-[10px] text-orange-850 italic mb-2 relative z-10 leading-tight">
+                    <p className="text-[11px] text-orange-850 italic mb-2 relative z-10 leading-tight">
                       {pacingOptions.reasoning} Difficulty: {pacingOptions.difficulty}.
                     </p>
                     <div className="space-y-1 mt-2 z-10 relative">
@@ -501,7 +501,7 @@ ${pedaMix}
                           return (
                             <button key={count} onClick={() => applyPacing(count)} className={`w-full text-left text-xs p-1.5 rounded flex items-center justify-between ${isRecommended ? 'bg-orange-200/50 font-bold text-orange-950 border border-orange-300' : 'hover:bg-orange-100 text-orange-900'}`}>
                               <span>Break into {count} lessons</span>
-                              {isRecommended && <span className="text-[8px] uppercase tracking-wider bg-orange-600 text-white px-1.5 py-0.5 rounded">Optimal</span>}
+                              {isRecommended && <span className="text-[11px] uppercase tracking-wider bg-orange-600 text-white px-1.5 py-0.5 rounded">Optimal</span>}
                             </button>
                           )
                         }
@@ -515,12 +515,12 @@ ${pedaMix}
                 {appliedPacing && (
                   <div className="mt-3 bg-[#e8f0ec] border border-[#d1e2da] rounded-lg p-3 animate-fade-up">
                     <div className="flex items-center justify-between mb-2">
-                       <span className="text-[10px] uppercase font-mono font-bold text-[#2d5a4a] flex items-center gap-1.5"><Check className="w-3 h-3" /> Pacing Applied ({appliedPacing.count} lessons)</span>
-                       <button onClick={() => setAppliedPacing(null)} className="text-[9px] text-[#2d5a4a] underline">Clear</button>
+                       <span className="text-[11px] uppercase font-mono font-bold text-[#2d5a4a] flex items-center gap-1.5"><Check className="w-3 h-3" /> Pacing Applied ({appliedPacing.count} lessons)</span>
+                       <button onClick={() => setAppliedPacing(null)} className="text-[11px] text-[#2d5a4a] underline">Clear</button>
                     </div>
                     <div className="space-y-1">
                       {appliedPacing.layoutText.split('\n').map((line, i) => (
-                        <div key={i} className="text-[10px] text-ink-800 font-sans leading-snug pl-2 border-l-2 border-[#2d5a4a]/30">{line}</div>
+                        <div key={i} className="text-[11px] text-ink-800 font-sans leading-snug pl-2 border-l-2 border-[#2d5a4a]/30">{line}</div>
                       ))}
                     </div>
                   </div>
@@ -544,7 +544,7 @@ ${pedaMix}
                       <option value="custom">Custom Instruction...</option>
                     </select>
                     {homeworkNature === "custom" && (
-                      <input type="text" placeholder="e.g. Find one news article about this..." className="w-full px-2 py-1.5 text-xs bg-paper-0 border border-paper-3 rounded focus:outline-none focus:border-[#2d5a4a]" value={customHomeworkPrompt} onChange={(e) => setCustomHomeworkPrompt(e.target.value)} />
+                      <input type="text" placeholder="e.g. Find one news article about this..." className="w-full px-2 py-1.5 text-xs bg-paper-0 border border-paper-3 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 focus:border-[#2d5a4a]" value={customHomeworkPrompt} onChange={(e) => setCustomHomeworkPrompt(e.target.value)} />
                     )}
                   </div>
                 )}
@@ -579,7 +579,7 @@ ${pedaMix}
               <div className="h-full flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full border-2 border-[#2d5a4a]/20 border-t-[#2d5a4a] animate-spin mb-6"></div>
                 <h3 className="font-serif animate-pulse text-lg text-ink-800">Synthesising syllabus documents...</h3>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-ink-400 mt-2">Vasant Valley Faculty Server</p>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-ink-400 mt-2">Vasant Valley Faculty Server</p>
               </div>
             )}
 
@@ -589,7 +589,7 @@ ${pedaMix}
                 <div className="flex items-center justify-between mb-8 pb-4 border-b border-paper-2">
                   <div>
                     <h2 className="font-serif text-2xl font-bold text-ink-900 leading-tight">Weekly Plan: {CURRICULUM[courseId]?.label || "Course"}</h2>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-[#2d5a4a] font-bold mt-1.5">Week {week} | {lessonsPerWeek} Lessons</p>
+                    <p className="font-mono text-[11px] uppercase tracking-widest text-[#2d5a4a] font-bold mt-1.5">Week {week} | {lessonsPerWeek} Lessons</p>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => navigator.clipboard.writeText(generatedMarkdown)} className="p-2 border border-paper-3 bg-paper-1 hover:bg-paper-2 rounded-lg text-ink-600 transition-colors" title="Copy Markdown">
@@ -611,13 +611,13 @@ ${pedaMix}
                           <div className="bg-paper-1 border border-paper-2 rounded-xl p-5 mb-8 shadow-sm">
                             {parsed.learningObjective && (
                               <div className="mb-3">
-                                <h4 className="font-mono text-[10px] uppercase tracking-widest text-ink-400 font-bold mb-1">Learning Objective</h4>
+                                <h4 className="font-mono text-[11px] uppercase tracking-widest text-ink-400 font-bold mb-1">Learning Objective</h4>
                                 <p className="font-serif text-[15px] font-medium text-ink-900 leading-relaxed">{parsed.learningObjective}</p>
                               </div>
                             )}
                             {parsed.skills && (
                               <div>
-                                <h4 className="font-mono text-[10px] uppercase tracking-widest text-ink-400 font-bold mb-1">Target Skills</h4>
+                                <h4 className="font-mono text-[11px] uppercase tracking-widest text-ink-400 font-bold mb-1">Target Skills</h4>
                                 <p className="font-sans text-[13px] text-ink-700">{parsed.skills}</p>
                               </div>
                             )}
@@ -633,26 +633,26 @@ ${pedaMix}
                               <div className="p-5 space-y-4">
                                 {lesson.concept && (
                                   <div>
-                                    <span className="block font-mono text-[9px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Topic / Concept</span>
+                                    <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Topic / Concept</span>
                                     <span className="inline-block bg-chalk-100 text-chalk-800 text-xs px-2 py-0.5 rounded border border-chalk-500/10 font-bold">{lesson.concept}</span>
                                   </div>
                                 )}
                                 {lesson.process && (
                                   <div>
-                                    <span className="block font-mono text-[9px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Pedagogical Process</span>
+                                    <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Pedagogical Process</span>
                                     <p className="font-serif text-[13px] leading-[1.7] text-[#2c2724] text-justify">{lesson.process}</p>
                                   </div>
                                 )}
                                 <div className="grid grid-cols-2 gap-4 pt-3 border-t border-paper-2 mt-4">
                                   {lesson.tools && (
                                     <div>
-                                      <span className="block font-mono text-[9px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Tools & Format</span>
+                                      <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Tools & Format</span>
                                       <p className="text-xs font-sans text-ink-700 font-medium">{lesson.tools}</p>
                                     </div>
                                   )}
                                   {lesson.assessment && (
                                     <div>
-                                      <span className="block font-mono text-[9px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Assessment</span>
+                                      <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400 font-bold mb-1">Assessment</span>
                                       <p className="text-xs font-sans text-ink-700 font-medium">{lesson.assessment}</p>
                                     </div>
                                   )}
@@ -667,7 +667,7 @@ ${pedaMix}
 
                   <div className="my-8 relative">
                      <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-paper-2"></div></div>
-                     <div className="relative flex justify-center"><span className="bg-paper-0 px-4 text-[10px] font-mono text-ink-400 uppercase tracking-widest">Or view raw markdown</span></div>
+                     <div className="relative flex justify-center"><span className="bg-paper-0 px-4 text-[11px] font-mono text-ink-400 uppercase tracking-widest">Or view raw markdown</span></div>
                   </div>
 
                   <div className="markdown-body p-6 bg-paper-1 rounded-xl border border-paper-2 shadow-sm">
@@ -703,7 +703,7 @@ ${pedaMix}
                     <div key={plan.id} className="bg-paper-1 border border-paper-2 rounded-xl p-5 hover:border-[#2d5a4a]/30 transition-colors shadow-sm flex flex-col group">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                           <span className="inline-block px-1.5 py-0.5 bg-chalk-100 text-chalk-700 text-[10px] font-mono uppercase tracking-wider font-bold rounded mb-1">{course?.label || plan.courseId}</span>
+                           <span className="inline-block px-1.5 py-0.5 bg-chalk-100 text-chalk-700 text-[11px] font-mono uppercase tracking-wider font-bold rounded mb-1">{course?.label || plan.courseId}</span>
                            <h3 className="font-serif font-bold text-lg text-ink-950 leading-tight">Week {plan.week} Plan</h3>
                         </div>
                         <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -720,7 +720,7 @@ ${pedaMix}
                         {parsed.learningObjective || "No learning objective extracted."}
                       </div>
                       
-                      <div className="mt-auto pt-3 border-t border-paper-2 flex justify-between items-center text-[10px] font-mono tracking-wider text-ink-500">
+                      <div className="mt-auto pt-3 border-t border-paper-2 flex justify-between items-center text-[11px] font-mono tracking-wider text-ink-500">
                         <span>{plan.lessonsPerWeek} Lessons | {plan.pedagogicalMix}</span>
                         <span>{date}</span>
                       </div>

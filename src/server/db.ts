@@ -26,6 +26,8 @@ export interface Email {
   summary?: string;
   category: string;
   type?: "inbox" | "sent";
+  threadId?: string;
+  messageId?: string;
 }
 
 export interface CalendarEvent {
