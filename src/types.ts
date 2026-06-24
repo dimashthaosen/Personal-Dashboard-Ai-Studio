@@ -23,6 +23,8 @@ export interface Email {
   needsReply: boolean;
   summary?: string;
   category: string;
+  threadId?: string;
+  messageId?: string;
 }
 
 export interface CalendarEvent {

@@ -9,6 +9,7 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 export const provider = new GoogleAuthProvider();
 provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
+provider.addScope("https://www.googleapis.com/auth/gmail.compose");
 provider.addScope("https://www.googleapis.com/auth/userinfo.profile");
 provider.addScope("https://www.googleapis.com/auth/userinfo.email");
 provider.setCustomParameters({

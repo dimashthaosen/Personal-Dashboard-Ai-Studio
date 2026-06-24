@@ -9,6 +9,8 @@ export interface GmailEmail {
   date: string;
   needsReply: boolean;
   category: string;
+  threadId?: string;
+  messageId?: string;
 }
 
 function getGmailMessageBody(payload: any): string {
@@ -81,6 +83,7 @@ export async function fetchGmailEmailById(accessToken: string, emailId: string, 
     const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === "subject");
     const participantHeader = headers.find((h: any) => h.name.toLowerCase() === (type === "sent" ? "to" : "from"));
     const dateHeader = headers.find((h: any) => h.name.toLowerCase() === "date");
+    const messageIdHeader = headers.find((h: any) => h.name.toLowerCase() === "message-id");
 
     const subject = subjectHeader ? subjectHeader.value : "No Subject";
     const fromStr = participantHeader ? participantHeader.value : "Unknown";
@@ -100,6 +103,9 @@ export async function fetchGmailEmailById(accessToken: string, emailId: string, 
     const snippet = detail.snippet || "";
     
     const body = getGmailMessageBody(detail.payload) || snippet;
+    
+    const messageId = messageIdHeader ? messageIdHeader.value : undefined;
+    const threadId = detail.threadId;
 
     return {
       id: emailId,
@@ -112,6 +118,8 @@ export async function fetchGmailEmailById(accessToken: string, emailId: string, 
       date: new Date(dateStr).toISOString(),
       needsReply: false,
       category: subject.toLowerCase().includes("colleague") ? "school" : "parents",
+      threadId,
+      messageId
     } as GmailEmail;
   } catch (err) {
     console.error(`Error fetching email detail for ID ${emailId}:`, err);
@@ -173,6 +181,7 @@ export async function fetchGmailEmails(accessToken: string, type: "inbox" | "sen
           const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === "subject");
           const participantHeader = headers.find((h: any) => h.name.toLowerCase() === (type === "sent" ? "to" : "from"));
           const dateHeader = headers.find((h: any) => h.name.toLowerCase() === "date");
+          const messageIdHeader = headers.find((h: any) => h.name.toLowerCase() === "message-id");
 
           const subject = subjectHeader ? subjectHeader.value : "No Subject";
           const fromStr = participantHeader ? participantHeader.value : "Unknown";
@@ -208,6 +217,9 @@ export async function fetchGmailEmails(accessToken: string, type: "inbox" | "sen
           ) || isUnread; // default to needs reply if unread for this assistant's visibility
 
           const body = getGmailMessageBody(detail.payload) || snippet;
+          
+          const messageId = messageIdHeader ? messageIdHeader.value : undefined;
+          const threadId = detail.threadId;
 
           return {
             id: msg.id,
@@ -220,6 +232,8 @@ export async function fetchGmailEmails(accessToken: string, type: "inbox" | "sen
             date: new Date(dateStr).toISOString(),
             needsReply,
             category: subject.toLowerCase().includes("colleague") ? "school" : "parents",
+            threadId,
+            messageId
           } as GmailEmail;
         } catch (err) {
           console.error(`Error fetching email detail for ID ${msg.id}:`, err);
@@ -240,5 +254,62 @@ export async function fetchGmailEmails(accessToken: string, type: "inbox" | "sen
     console.error("fetchGmailEmails root error:", err);
     throw err;
   }
+}
+
+export function buildRawMessage({ from, to, subject, body, inReplyTo, references }: { from: string, to: string, subject: string, body: string, inReplyTo?: string, references?: string }): string {
+  let message = `From: ${from}\r\n`;
+  message += `To: ${to}\r\n`;
+  message += `Subject: ${subject}\r\n`;
+  if (inReplyTo) {
+    message += `In-Reply-To: ${inReplyTo}\r\n`;
+  }
+  if (references) {
+    message += `References: ${references}\r\n`;
+  }
+  message += `Content-Type: text/plain; charset="UTF-8"\r\n`;
+  message += `MIME-Version: 1.0\r\n\r\n`;
+  message += body;
+  
+  // Base64url-encode
+  const encoded = Buffer.from(message)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return encoded;
+}
+
+export async function createGmailDraft(
+  accessToken: string,
+  { to, subject, body, threadId, inReplyTo, references, from }: { to: string, subject: string, body: string, threadId?: string, inReplyTo?: string, references?: string, from: string }
+): Promise<{ id: string, messageId: string, threadId: string }> {
+  const raw = buildRawMessage({ from, to, subject, body, inReplyTo, references });
+
+  const message: any = { raw };
+  if (threadId) {
+    message.threadId = threadId;
+  }
+
+  const res = await fetchWithTimeout(
+    "https://gmail.googleapis.com/gmail/v1/users/me/drafts",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message })
+    },
+    8000
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("Gmail create draft failed:", errorText);
+    throw new Error(`Gmail API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return { id: data.id, messageId: data.message.id, threadId: data.message.threadId };
 }
 

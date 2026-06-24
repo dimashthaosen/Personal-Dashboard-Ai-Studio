@@ -3,7 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { db } from "./src/server/db";
 import { generateContentText, streamContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION } from "./src/server/ai";
-import { fetchGmailEmails } from "./src/server/gmail";
+import { fetchGmailEmails, createGmailDraft } from "./src/server/gmail";
 import { runAssistantAgent } from "./src/server/agentRunner";
 import { executeTool, serverDb } from "./src/server/agentTools";
 
@@ -135,6 +135,57 @@ async function startServer() {
       }
     }
     res.json(db.getEmails(type));
+  });
+
+  app.post("/api/emails/draft", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
+      return res.status(401).json({ error: "Google sign-in required to compose mail" });
+    }
+    const token = authHeader.substring(7);
+
+    const { to, subject, body, emailId, from } = req.body;
+    if (!subject || !body) {
+      return res.status(400).json({ error: "Missing required fields: subject or body" });
+    }
+
+    let threadId;
+    let inReplyTo;
+    let references;
+    let finalTo = to;
+    const finalFrom = from || "me";
+
+    if (emailId) {
+      const email = db.getEmailById(emailId);
+      if (email) {
+        if (!finalTo) finalTo = email.fromEmail || email.from || "";
+        threadId = email.threadId;
+        inReplyTo = email.messageId;
+        references = email.messageId;
+      }
+    }
+
+    if (!finalTo) {
+      return res.status(400).json({ error: "Missing required fields: to" });
+    }
+
+    try {
+      const result = await createGmailDraft(token, {
+        to: finalTo,
+        subject,
+        body,
+        threadId,
+        inReplyTo,
+        references,
+        from: finalFrom
+      });
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      if (err.message && err.message.includes("403")) {
+        return res.status(403).json({ error: "reauth_required" });
+      }
+      sendServerError(res, err);
+    }
   });
 
   app.post("/api/emails/:id/summarise", async (req, res) => {

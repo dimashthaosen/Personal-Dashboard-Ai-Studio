@@ -168,6 +168,8 @@ ${contextStr}
             explanation = `Saving a new preference memory element: "${fc.args?.key || ""}"`;
           } else if (fc.name === "generateLessonPlan") {
             explanation = `Generating and saving weekly lesson plan for "${fc.args.topic}" (Week ${fc.args.week})`;
+          } else if (fc.name === "createEmailDraft") {
+            explanation = `Saving email draft to "${fc.args.to || 'sender'}" — subject "${fc.args.subject || 'Re: original'}"`;
           }
           writeBatch.push({ tool: fc.name, args: fc.args, explanation });
         } else {

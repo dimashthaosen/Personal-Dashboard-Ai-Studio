@@ -33,7 +33,7 @@ export const serverDb = firebaseConfig.firestoreDatabaseId
 
 // Helper to check if a tool is a write action that requires approval
 export function isWriteTool(name: string): boolean {
-  const writeTools = ["createTask", "updateTask", "createCalendarEvent", "saveMemory", "generateLessonPlan"];
+  const writeTools = ["createTask", "updateTask", "createCalendarEvent", "saveMemory", "generateLessonPlan", "createEmailDraft"];
   return writeTools.includes(name);
 }
 
@@ -179,6 +179,20 @@ export const TOOL_DECLARATIONS = [
         customKeyPoints: { type: "STRING", description: "Specific facts, inputs, dates, or custom terms to incorporate in reply" }
       },
       required: ["emailId"]
+    }
+  },
+  {
+    name: "createEmailDraft",
+    description: "Creates an email draft reply via Gmail. It saves the message as a draft and requires explicit user approval.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        emailId: { type: "STRING", description: "The unique ID (Firestore document ID) of the target email being replied to" },
+        to: { type: "STRING", description: "Optional recipient email address. Defaults to the original sender if omitted." },
+        subject: { type: "STRING", description: "Optional email subject. Defaults to 'Re: <original subject>' if omitted." },
+        body: { type: "STRING", description: "The message body text to send." }
+      },
+      required: ["emailId", "body"]
     }
   },
   {
@@ -518,6 +532,48 @@ ${emailSummaries}
 
         const replyDraft = await generateContentText(prompt);
         return { success: true, emailId: args.emailId, recipient: (email as any).fromStr || email.fromEmail || (email as any).from || "", subject: `Re: ${email.subject}`, draft: replyDraft };
+      }
+
+      case "createEmailDraft": {
+        if (!accessToken) {
+          throw new Error("Cannot save draft: Google sign-in required");
+        }
+
+        let email = null;
+        const fetched = await import("./gmail.js").then(m => m.fetchGmailEmailById(accessToken, args.emailId));
+        if (fetched) {
+          email = fetched;
+        }
+        
+        if (!email) {
+          email = db.getEmailById(args.emailId);
+        }
+
+        if (!email) {
+          throw new Error(`Email with ID ${args.emailId} not found.`);
+        }
+
+        const finalTo = args.to || email.fromEmail || (email as any).fromStr || (email as any).from || "";
+        const finalSubject = args.subject || (email.subject.toLowerCase().startsWith("re:") ? email.subject : `Re: ${email.subject}`);
+        const finalFrom = "me";
+
+        const { createGmailDraft } = await import("./gmail.js");
+        const result = await createGmailDraft(accessToken, {
+          to: finalTo,
+          subject: finalSubject,
+          body: args.body,
+          threadId: email.threadId,
+          inReplyTo: email.messageId,
+          references: email.messageId,
+          from: finalFrom
+        });
+
+        return { 
+          success: true, 
+          draftId: result.id, 
+          threadId: result.threadId, 
+          message: `Draft saved for ${finalTo}.` 
+        };
       }
 
       case "generateLessonPlan": {

@@ -108,6 +108,8 @@ export default function EmailView({
   const [draftingReply, setDraftingReply] = useState(false);
   const [replyDraft, setReplyDraft] = useState("");
   const [copiedDraft, setCopiedDraft] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSuccess, setDraftSuccess] = useState(false);
 
   useEffect(() => {
     setSearchQuery("");
@@ -254,6 +256,45 @@ export default function EmailView({
     setTimeout(() => setCopiedDraft(false), 2000);
   };
 
+  const handleSaveDraft = async () => {
+    if (!selectedEmail || !replyDraft.trim()) return;
+    setSavingDraft(true);
+    setDraftSuccess(false);
+    
+    try {
+      const res = await fetch("/api/emails/draft", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(googleToken ? { "Authorization": `Bearer ${googleToken}` } : {})
+        },
+        body: JSON.stringify({
+          to: selectedEmail.fromEmail || selectedEmail.fromStr,
+          subject: selectedEmail.subject.toLowerCase().startsWith("re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject}`,
+          body: replyDraft,
+          emailId: selectedEmail.id
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        if (errorData.error === "reauth_required" && onSwitchAccount) {
+          alert("Please sign in again to grant compose permission.");
+          onSwitchAccount();
+          return;
+        }
+        throw new Error(errorData.error || "Failed to save draft");
+      }
+
+      setDraftSuccess(true);
+      setTimeout(() => setDraftSuccess(false), 3000);
+    } catch (err: any) {
+      alert(`Error saving draft: ${err.message}`);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
   return (
     <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
       
@@ -388,6 +429,8 @@ export default function EmailView({
                     setSelectedEmail(email);
                     setSummaryOutput("");
                     setReplyDraft("");
+                    setDraftSuccess(false);
+                    setCopiedDraft(false);
                   }}
                   className={`w-full text-left p-4.5 flex gap-3.5 focus:outline-none transition-colors relative ${
                     isSelected ? "bg-[#f5f1e8]" : "hover:bg-[#ece6db]/30"
@@ -480,12 +523,12 @@ export default function EmailView({
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                        ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
-                        ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
-                        li: ({ node, ...props }) => <li className="pl-0.5" {...props} />,
-                        strong: ({ node, ...props }) => <strong className="font-bold text-[#1a1612] not-italic" {...props} />,
-                        em: ({ node, ...props }) => <em className="italic" {...props} />,
+                        p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
+                        ul: ({ node, ...props }: any) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                        ol: ({ node, ...props }: any) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+                        li: ({ node, ...props }: any) => <li className="pl-0.5" {...props} />,
+                        strong: ({ node, ...props }: any) => <strong className="font-bold text-[#1a1612] not-italic" {...props} />,
+                        em: ({ node, ...props }: any) => <em className="italic" {...props} />,
                       }}
                     >
                       {summaryOutput}
@@ -520,12 +563,30 @@ export default function EmailView({
                       )}
                     </button>
                   </div>
-                  <pre className="text-xs text-[#2c2724] leading-relaxed font-sans whitespace-pre-wrap bg-[#f3ede2] p-4 rounded-md border border-[#e1d8c6] max-h-60 overflow-y-auto">
-                    {replyDraft}
-                  </pre>
-                  <p className="font-serif italic text-[10px] text-[#8b857b] pl-1 h-auto leading-normal">
-                    Approved standard guidelines apply. This response uses your personal biography style preference from Assistant Core Memory.
-                  </p>
+                  <textarea
+                    className="w-full text-xs text-[#2c2724] leading-relaxed font-sans bg-[#f3ede2] p-4 rounded-md border border-[#e1d8c6] h-60 resize-y focus:outline-none focus:ring-1 focus:ring-[#8b857b]"
+                    value={replyDraft}
+                    onChange={(e) => setReplyDraft(e.target.value)}
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="font-serif italic text-[10px] text-[#8b857b] pl-1 h-auto leading-normal">
+                      Approved standard guidelines apply. This response uses your personal biography style preference from Assistant Core Memory.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={savingDraft || !replyDraft.trim()}
+                      className="font-mono text-[10px] font-bold uppercase tracking-wider text-white bg-[#2d5a4a] hover:bg-[#1f4236] border border-[#1f4236] px-4 py-2 rounded-md transition-all cursor-pointer focus:outline-none flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {savingDraft ? (
+                         "Saving..."
+                      ) : draftSuccess ? (
+                         <><Check className="w-3.5 h-3.5" /> Saved to Drafts ✓</>
+                      ) : (
+                         <><Send className="w-3.5 h-3.5" /> Save as Draft</>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
 
