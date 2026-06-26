@@ -213,7 +213,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Title & Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#ece6db] pb-4">
         <div>
@@ -286,7 +286,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
 
       {/* Screen B: Import Preview Modal / Container */}
       {preview && (
-        <div className="bg-[#fcf9f3] border border-[#d2e3da] rounded-2xl p-6 space-y-5 shadow-sm">
+        <div className="bg-[#fcf9f3] border border-[#d2e3da] rounded-2xl p-5 space-y-5 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#ece6db] pb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-[#e8f0ec] text-[#2d5a4a] rounded-full flex items-center justify-center">
@@ -408,9 +408,9 @@ export default function TimetableView({ userId }: TimetableViewProps) {
 
       {/* Screen C: Timetable Grid & Utilities */}
       {timetable.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Grid column: 8 columns width on desktop */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-5">
             <div className="bg-white border border-[#e2dacb] rounded-2xl shadow-sm overflow-hidden">
               <div className="p-4 bg-[#fcf9f3] border-b border-[#ece6db] flex items-center justify-between">
                 <span className="font-serif font-bold text-xs text-ink-900">VVS WEEKLY GRID VIEW</span>
@@ -507,7 +507,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
           </div>
 
           {/* Right column: side cards */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-5">
             {/* Free Periods today */}
             <div className="bg-white border border-[#e2dacb] rounded-2xl shadow-sm p-4.5 space-y-4">
               <div className="flex items-center gap-2 border-b border-[#ece6db] pb-2.5">

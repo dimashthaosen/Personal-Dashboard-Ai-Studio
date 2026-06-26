@@ -366,11 +366,41 @@ export async function executeTool(userId: string, name: string, args: any, acces
         const start = String(args.start || new Date().toISOString()).substring(0, 100);
         const end = String(args.end || new Date().toISOString()).substring(0, 100);
         const description = String(args.description || "");
+        const location = args.location || "Vasant Valley School";
+        
+        if (accessToken && accessToken !== "undefined" && accessToken !== "null") {
+          try {
+            const { createCalendarEvent } = await import("./calendar.js");
+            const googleEvent = await createCalendarEvent(accessToken, {
+              title,
+              start,
+              end,
+              location,
+              description
+            });
+            const googleEventId = googleEvent.id;
+            
+            // Mirror to Firestore
+            await serverDb.doc(`users/${userId}/calendarEvents/${googleEventId}`).set({
+              title,
+              description,
+              location,
+              start,
+              end,
+              googleEventId,
+              createdAt: new Date().toISOString(),
+              userId
+            });
+            return { success: true, eventId: googleEventId, message: `Calendar event "${title}" synced and created successfully in Google Calendar and Firestore.` };
+          } catch (err: any) {
+            console.error("Agent failed to create Google Calendar event, falling back to local Firestore-only:", err);
+          }
+        }
         
         const docRef = await serverDb.collection(`users/${userId}/calendarEvents`).add({
           title,
           description,
-          location: args.location || "Vasant Valley School",
+          location,
           start,
           end,
           createdAt: new Date().toISOString(),

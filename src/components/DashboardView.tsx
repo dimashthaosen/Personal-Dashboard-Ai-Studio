@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Email, DailyPlan } from "../types";
-import { AlertCircle, Clock, Sparkles, X } from "lucide-react";
+import { AlertCircle, Clock, Sparkles, X, Mail } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreStudents, useFirestoreTimetable } from "../lib/hooks";
@@ -123,6 +123,94 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     }
   };
 
+  const [sendingEmailBrief, setSendingEmailBrief] = useState(false);
+  const [emailBriefStatus, setEmailBriefStatus] = useState<"idle" | "sending" | "success" | "error" | "reauth">("idle");
+
+  const handleEmailBrief = async () => {
+    if (!dailyPlan) return;
+    setSendingEmailBrief(true);
+    setEmailBriefStatus("sending");
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+      if (googleToken) {
+        headers["Authorization"] = `Bearer ${googleToken}`;
+      }
+      const res = await fetch("/api/emails/send", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          to: "me",
+          subject: `Daily Brief & School Agenda - ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
+          body: `Good morning, Dimash.\n\nHere is your custom daily school agenda and task list:\n\n${dailyPlan.content}\n\nRegards,\nDimash Thaosen`
+        })
+      });
+
+      if (res.status === 403) {
+        setEmailBriefStatus("reauth");
+        return;
+      }
+
+      if (res.ok) {
+        setEmailBriefStatus("success");
+        setTimeout(() => setEmailBriefStatus("idle"), 5000);
+      } else {
+        throw new Error("Failed to send");
+      }
+    } catch (err) {
+      console.error(err);
+      setEmailBriefStatus("error");
+    } finally {
+      setSendingEmailBrief(false);
+    }
+  };
+
+  const [selectedFreeSlot, setSelectedFreeSlot] = useState<any | null>(null);
+  const [slottingTask, setSlottingTask] = useState<boolean>(false);
+
+  const handleSlotTask = async (task: any) => {
+    if (!selectedFreeSlot) return;
+    setSlottingTask(true);
+    try {
+      const today = new Date();
+      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), Math.floor(selectedFreeSlot.startMins / 60), selectedFreeSlot.startMins % 60, 0);
+      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), Math.floor(selectedFreeSlot.endMins / 60), selectedFreeSlot.endMins % 60, 0);
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+      if (googleToken) {
+        headers["Authorization"] = `Bearer ${googleToken}`;
+      }
+
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          title: `[Prep] ${task.title}`,
+          start: start.toISOString(),
+          end: end.toISOString(),
+          category: "work",
+          taskId: task.id,
+          description: `Scheduled focus block slotted dynamically from Task List: ${task.title}`
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create time-block");
+      }
+
+      // Close modal
+      setSelectedFreeSlot(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create time-block on Google Calendar/Firestore.");
+    } finally {
+      setSlottingTask(false);
+    }
+  };
+
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
   // Filter urgent & high tasks
@@ -234,7 +322,7 @@ const parseTime = (timeStr: string) => {
     return `${displayHours}:${m.toString().padStart(2, "0")}`;
   };
 
-  const SCALE = 1.8; // px per minute
+  const SCALE = 1.25; // px per minute
   const nowMins = currentTime.getHours() * 60 + currentTime.getMinutes();
 
   // Construct complete continuous slots including free periods and breaks
@@ -311,7 +399,7 @@ const parseTime = (timeStr: string) => {
   }
 
   return (
-    <div className="animate-fade-up max-w-[1100px] mx-auto space-y-7">
+    <div className="animate-fade-up max-w-[1100px] mx-auto space-y-5">
       {/* Planner Header under a hairline */}
       <div className="border-b border-paper-3 pb-4">
         <p className="font-mono text-[11px] tracking-[0.16em] text-[#4a4540] uppercase font-bold">DAILY JOURNAL</p>
@@ -322,10 +410,10 @@ const parseTime = (timeStr: string) => {
       </div>
 
       {/* Two overview cards (equal columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         
         {/* Needs Attention Overview card */}
-        <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 relative overflow-hidden">
+        <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 relative overflow-hidden">
           {/* Vertical Chalk Green or Red Inset Accent Bar (3px vertical, inset 14px top and bottom) */}
           <div className="absolute left-0 top-3.5 bottom-3.5 w-[3px] bg-[#b83232] rounded-r-[3px]"></div>
           
@@ -382,7 +470,7 @@ const parseTime = (timeStr: string) => {
         </div>
 
         {/* Awaiting Reply Overview Card */}
-        <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
+        <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-serif font-bold text-sm text-[#1a1612] flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#b8860b] stroke-[1.8]" />
@@ -437,7 +525,7 @@ const parseTime = (timeStr: string) => {
       </div>
 
       {/* Today's Timetable Grid Row */}
-      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
+      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#ece6db] pb-3 gap-3">
           <div className="space-y-1 text-left">
             <h3 className="font-serif font-bold text-2xl text-[#1a1612]">
@@ -539,7 +627,7 @@ const parseTime = (timeStr: string) => {
                     return (
                       <div 
                         key={slot.id} 
-                        className="absolute w-[calc(100%-1rem)] flex items-center justify-center text-[#4a4540]/60 italic font-serif text-xs select-none"
+                        className="absolute w-[calc(100%-1rem)] flex items-center justify-center text-[#4a4540]/60 italic font-serif text-[11px] select-none"
                         style={{ top: `${top}px`, height: `${height}px` }}
                       >
                         <span>
@@ -563,9 +651,11 @@ const parseTime = (timeStr: string) => {
                   return (
                     <div 
                       key={slot.id} 
-                      className={`absolute w-[calc(100%-1rem)] rounded-[12px] border transition-all duration-200 hover:shadow-sm overflow-hidden flex ${
+                      onClick={slot.isFree ? () => setSelectedFreeSlot(slot) : undefined}
+                      title={slot.isFree ? "Click to slot a pending task into this free period" : undefined}
+                      className={`absolute w-[calc(100%-1rem)] rounded-[8px] border transition-all duration-200 hover:shadow-sm overflow-hidden flex ${
                         slot.isFree 
-                          ? "border-2 border-dashed border-[#e1d8c6] hover:bg-[#fcf9f3]/40 bg-transparent" 
+                          ? "border-2 border-dashed border-[#e1d8c6] hover:bg-[#fcf9f3]/40 hover:border-[#2d5a4a] bg-transparent cursor-pointer" 
                           : isPast 
                             ? "bg-[#f5f1e8] border-[#ece6db] opacity-75" 
                             : isCurrent 
@@ -578,14 +668,14 @@ const parseTime = (timeStr: string) => {
                     >
                       {/* Left thick accent bar */}
                       {!slot.isFree && (
-                        <div className={`w-[4px] self-stretch ${leftBarBg} ${isPast ? "opacity-60" : ""}`} />
+                        <div className={`w-[3px] self-stretch ${leftBarBg} ${isPast ? "opacity-60" : ""}`} />
                       )}
 
                       {/* Inner layout (col-1: Time, col-2: divider, col-3: Info, col-4: status/badge) */}
-                      <div className="flex-1 flex items-center justify-between px-4 py-1">
+                      <div className="flex-1 flex items-center justify-between px-3 py-0.5">
                         {/* Left Column: Time */}
-                        <div className="w-[85px] flex-shrink-0 text-left">
-                          <span className={`font-mono text-xs ${
+                        <div className="w-[78px] flex-shrink-0 text-left">
+                          <span className={`font-mono text-[11px] ${
                             isPast ? "text-[#4a4540]/65 line-through" : isCurrent ? "text-[#b83232] font-bold" : "text-[#4a4540]"
                           }`}>
                             {formatMinsToTime(slot.startMins)}–{formatMinsToTime(slot.endMins)}
@@ -593,23 +683,23 @@ const parseTime = (timeStr: string) => {
                         </div>
 
                         {/* Divider Line */}
-                        <div className={`h-8 w-[1px] ${slot.isFree ? "border-l border-dashed border-[#e1d8c6]" : "bg-[#e1d8c6]/60"} mx-2 flex-shrink-0`} />
+                        <div className={`h-6 w-[1px] ${slot.isFree ? "border-l border-dashed border-[#e1d8c6]" : "bg-[#e1d8c6]/60"} mx-1.5 flex-shrink-0`} />
 
                         {/* Middle Column: Title & Subtitle */}
-                        <div className="flex-grow min-w-0 px-2 text-left">
+                        <div className="flex-grow min-w-0 px-1 text-left">
                           {slot.isFree ? (
                             <>
-                              <h4 className="font-serif italic text-[14px] text-[#4a4540] font-semibold">Free period</h4>
-                              <p className="font-sans text-[11px] text-[#4a4540]/70 truncate">{slot.subtitle}</p>
+                              <h4 className="font-serif italic text-xs text-[#4a4540] font-semibold leading-tight">Free period</h4>
+                              <p className="font-sans text-[10px] text-[#4a4540]/70 truncate leading-tight">{slot.subtitle}</p>
                             </>
                           ) : (
                             <>
-                              <h4 className={`font-sans font-bold text-sm leading-tight truncate ${
+                              <h4 className={`font-sans font-bold text-xs leading-tight truncate ${
                                 isPast ? "text-[#4a4540]/75 line-through italic" : slot.isTimetable ? "text-[#2d5a4a]" : "text-[#2c4a7c]"
                               }`}>
                                 {slot.title}
                               </h4>
-                              <p className="font-sans text-[11px] text-[#4a4540]/80 mt-0.5 truncate">
+                              <p className="font-sans text-[10px] text-[#4a4540]/80 mt-0.5 truncate leading-tight">
                                 {slot.isTimetable 
                                   ? `${slot.title.includes("Class") ? "" : "Class "}${slot.classSection || ""} · Room ${slot.venue || "Room"}`
                                   : slot.venue || "No location"}
@@ -619,17 +709,17 @@ const parseTime = (timeStr: string) => {
                         </div>
 
                         {/* Right Column: Status / Action Badge */}
-                        <div className="flex-shrink-0 pl-2">
+                        <div className="flex-shrink-0 pl-1.5">
                           {isPast ? (
-                            <span className="font-serif italic text-xs text-[#4a4540]/60 select-none">done</span>
+                            <span className="font-serif italic text-[11px] text-[#4a4540]/60 select-none">done</span>
                           ) : isCurrent ? (
-                            <span className="font-mono text-[10px] bg-[#2d5a4a] text-white px-2.5 py-0.5 rounded-full tracking-wider font-bold uppercase leading-none">
+                            <span className="font-mono text-[9px] bg-[#2d5a4a] text-white px-2 py-0.5 rounded-full tracking-wider font-bold uppercase leading-none">
                               NOW
                             </span>
                           ) : slot.isFree ? (
                             <span 
                               onClick={() => onNavigate("tasks")}
-                              className="font-mono text-[10px] text-[#2d5a4a] hover:text-[#1f4236] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer select-none"
+                              className="font-mono text-[9px] text-[#2d5a4a] hover:text-[#1f4236] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer select-none"
                             >
                               ↳ slot a task
                             </span>
@@ -737,10 +827,10 @@ const parseTime = (timeStr: string) => {
       </div>
 
       {/* Two lower cards (left ≈1fr, right ≈1.1fr) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-1">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-1">
         
         {/* Active Tasks (left ≈1fr -> lg:col-span-5) */}
-        <div className="lg:col-span-5 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between border-b border-[#ece6db] pb-3">
             <h3 className="font-serif font-bold text-base text-[#1a1612]">Active Tasks</h3>
             <span className="font-mono text-[11px] text-[#4a4540] font-bold uppercase tracking-[0.12em]">
@@ -783,7 +873,7 @@ const parseTime = (timeStr: string) => {
         </div>
 
         {/* Today's Brief / Daily Brief (right ≈1.1fr -> lg:col-span-7) */}
-        <div className="lg:col-span-7 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-7 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] flex flex-col justify-between space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#ece6db] pb-3 gap-2">
             <div className="space-y-0.5">
               <h3 className="font-serif font-bold text-base text-[#1a1612] flex items-center gap-2">
@@ -797,6 +887,17 @@ const parseTime = (timeStr: string) => {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {dailyPlan && (
+                <button
+                  onClick={handleEmailBrief}
+                  disabled={sendingEmailBrief || !googleToken}
+                  className="font-mono text-[11px] text-[#2d5a4a] hover:text-white bg-transparent hover:bg-[#2d5a4a] border border-[#d2e3da] px-2.5 py-1 rounded-[8px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 disabled:opacity-50 inline-flex items-center gap-1 cursor-pointer select-none"
+                  title={googleToken ? "Sends this Pointwise Daily Brief directly to your Gmail account" : "Google sign-in required to email brief"}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  {emailBriefStatus === "sending" ? "Sending..." : emailBriefStatus === "success" ? "Sent Brief!" : emailBriefStatus === "reauth" ? "Needs Auth" : emailBriefStatus === "error" ? "Error!" : "Email Me"}
+                </button>
+              )}
               <span className="font-mono text-[11px] text-[#2d5a4a] font-bold uppercase tracking-[0.12em] bg-[#e8f0ec] border border-[#d2e3da] px-2.5 py-0.5 rounded-full leading-none whitespace-nowrap">
                 {dailyPlan ? "Grounded" : "Not Built"}
               </span>
@@ -864,6 +965,77 @@ const parseTime = (timeStr: string) => {
         </div>
 
       </div>
+
+      {/* Time-Blocking Task Selection Modal */}
+      {selectedFreeSlot && (
+        <div className="fixed inset-0 bg-[#1a1612]/30 backdrop-blur-[1.5px] z-50 flex items-center justify-center p-4">
+          <div className="bg-[#fcf9f3] border-2 border-[#e1d8c6] rounded-xl max-w-md w-full p-5 space-y-4 shadow-xl text-left">
+            <div className="flex items-center justify-between border-b border-[#ece6db] pb-2">
+              <div>
+                <h3 className="font-serif font-bold text-sm text-[#1a1612]">
+                  Slot Task into Free Period
+                </h3>
+                <p className="font-mono text-[10px] text-[#4a4540]/80">
+                  {formatMinsToTime(selectedFreeSlot.startMins)} – {formatMinsToTime(selectedFreeSlot.endMins)} ({selectedFreeSlot.endMins - selectedFreeSlot.startMins} mins)
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedFreeSlot(null)}
+                className="text-[#4a4540]/60 hover:text-[#1a1612] p-1 hover:bg-[#faf7f0] rounded-full transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="font-sans text-xs text-[#4a4540]">
+                Select a pending task from your organizer to schedule as a dedicated focus preparation block:
+              </p>
+
+              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                {tasks.filter(t => t.status !== "done").length === 0 ? (
+                  <p className="text-xs font-serif italic text-[#4a4540]/60 py-4 text-center">
+                    No active pending tasks found in organizer.
+                  </p>
+                ) : (
+                  tasks.filter(t => t.status !== "done").map((task) => (
+                    <button
+                      key={task.id}
+                      onClick={() => handleSlotTask(task)}
+                      disabled={slottingTask}
+                      className="w-full text-left p-3 rounded-lg border border-[#ece6db] bg-[#faf7f0]/50 hover:bg-[#e8f0ec]/40 hover:border-[#cbe3d6] transition-all flex items-start justify-between gap-3 group disabled:opacity-50 cursor-pointer"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                            task.priority === "urgent" 
+                              ? "bg-[#fbe8e8] text-[#a82525]" 
+                              : task.priority === "high"
+                                ? "bg-[#fdf0d5] text-[#b07d22]"
+                                : "bg-[#e8f0ec] text-[#2d5a4a]"
+                          }`}>
+                            {task.priority}
+                          </span>
+                          <span className="text-[9px] font-mono text-[#4a4540]/60 uppercase tracking-wider">
+                            {task.category}
+                          </span>
+                        </div>
+                        <h4 className="font-sans font-medium text-xs text-[#1a1612] mt-1.5 group-hover:text-[#2d5a4a] transition-all truncate">
+                          {task.title}
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-mono text-[#2d5a4a] opacity-0 group-hover:opacity-100 transition-all font-bold self-center whitespace-nowrap">
+                        Assign →
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

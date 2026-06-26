@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Email, TeacherUser } from "../types";
-import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw } from "lucide-react";
+import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw, ClipboardList } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -110,6 +110,40 @@ export default function EmailView({
   const [copiedDraft, setCopiedDraft] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSuccess, setDraftSuccess] = useState(false);
+
+  // Email to Task states
+  const [taskCreating, setTaskCreating] = useState<string | null>(null);
+  const [taskCreatedMap, setTaskCreatedMap] = useState<Record<string, boolean>>({});
+
+  const handleCreateTaskFromEmail = async (email: Email) => {
+    if (!userId) return;
+    setTaskCreating(email.id);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          userId,
+          title: `Follow up: ${email.subject}`,
+          description: `Sender: ${email.fromName || email.fromEmail || email.from}\n\nSnippet:\n${email.snippet || ""}\n\nDate: ${new Date(email.date).toLocaleDateString("en-GB")}`,
+          dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default 1 day
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create task");
+      }
+
+      setTaskCreatedMap(prev => ({ ...prev, [email.id]: true }));
+    } catch (err) {
+      console.error("Failed to create task from email:", err);
+      alert("Error creating task from this email.");
+    } finally {
+      setTaskCreating(null);
+    }
+  };
 
   useEffect(() => {
     setSearchQuery("");
@@ -296,7 +330,7 @@ export default function EmailView({
   };
 
   return (
-    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
+    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-5">
       
       {/* Header bar */}
       <div className="border-b border-paper-3 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -379,7 +413,7 @@ export default function EmailView({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* Left column: List of Emails */}
         <div className="lg:col-span-5 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] overflow-hidden shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] divide-y divide-[#ece6db]">
@@ -399,7 +433,7 @@ export default function EmailView({
           </div>
 
           {loading ? (
-            <div className="p-6 space-y-4">
+            <div className="p-5 space-y-4">
               <div className="h-10 shimmer-skeleton rounded"></div>
               <div className="h-10 shimmer-skeleton rounded"></div>
               <div className="h-10 shimmer-skeleton rounded"></div>
@@ -462,7 +496,7 @@ export default function EmailView({
         </div>
 
         {/* Right column: Preview & AI Summaries panel */}
-        <div className="lg:col-span-7 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-5">
+        <div className="lg:col-span-7 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-5">
           {selectedEmail ? (
             <div className="space-y-5">
               
@@ -509,6 +543,29 @@ export default function EmailView({
                 >
                   <Send className="w-3.5 h-3.5" />
                   {draftingReply ? "Formulating Draft..." : "AI Compose Reply"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleCreateTaskFromEmail(selectedEmail)}
+                  disabled={taskCreating === selectedEmail.id}
+                  className={`font-mono text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 ${
+                    taskCreatedMap[selectedEmail.id]
+                      ? "text-[#2d5a4a] bg-[#e8f0ec] border border-[#d2e3da]"
+                      : "text-[#4a4540] bg-[#faf7f2] hover:bg-[#ece6db]/50 border border-[#e1d8c6]"
+                  }`}
+                >
+                  {taskCreatedMap[selectedEmail.id] ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-[#2d5a4a]" />
+                      Task Created
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList className="w-3.5 h-3.5" />
+                      {taskCreating === selectedEmail.id ? "Creating Task..." : "Create Task"}
+                    </>
+                  )}
                 </button>
               </div>
 

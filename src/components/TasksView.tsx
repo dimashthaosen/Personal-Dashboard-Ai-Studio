@@ -61,6 +61,7 @@ export default function TasksView({
   const [taskDeadline, setTaskDeadline] = useState("");
   const [taskPriority, setTaskPriority] = useState<"urgent" | "high" | "medium" | "low">("medium");
   const [taskCategory, setTaskCategory] = useState<Task["category"]>("school");
+  const [taskRecurrence, setTaskRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +74,7 @@ export default function TasksView({
         deadline: taskDeadline || "",
         priority: taskPriority,
         category: taskCategory,
+        recurrence: taskRecurrence,
         status: "pending",
         source: "manual",
         createdAt: new Date().toISOString(),
@@ -84,20 +86,50 @@ export default function TasksView({
       setTaskDeadline("");
       setTaskPriority("medium");
       setTaskCategory("school");
+      setTaskRecurrence("none");
       setShowCreateForm(false);
     } catch (err) {
       console.error("Failed to create task", err);
     }
   };
 
-  const handleToggleTaskStatus = async (task: Task) => {
+  const handleStatusChange = async (task: Task, newStatus: Task["status"]) => {
     if (!userId) return;
-    const nextStatus = task.status === "done" ? "pending" : "done";
     try {
-      await updateDoc(doc(db, `users/${userId}/tasks`, task.id), { status: nextStatus });
+      await updateDoc(doc(db, `users/${userId}/tasks`, task.id), { status: newStatus });
+      
+      if (newStatus === "done" && task.recurrence && task.recurrence !== "none") {
+        const calculateNextDeadline = (rec: string, currDead?: string) => {
+          let base = currDead ? new Date(currDead) : new Date();
+          if (isNaN(base.getTime())) base = new Date();
+          const next = new Date(base);
+          if (rec === "daily") next.setDate(next.getDate() + 1);
+          else if (rec === "weekly") next.setDate(next.getDate() + 7);
+          else if (rec === "monthly") next.setMonth(next.getMonth() + 1);
+          return next.toISOString().split("T")[0]; // Use YYYY-MM-DD
+        };
+        const nextDeadline = calculateNextDeadline(task.recurrence, task.deadline);
+        await addDoc(collection(db, `users/${userId}/tasks`), {
+          title: task.title,
+          description: task.description || "",
+          deadline: nextDeadline,
+          priority: task.priority || "medium",
+          category: task.category || "school",
+          status: "pending",
+          source: task.source || "manual",
+          recurrence: task.recurrence,
+          createdAt: new Date().toISOString(),
+          userId
+        });
+      }
     } catch (err) {
       console.error("Failed to update status", err);
     }
+  };
+
+  const handleToggleTaskStatus = async (task: Task) => {
+    const nextStatus = task.status === "done" ? "pending" : "done";
+    await handleStatusChange(task, nextStatus);
   };
 
   const handleDeleteTask = async (id: string) => {
@@ -110,16 +142,11 @@ export default function TasksView({
   };
 
   const handleDropdownStatusChange = async (task: Task, newStatus: Task["status"]) => {
-    if (!userId) return;
-    try {
-      await updateDoc(doc(db, `users/${userId}/tasks`, task.id), { status: newStatus });
-    } catch (err) {
-      console.error("Failed to update status", err);
-    }
+    await handleStatusChange(task, newStatus);
   };
 
   return (
-    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
+    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-5">
       
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-paper-3 pb-4">
@@ -140,7 +167,7 @@ export default function TasksView({
 
       {/* Task Creation Form Panel */}
       {showCreateForm && (
-        <form onSubmit={handleCreateTask} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 animate-fade-up">
+        <form onSubmit={handleCreateTask} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 animate-fade-up">
           <h3 className="font-serif font-bold text-sm text-[#1a1612] pb-2 border-b border-[#ece6db]">Record Activity Parameters</h3>
           
           <div className="space-y-4">
@@ -167,7 +194,7 @@ export default function TasksView({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Deadline Target</label>
                 <input
@@ -205,6 +232,20 @@ export default function TasksView({
                   <option value="project">Project Work</option>
                   <option value="email">Emails / Drafts</option>
                   <option value="admin">Administration</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono font-bold text-[#4a4540] uppercase tracking-wider mb-1">Recurrence Cycle</label>
+                <select
+                  value={taskRecurrence}
+                  onChange={(e) => setTaskRecurrence(e.target.value as any)}
+                  className="w-full text-xs px-3.5 py-2.5 rounded-md border border-[#e1d8c6] bg-[#f3ede2] text-[#1a1612] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 "
+                >
+                  <option value="none">One-off Task</option>
+                  <option value="daily">Daily Loop</option>
+                  <option value="weekly">Weekly Cycle</option>
+                  <option value="monthly">Monthly Routine</option>
                 </select>
               </div>
             </div>

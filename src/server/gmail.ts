@@ -48,7 +48,7 @@ function getGmailMessageBody(payload: any): string {
 }
 
 // Fetch helper with AbortController timeout to prevent hangs
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 3000): Promise<Response> {
+export async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 3000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -311,5 +311,39 @@ export async function createGmailDraft(
 
   const data = await res.json();
   return { id: data.id, messageId: data.message.id, threadId: data.message.threadId };
+}
+
+export async function sendGmailEmail(
+  accessToken: string,
+  { to, subject, body, threadId, inReplyTo, references, from }: { to: string, subject: string, body: string, threadId?: string, inReplyTo?: string, references?: string, from: string }
+): Promise<{ id: string, threadId: string }> {
+  const raw = buildRawMessage({ from, to, subject, body, inReplyTo, references });
+
+  const message: any = { raw };
+  if (threadId) {
+    message.threadId = threadId;
+  }
+
+  const res = await fetchWithTimeout(
+    "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(message)
+    },
+    8000
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("Gmail send message failed:", errorText);
+    throw new Error(`Gmail API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return { id: data.id, threadId: data.threadId };
 }
 

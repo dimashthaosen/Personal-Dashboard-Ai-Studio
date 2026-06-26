@@ -411,7 +411,7 @@ export default function StudentsView({
   }, [students]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto" id="students-module-root">
+    <div className="space-y-5 max-w-7xl mx-auto" id="students-module-root">
       {/* Header Block */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-paper-2 pb-5">
         <div>
@@ -838,7 +838,7 @@ export default function StudentsView({
 
         {/* TAB 3: FILE DRAG AND DROP IMPORTER */}
         {activeTab === "import" && (
-          <div className="p-5 space-y-6">
+          <div className="p-5 space-y-5">
             
             {/* Drag Drop Area */}
             <div
@@ -889,7 +889,7 @@ export default function StudentsView({
 
             {/* Parsing spinner */}
             {isImporting && (
-              <div className="flex flex-col items-center justify-center p-6 space-y-2">
+              <div className="flex flex-col items-center justify-center p-5 space-y-2">
                 <RefreshCw className="w-8 h-8 text-chalk-600 animate-spin" />
                 <span className="font-mono text-xs text-ink-500">Gemini OCR and spelling comparator processing tables...</span>
               </div>

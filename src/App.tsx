@@ -1,5 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { TeacherUser, Email } from "./types";
+import { useFirestoreTasks } from "./lib/hooks";
+import { motion, AnimatePresence } from "motion/react";
 
 const DashboardView = lazy(() => import("./components/DashboardView"));
 const LessonPlannerView = lazy(() => import("./components/LessonPlannerView"));
@@ -31,6 +33,7 @@ import {
   CheckCircle2,
   Search,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 
 export default function App() {
@@ -65,6 +68,74 @@ export default function App() {
   const [selectedMemoryIdForView, setSelectedMemoryIdForView] = useState<string | null>(null);
   const [selectedEmailIdForView, setSelectedEmailIdForView] = useState<string | null>(null);
   const [selectedChatMessageIdForView, setSelectedChatMessageIdForView] = useState<string | null>(null);
+
+  // Reminders / Notification state and checker
+  const { tasks } = useFirestoreTasks(currentUser?.userId);
+  const [notifiedTasks, setNotifiedTasks] = useState<Record<string, boolean>>({});
+  const [appAlerts, setAppAlerts] = useState<{ id: string; title: string; message: string }[]>([]);
+
+  // Request browser notification permissions on first load of dashboard
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Poller checks every 30 seconds for pending tasks due within 30 minutes
+  useEffect(() => {
+    if (!currentUser?.userId || tasks.length === 0) return;
+
+    const checkDueReminders = () => {
+      const now = Date.now();
+      const THIRTY_MIN_MS = 30 * 60 * 1000;
+
+      tasks.forEach((task) => {
+        if (task.status === "done" || task.status === "cancelled") return;
+        if (!task.deadline) return;
+
+        // Try standard conversion
+        const dueTime = new Date(task.deadline).getTime();
+        if (isNaN(dueTime)) return;
+
+        const timeDiff = dueTime - now;
+
+        // If due within next 30 minutes and not yet notified
+        if (timeDiff > 0 && timeDiff <= THIRTY_MIN_MS && !notifiedTasks[task.id]) {
+          // Mark as notified so we do not spam notifications
+          setNotifiedTasks((prev) => ({ ...prev, [task.id]: true }));
+
+          const messageText = `Task "${task.title}" is due soon! (in ${Math.round(timeDiff / 60000)} minutes)`;
+
+          // 1. Show native browser notification
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification("Syllabus & Task Reminder", {
+                body: messageText,
+              });
+            } catch (e) {
+              console.warn("Notification failed:", e);
+            }
+          }
+
+          // 2. Add to in-app alerts stack
+          setAppAlerts((prev) => [
+            ...prev,
+            {
+              id: task.id,
+              title: "Upcoming Deadline",
+              message: messageText,
+            }
+          ]);
+        }
+      });
+    };
+
+    checkDueReminders();
+    const interval = setInterval(checkDueReminders, 30000);
+    return () => clearInterval(interval);
+  }, [tasks, currentUser?.userId, notifiedTasks]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -390,6 +461,8 @@ export default function App() {
         return (
           <CalendarView 
             userId={currentUser?.userId} 
+            googleToken={googleToken}
+            onReauth={handleLoginGoogle}
             initialSelectedEventId={selectedEventIdForView}
             onClearInitialEventId={() => setSelectedEventIdForView(null)}
           />
@@ -692,6 +765,47 @@ export default function App() {
           onSelectChatMessage={(messageId) => setSelectedChatMessageIdForView(messageId)}
         />
       </Suspense>
+
+      {/* Real-time In-App Notification Alerts Stack */}
+      <div className="fixed bottom-5 right-5 z-50 space-y-3 max-w-sm w-full pointer-events-none">
+        <AnimatePresence>
+          {appAlerts.map((alert) => (
+            <motion.div
+              key={alert.id}
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.9, transition: { duration: 0.15 } }}
+              className="pointer-events-auto bg-[#faf7f2] border-2 border-amber-300 rounded-xl p-4 shadow-[0_10px_25px_-5px_rgba(26,22,18,0.12)] flex items-start gap-3 text-[#1a1612] font-sans"
+            >
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h4 className="font-sans font-bold text-xs uppercase tracking-wider text-amber-900">{alert.title}</h4>
+                <p className="font-serif italic text-xs text-[#5c564f] mt-1 leading-normal">
+                  {alert.message}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+                  }}
+                  className="mt-2 text-[10px] font-mono font-bold text-[#2d5a4a] hover:text-[#3a7560] uppercase tracking-wider cursor-pointer"
+                >
+                  Dismiss Alert
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAppAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+                }}
+                className="text-[#a29c91] hover:text-[#1a1612] transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
     </div>
   );

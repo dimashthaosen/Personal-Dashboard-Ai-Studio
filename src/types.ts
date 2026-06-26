@@ -9,6 +9,7 @@ export interface Task {
   status: "pending" | "in_progress" | "done" | "waiting" | "cancelled";
   source: string;
   createdAt: string;
+  recurrence?: "none" | "daily" | "weekly" | "monthly";
 }
 
 export interface Email {
@@ -35,6 +36,9 @@ export interface CalendarEvent {
   end: string;
   location?: string;
   description?: string;
+  googleEventId?: string;
+  taskId?: string;
+  isTimetableVirtual?: boolean;
 }
 
 export interface MemoryItem {

@@ -284,7 +284,7 @@ export default function MemoryView({
   });
 
   return (
-    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
+    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-5">
       
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-paper-3 pb-4">
@@ -305,7 +305,7 @@ export default function MemoryView({
 
       {/* Log Memory Form panel */}
       {showCreateForm && (
-        <form onSubmit={handleCreateMemory} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 animate-fade-up">
+        <form onSubmit={handleCreateMemory} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 animate-fade-up">
           <h3 className="font-serif font-bold text-sm text-[#1a1612] pb-2 border-b border-[#ece6db] flex items-center gap-2">
             <Brain className="w-4 h-4 text-[#2d5a4a]" />
             Declare Custom Grounding Constant

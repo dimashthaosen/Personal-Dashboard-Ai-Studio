@@ -176,9 +176,29 @@ export default function CommandBar({
   if (term === "") {
     // 1. Interactive Quick Actions Group when empty query
     resultItems.push({
+      type: "task",
+      id: "quick-new-task",
+      title: "New task",
+      subtitle: "Navigate to Tasks view to create a checklist or action item",
+      handler: () => {
+        onNavigateTab("tasks");
+        onClose();
+      }
+    });
+    resultItems.push({
+      type: "event",
+      id: "quick-new-event",
+      title: "New event",
+      subtitle: "Navigate to Calendar view to book a custom slot or lesson",
+      handler: () => {
+        onNavigateTab("calendar");
+        onClose();
+      }
+    });
+    resultItems.push({
       type: "assistant_action",
       id: "action-add-task",
-      title: "Add task...",
+      title: "Add task with AI...",
       subtitle: "Draft a new planner action item using the Assistant",
       handler: () => {
         setQueryText("Add task: ");
@@ -188,8 +208,8 @@ export default function CommandBar({
     resultItems.push({
       type: "event",
       id: "action-create-event",
-      title: "Create calendar event...",
-      subtitle: "Schedule a school activity, session, or meeting with the Assistant",
+      title: "Create event with AI...",
+      subtitle: "Schedule a school activity or meeting with the Assistant",
       handler: () => {
         setQueryText("Create calendar event: ");
         setTimeout(() => inputRef.current?.focus(), 50);

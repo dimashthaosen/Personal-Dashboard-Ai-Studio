@@ -40,7 +40,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
   ];
 
   return (
-    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
+    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-5">
       
       {/* Header bar */}
       <div className="border-b border-paper-3 pb-4">
@@ -51,7 +51,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
       </div>
 
       {/* Account Info */}
-      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-4">
+      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-4">
         <h3 className="font-serif font-bold text-sm text-[#1a1612] flex items-center justify-between pb-2 border-b border-[#ece6db]">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-[#2d5a4a]" />
@@ -99,7 +99,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
       </div>
 
       {/* Integrations Grid */}
-      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-3">
+      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-3">
         <h3 className="font-serif font-bold text-sm text-[#1a1612] flex items-center gap-2 pb-2 border-b border-[#ece6db]">
           <Cpu className="w-4 h-4 text-[#2d5a4a]" />
           Connected Services & Verification Keys
@@ -125,7 +125,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
       </div>
 
       {/* Privacy Guarantee card */}
-      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-3">
+      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-3">
         <h3 className="font-serif font-bold text-sm text-[#1a1612] flex items-center gap-2 pb-2 border-b border-[#ece6db]">
           <ShieldCheck className="w-4 h-4 text-[#2d5a4a]" />
           Privacy & Verification Guarantees
@@ -142,7 +142,7 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
       </div>
 
       {/* Env variables list */}
-      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-3">
+      <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-3">
         <h3 className="font-serif font-bold text-sm text-[#1a1612] flex items-center gap-2 pb-2 border-b border-[#ece6db]">
           <Code className="w-4 h-4 text-[#2d5a4a]" />
           Workspace Configuration Checklist

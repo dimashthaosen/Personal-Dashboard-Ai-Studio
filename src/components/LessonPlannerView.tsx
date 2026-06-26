@@ -370,7 +370,7 @@ ${pedaMix}
           {/* LEFT: Config Panel */}
           <div className="w-full md:w-[380px] bg-paper-1 border-r border-paper-2 overflow-y-auto p-5 shrink-0 config-scroll">
             
-            <div className="space-y-6 pb-6">
+            <div className="space-y-5 pb-6">
               {/* Course Selection */}
               <div>
                 <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Subject & Grade</label>
@@ -566,7 +566,7 @@ ${pedaMix}
           </div>
 
           {/* RIGHT: Output Panel */}
-          <div className="flex-1 overflow-y-auto bg-paper-0 p-6 md:p-10 relative">
+          <div className="flex-1 overflow-y-auto bg-paper-0 p-5 md:p-10 relative">
             {!generatedMarkdown && !generating && (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-40 select-none">
                 <BookOpen className="w-16 h-16 text-ink-300 mb-4" />
@@ -602,7 +602,7 @@ ${pedaMix}
                 </div>
 
                 {/* Structured Rendition */}
-                <div className="space-y-6">
+                <div className="space-y-5">
                   {(() => {
                     const parsed = parseLessonPlan(generatedMarkdown, lessonsPerWeek);
                     return (
@@ -624,7 +624,7 @@ ${pedaMix}
                           </div>
                         )}
 
-                        <div className="grid gap-6 grid-cols-1">
+                        <div className="grid gap-5 grid-cols-1">
                           {parsed.lessons.filter(l => l.title || l.process).map((lesson, idx) => (
                             <div key={idx} className="bg-white border text-left border-paper-2 rounded-xl overflow-hidden shadow-[0_2px_12px_-4px_rgba(26,22,18,0.06)] relative border-l-[4px] border-l-[#2d5a4a]">
                               <div className="bg-paper-1 px-5 py-3 border-b border-paper-2">
@@ -670,7 +670,7 @@ ${pedaMix}
                      <div className="relative flex justify-center"><span className="bg-paper-0 px-4 text-[11px] font-mono text-ink-400 uppercase tracking-widest">Or view raw markdown</span></div>
                   </div>
 
-                  <div className="markdown-body p-6 bg-paper-1 rounded-xl border border-paper-2 shadow-sm">
+                  <div className="markdown-body p-5 bg-paper-1 rounded-xl border border-paper-2 shadow-sm">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedMarkdown}</ReactMarkdown>
                   </div>
                 </div>
@@ -683,8 +683,8 @@ ${pedaMix}
 
       {/* SAVED PLANS TAB */}
       {activeTab === "saved" && (
-        <div className="flex-1 overflow-y-auto p-6 bg-paper-0">
-          <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 bg-paper-0">
+          <div className="max-w-4xl mx-auto space-y-5">
             {plansLoading ? (
               <div className="flex justify-center p-12"><Loader2 className="w-6 h-6 text-chalk-600 animate-spin" /></div>
             ) : plans.length === 0 ? (

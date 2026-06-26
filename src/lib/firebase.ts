@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
@@ -12,17 +12,14 @@ provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
 provider.addScope("https://www.googleapis.com/auth/gmail.compose");
 provider.addScope("https://www.googleapis.com/auth/userinfo.profile");
 provider.addScope("https://www.googleapis.com/auth/userinfo.email");
+provider.addScope("https://www.googleapis.com/auth/calendar.events");
 provider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: "consent select_account",
+  access_type: "offline"
 });
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
-try {
-  cachedAccessToken = localStorage.getItem("google_access_token");
-} catch (e) {
-  console.warn("Storage limits or blocked cookies prevented accessor retrieval", e);
-}
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
@@ -37,9 +34,6 @@ export const initAuth = (
       }
     } else {
       cachedAccessToken = null;
-      try {
-        localStorage.removeItem("google_access_token");
-      } catch (e) {}
       if (onAuthFailure) onAuthFailure();
     }
   });
@@ -54,9 +48,21 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
       throw new Error("Failed to get access token from Firebase Auth");
     }
     cachedAccessToken = credential.accessToken;
-    try {
-      localStorage.setItem("google_access_token", cachedAccessToken);
-    } catch (e) {}
+
+    // Securely capture and persist the Google OAuth refresh token to Firestore for backend cron jobs
+    const googleRefreshToken = (result as any)._tokenResponse?.oauthRefreshToken || (result as any)._tokenResponse?.refreshToken;
+    if (googleRefreshToken) {
+      try {
+        await setDoc(doc(db, `users/${result.user.uid}/secrets`, "googleOAuth"), {
+          refreshToken: googleRefreshToken,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log("Successfully saved Google OAuth refresh token to Firestore.");
+      } catch (e) {
+        console.error("Failed to save Google OAuth refresh token to Firestore:", e);
+      }
+    }
+
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error("Sign in error:", error);
@@ -73,7 +79,4 @@ export const getAccessToken = async (): Promise<string | null> => {
 export const firebaseLogout = async () => {
   await auth.signOut();
   cachedAccessToken = null;
-  try {
-    localStorage.removeItem("google_access_token");
-  } catch (e) {}
 };

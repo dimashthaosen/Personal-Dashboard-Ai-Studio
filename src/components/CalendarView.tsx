@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   ShieldCheck,
   Zap,
-  Activity
+  Activity,
+  Trash2
 } from "lucide-react";
 import { useFirestoreEvents, useFirestoreTasks, useFirestoreTimetable } from "../lib/hooks";
 import { collection, addDoc } from "firebase/firestore";
@@ -31,16 +32,90 @@ import {
 
 export default function CalendarView({ 
   userId,
+  googleToken,
+  onReauth,
   initialSelectedEventId,
   onClearInitialEventId
 }: { 
   userId?: string;
+  googleToken?: string | null;
+  onReauth?: () => Promise<void>;
   initialSelectedEventId?: string | null;
   onClearInitialEventId?: () => void;
 }) {
   const { events, loading } = useFirestoreEvents(userId);
   const { tasks } = useFirestoreTasks(userId);
   const { timetable } = useFirestoreTimetable(userId);
+
+  // Sync state
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const syncGoogleCalendar = async () => {
+    if (!userId || !googleToken) return;
+    setSyncStatus("syncing");
+    setSyncError(null);
+    try {
+      const res = await fetch(`/api/calendar?userId=${userId}`, {
+        headers: {
+          "Authorization": `Bearer ${googleToken}`
+        }
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.error === "reauth_required") {
+          setSyncStatus("error");
+          setSyncError("reauth_required");
+          return;
+        }
+        throw new Error(errData.message || "Failed to sync calendar");
+      }
+      setSyncStatus("success");
+    } catch (err: any) {
+      console.error("Google Calendar sync failed:", err);
+      setSyncStatus("error");
+      setSyncError(err.message || "Offline or connection issue.");
+    }
+  };
+
+  useEffect(() => {
+    if (userId && googleToken) {
+      syncGoogleCalendar();
+    }
+  }, [userId, googleToken]);
+
+  const handleDeleteEvent = async (event: CalendarEvent) => {
+    if (!userId) return;
+    if (!confirm(`Are you sure you want to delete the event "${event.title}"?`)) return;
+
+    try {
+      const targetId = event.googleEventId || event.id;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+      if (googleToken) {
+        headers["Authorization"] = `Bearer ${googleToken}`;
+      }
+
+      const res = await fetch(`/api/calendar/${targetId}`, {
+        method: "DELETE",
+        headers,
+        body: JSON.stringify({ userId })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.error === "reauth_required") {
+          setSyncError("reauth_required");
+          return;
+        }
+        throw new Error(errData.message || "Failed to delete event");
+      }
+    } catch (err: any) {
+      console.error("Failed to delete event:", err);
+      alert(err.message || "Error deleting event");
+    }
+  };
 
   // Calendar View Mode: 'month' | 'week' | 'day'
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
@@ -153,15 +228,37 @@ export default function CalendarView({
       const startTimeStr = `${year}-${month}-${day}T${eventStart}:00`;
       const endTimeStr = `${year}-${month}-${day}T${eventEnd}:00`;
 
-      await addDoc(collection(db, `users/${userId}/calendarEvents`), {
-          title: eventTitle.trim(),
-          start: new Date(startTimeStr).toISOString(),
-          end: new Date(endTimeStr).toISOString(),
-          location: eventLoc.trim(),
-          description: eventDesc.trim(),
-          createdAt: new Date().toISOString(),
-          userId
+      const payload = {
+        userId,
+        title: eventTitle.trim(),
+        start: new Date(startTimeStr).toISOString(),
+        end: new Date(endTimeStr).toISOString(),
+        location: eventLoc.trim(),
+        description: eventDesc.trim(),
+      };
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+      if (googleToken) {
+        headers["Authorization"] = `Bearer ${googleToken}`;
+      }
+
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.error === "reauth_required") {
+          setSyncError("reauth_required");
+          setFormError("Google Calendar integration needs permission. Reconnect via the banner above.");
+          return;
+        }
+        throw new Error(errData.message || "Failed to save event.");
+      }
 
       setEventTitle("");
       setEventStart("");
@@ -169,9 +266,9 @@ export default function CalendarView({
       setEventLoc("");
       setEventDesc("");
       setShowCreateForm(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setFormError("Failed to save event to database.");
+      setFormError(err.message || "Failed to save event to database.");
     }
   };
 
@@ -303,7 +400,37 @@ export default function CalendarView({
   };
 
   return (
-    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-6">
+    <div className="animate-fade-up max-w-[1050px] mx-auto space-y-5">
+      
+      {syncError === "reauth_required" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-ink-950">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-sans font-bold text-xs uppercase tracking-wider">Google Calendar Connection Required</h4>
+              <p className="font-serif italic text-xs text-[#5c564f] mt-0.5 leading-normal">
+                To sync your events with Google Calendar, we need your permission. Reconnect your account to authorize calendar access.
+              </p>
+            </div>
+          </div>
+          {onReauth && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await onReauth();
+                  setSyncError(null);
+                } catch (e) {
+                  console.error("Reauth failed:", e);
+                }
+              }}
+              className="bg-[#2d5a4a] hover:bg-[#3a7560] text-[#fcf9f3] font-mono text-[11px] font-bold px-4 py-2 rounded-md uppercase tracking-wider whitespace-nowrap cursor-pointer transition-colors"
+            >
+              Authorize Calendar
+            </button>
+          )}
+        </div>
+      )}
       
       {/* Upper Control Bar */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-[#e1d8c6] pb-5 gap-4">
@@ -376,7 +503,7 @@ export default function CalendarView({
 
       {/* Booking Dialog Panel */}
       {showCreateForm && (
-        <form onSubmit={handleCreateEvent} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 animate-fade-up">
+        <form onSubmit={handleCreateEvent} className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_6px_24px_-10px_rgba(26,22,18,0.12),0_1px_2px_rgba(26,22,18,0.04)] space-y-4 animate-fade-up">
           <h3 className="font-serif font-bold text-sm text-[#1a1612] pb-2 border-b border-[#ece6db] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#2d5a4a]" />
@@ -484,7 +611,7 @@ export default function CalendarView({
 
           {/* DAY VIEW - Classic chronological line list */}
           {viewMode === "day" && (
-            <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-6 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-5">
+            <div className="bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)] space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-[#ece6db]">
                 <h3 className="font-serif font-bold text-sm text-[#1a1612] uppercase tracking-wider flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#2d5a4a]" />
@@ -510,7 +637,7 @@ export default function CalendarView({
                   <p className="text-xs font-sans not-italic text-[#a29c91]">Click "Book Session" above to schedule a lesson, meeting, or event.</p>
                 </div>
               ) : (
-                <div className="relative border-l border-[#e1d8c6] pl-6 ml-3 space-y-6">
+                <div className="relative border-l border-[#e1d8c6] pl-6 ml-3 space-y-5">
                   {filteredEventsForDay.map((event) => {
                     const startFormatted = new Date(event.start).toLocaleTimeString("en-GB", {
                       hour: "2-digit",
@@ -537,9 +664,25 @@ export default function CalendarView({
                         <span className="absolute -left-[32px] top-1.5 w-3 h-3 rounded-full border-2 border-[#f5f1e8] bg-[#2d5a4a]" />
 
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#2d5a4a] font-bold uppercase tracking-wider">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>{startFormatted} - {endFormatted}</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#2d5a4a] font-bold uppercase tracking-wider">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>{startFormatted} - {endFormatted}</span>
+                            </div>
+                            
+                            {!event.isTimetableVirtual && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteEvent(event);
+                                }}
+                                className="text-[#b83232] hover:text-[#e04545] p-1 rounded-md hover:bg-[#fcebeb] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center"
+                                title="Delete Event"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
 
                           <h4 className="font-serif font-bold text-sm text-[#1a1612]">
@@ -569,7 +712,7 @@ export default function CalendarView({
 
           {/* MONTH & WEEK VIEW: Split layout (Grid on left, Active Day detailed agenda on right) */}
           {(viewMode === "month" || viewMode === "week") && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
               
               {/* Left Pane: Grid Canvas (takes col-span-2) */}
               <div className="lg:col-span-2 bg-[#fcf9f3] border border-[#e1d8c6] rounded-[18px] p-5 shadow-[0_4px_16px_-6px_rgba(26,22,18,0.08)]">
@@ -842,7 +985,7 @@ export default function CalendarView({
 
                     <div className="space-y-3 flex-1">
                       {filteredEventsForDay.length === 0 ? (
-                        <div className="border border-dashed border-[#ece6db] rounded-xl p-6 text-center text-[#4a4540] font-serif italic text-xs space-y-1 animate-fadeIn">
+                        <div className="border border-dashed border-[#ece6db] rounded-xl p-5 text-center text-[#4a4540] font-serif italic text-xs space-y-1 animate-fadeIn">
                           <p>No classes or sessions scheduled.</p>
                           <p className="text-[11px] font-sans not-italic text-[#a29c91]">Click "Book Event" below to reserve a slot.</p>
                         </div>
@@ -861,11 +1004,26 @@ export default function CalendarView({
                             return (
                               <div
                                 key={evt.id}
-                                className="p-3 rounded-xl bg-[#f5efe4] border border-[#e1d8c6] hover:border-[#2d5a4a]/40 transition-all space-y-1.5"
+                                className="relative group p-3 rounded-xl bg-[#f5efe4] border border-[#e1d8c6] hover:border-[#2d5a4a]/40 transition-all space-y-1.5"
                               >
-                                <span className="font-mono text-[11px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1.5 py-0.5 rounded uppercase tracking-wider block w-max">
-                                  {startStr} - {endStr}
-                                </span>
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono text-[11px] font-bold text-[#2d5a4a] bg-[#e8f0ec] px-1.5 py-0.5 rounded uppercase tracking-wider block w-max">
+                                    {startStr} - {endStr}
+                                  </span>
+                                  {!evt.isTimetableVirtual && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteEvent(evt);
+                                      }}
+                                      className="text-[#b83232] hover:text-[#e04545] p-1 rounded-md hover:bg-[#fcebeb] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center"
+                                      title="Delete Event"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
                                 <h4 className="font-sans font-bold text-xs text-[#1a1612] leading-tight">
                                   {evt.title}
                                 </h4>

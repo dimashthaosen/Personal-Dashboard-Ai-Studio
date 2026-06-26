@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# AI Studio patch / codegen scripts
+fix-*.ts
+inject-*.ts
+patch-*.ts
+script.ts
