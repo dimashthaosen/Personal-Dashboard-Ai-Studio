@@ -65,3 +65,90 @@ export async function getDriveFile(
 
   return await res.json();
 }
+
+export async function createDriveFolder(accessToken: string, name: string): Promise<DriveFile> {
+  const res = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Drive API Error: ${res.statusText}`);
+  return res.json();
+}
+
+export async function createDriveDoc(accessToken: string, name: string, content: string): Promise<DriveFile> {
+  const boundary = "-------314159265358979323846";
+  const metadata = {
+    name,
+    mimeType: "application/vnd.google-apps.document"
+  };
+
+  let body = `--${boundary}\r\n`;
+  body += 'Content-Type: application/json; charset=UTF-8\r\n\r\n';
+  body += JSON.stringify(metadata) + '\r\n';
+  body += `--${boundary}\r\n`;
+  body += 'Content-Type: text/html; charset=UTF-8\r\n\r\n';
+  body += content + '\r\n';
+  body += `--${boundary}--`;
+
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+
+  if (!res.ok) throw new Error(`Drive API Error: ${res.statusText}`);
+  return res.json();
+}
+
+export async function uploadDriveFile(accessToken: string, name: string, content: string, mimeType: string = "text/plain"): Promise<DriveFile> {
+  const boundary = "-------314159265358979323846";
+  const metadata = { name };
+
+  let body = `--${boundary}\r\n`;
+  body += 'Content-Type: application/json; charset=UTF-8\r\n\r\n';
+  body += JSON.stringify(metadata) + '\r\n';
+  body += `--${boundary}\r\n`;
+  body += `Content-Type: ${mimeType}\r\n\r\n`;
+  body += content + '\r\n';
+  body += `--${boundary}--`;
+
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+
+  if (!res.ok) throw new Error(`Drive API Error: ${res.statusText}`);
+  return res.json();
+}
+
+export async function getDriveFileContent(accessToken: string, fileId: string, mimeType: string): Promise<string> {
+  let url = "";
+  
+  if (mimeType === "application/vnd.google-apps.document") {
+    url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`;
+  } else {
+    url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  }
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) throw new Error(`Drive API Error: ${res.statusText}`);
+  return res.text();
+}

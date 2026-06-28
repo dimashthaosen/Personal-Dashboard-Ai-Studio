@@ -14,6 +14,7 @@ export default function DriveView({ userId, googleToken, onReauth }: DriveViewPr
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [creating, setCreating] = useState(false);
 
   const fetchFiles = async (searchQuery: string = "") => {
     if (!userId || !googleToken) {
@@ -89,6 +90,38 @@ export default function DriveView({ userId, googleToken, onReauth }: DriveViewPr
     return <FileIcon className="w-5 h-5 text-gray-400" />;
   };
 
+  const handleCreateFolder = async (folderName: string) => {
+    if (!userId || !googleToken) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/drive/folders", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${googleToken}`,
+          "Content-Type": "application/json",
+          "x-user-id": userId
+        },
+        body: JSON.stringify({ name: folderName })
+      });
+      if (!res.ok) throw new Error("Failed to create folder");
+      fetchFiles(query); // Refresh
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create folder. Make sure you have granted Drive permissions.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const templates = [
+    "Class 11 Sociology",
+    "Class 12 Sociology",
+    "Class 8 Global Perspectives",
+    "Class 9 History",
+    "Lesson Plans",
+    "Project Guidelines"
+  ];
+
   if (!googleToken || error === "reauth_required" || error?.startsWith("Authentication failed")) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-paper-0">
@@ -161,6 +194,23 @@ export default function DriveView({ userId, googleToken, onReauth }: DriveViewPr
               {type === "all" ? "All Files" : type}
             </button>
           ))}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-paper-2">
+          <h3 className="font-sans text-xs font-bold text-ink-600 uppercase tracking-wider mb-3">Quick Create Folder</h3>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {templates.map(t => (
+              <button
+                key={t}
+                disabled={creating}
+                onClick={() => handleCreateFolder(t)}
+                className="px-3 py-1.5 bg-paper-0 border border-paper-3 hover:border-[#2d5a4a]/40 text-ink-700 rounded text-xs font-medium whitespace-nowrap transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                <Folder className="w-3.5 h-3.5 text-gray-500" />
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

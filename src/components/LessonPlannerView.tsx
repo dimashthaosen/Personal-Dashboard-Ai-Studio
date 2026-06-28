@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { BookOpen, ChevronDown, Check, Save, Copy, Loader2, Upload, Sparkles, FileText, Layout } from "lucide-react";
+import { BookOpen, ChevronDown, Check, Save, Copy, Loader2, Upload, Sparkles, FileText, Layout, HardDrive } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CURRICULUM, getChapterForWeek, GP_EXAMPLES, SOCIOLOGY_EXAMPLES } from "../data/curriculum";
@@ -320,6 +320,31 @@ ${pedaMix}
     }
   };
 
+  const handleSaveToDrive = async () => {
+    if (!userId || !generatedMarkdown) return;
+    const token = await getAccessToken();
+    if (!token) {
+      alert("Please connect Google Account from Settings to use Drive.");
+      return;
+    }
+    try {
+      const name = `Lesson Plan - ${CURRICULUM[courseId]?.label || "Course"} Week ${week}.md`;
+      const res = await fetch("/api/drive/upload-text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, content: generatedMarkdown, mimeType: "text/markdown" })
+      });
+      if (res.ok) alert("Saved to Google Drive!");
+      else throw new Error("Failed to save to Drive");
+    } catch (err) {
+      alert("Could not save to Drive. Check permissions.");
+      console.error(err);
+    }
+  };
+
   const handleSavePlan = async () => {
     if (!userId || !generatedMarkdown) return;
     try {
@@ -604,6 +629,9 @@ ${pedaMix}
                   <div className="flex gap-2">
                     <button onClick={() => navigator.clipboard.writeText(generatedMarkdown)} className="p-2 border border-paper-3 bg-paper-1 hover:bg-paper-2 rounded-lg text-ink-600 transition-colors" title="Copy Markdown">
                       <Copy className="w-4 h-4" />
+                    </button>
+                    <button onClick={handleSaveToDrive} className="px-3 py-2 border border-blue-600 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold font-mono tracking-wider uppercase flex items-center gap-1.5 transition-colors">
+                      <HardDrive className="w-3.5 h-3.5" /> Save to Drive
                     </button>
                     <button onClick={handleSavePlan} className="px-3 py-2 border border-[#2d5a4a] bg-[#e8f0ec] hover:bg-[#d1e2da] text-[#2d5a4a] rounded-lg text-xs font-bold font-mono tracking-wider uppercase flex items-center gap-1.5 transition-colors">
                       <Save className="w-3.5 h-3.5" /> Save to My Plans

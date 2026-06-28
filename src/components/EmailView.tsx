@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Email, TeacherUser } from "../types";
-import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw, ClipboardList, X } from "lucide-react";
+import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw, ClipboardList, X, HardDrive } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -355,6 +355,31 @@ export default function EmailView({
       alert(`Error saving draft: ${err.message}`);
     } finally {
       setSavingDraft(false);
+    }
+  };
+
+  const handleSaveToDrive = async () => {
+    if (!replyDraft.trim()) return;
+    const token = googleToken;
+    if (!token) {
+      alert("Please connect Google Account from Settings to use Drive.");
+      return;
+    }
+    try {
+      const name = `Email Draft - ${selectedEmail?.subject || "Reply"}.txt`;
+      const res = await fetch("/api/drive/upload-text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, content: replyDraft, mimeType: "text/plain" })
+      });
+      if (res.ok) alert("Draft saved to Google Drive!");
+      else throw new Error("Failed to save to Drive");
+    } catch (err) {
+      alert("Could not save to Drive. Check permissions.");
+      console.error(err);
     }
   };
 
@@ -717,20 +742,30 @@ export default function EmailView({
                     <p className="font-serif italic text-[11px] text-[#4a4540] pl-1 h-auto leading-normal">
                       Approved standard guidelines apply. This response uses your personal biography style preference from Assistant Core Memory.
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleSaveDraft}
-                      disabled={savingDraft || !replyDraft.trim()}
-                      className="font-mono text-[11px] font-bold uppercase tracking-wider text-white bg-[#2d5a4a] hover:bg-[#1f4236] border border-[#1f4236] px-4 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      {savingDraft ? (
-                         "Saving..."
-                      ) : draftSuccess ? (
-                         <><Check className="w-3.5 h-3.5" /> Saved to Drafts ✓</>
-                      ) : (
-                         <><Send className="w-3.5 h-3.5" /> Save as Draft</>
-                      )}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveToDrive}
+                        disabled={savingDraft || !replyDraft.trim()}
+                        className="font-mono text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-600 px-4 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <HardDrive className="w-3.5 h-3.5" /> Save to Drive
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        disabled={savingDraft || !replyDraft.trim()}
+                        className="font-mono text-[11px] font-bold uppercase tracking-wider text-white bg-[#2d5a4a] hover:bg-[#1f4236] border border-[#1f4236] px-4 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {savingDraft ? (
+                           "Saving..."
+                        ) : draftSuccess ? (
+                           <><Check className="w-3.5 h-3.5" /> Saved to Drafts ✓</>
+                        ) : (
+                           <><Send className="w-3.5 h-3.5" /> Save as Draft</>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

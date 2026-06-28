@@ -5,7 +5,7 @@ import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, "ai-studio-69501555-bf6b-4068-9633-66d8f6470c9f");
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || "ai-studio-69501555-bf6b-4068-9633-66d8f6470c9f");
 
 export const provider = new GoogleAuthProvider();
 provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
@@ -15,6 +15,7 @@ provider.addScope("https://www.googleapis.com/auth/userinfo.email");
 provider.addScope("https://www.googleapis.com/auth/calendar.events");
 provider.addScope("https://www.googleapis.com/auth/drive.metadata.readonly");
 provider.addScope("https://www.googleapis.com/auth/drive.readonly");
+provider.addScope("https://www.googleapis.com/auth/drive.file");
 provider.setCustomParameters({
   prompt: "consent select_account",
   access_type: "offline"

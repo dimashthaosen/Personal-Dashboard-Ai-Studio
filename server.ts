@@ -5,7 +5,7 @@ import { db } from "./src/server/db";
 import { generateContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION, getGemini } from "./src/server/ai";
 import { fetchGmailEmails, createGmailDraft, sendGmailEmail } from "./src/server/gmail";
 import { fetchCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./src/server/calendar";
-import { fetchDriveFiles, getDriveFile } from "./src/server/drive";
+import { fetchDriveFiles, getDriveFile, createDriveFolder, createDriveDoc, uploadDriveFile, getDriveFileContent } from "./src/server/drive";
 import { runAssistantAgent } from "./src/server/agentRunner";
 import { executeTool, serverDb } from "./src/server/agentTools";
 
@@ -177,6 +177,69 @@ async function startServer() {
         return res.status(401).json({ error: "reauth_required" });
       }
       sendServerError(res, err, "GET /api/drive/:id");
+    }
+  });
+
+  app.get("/api/drive/:id/content", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
+      const token = authHeader.substring(7);
+      
+      const file = await getDriveFile(token, req.params.id);
+      const content = await getDriveFileContent(token, file.id, file.mimeType);
+      
+      res.json({ content });
+    } catch (err: any) {
+      sendServerError(res, err, "GET /api/drive/:id/content");
+    }
+  });
+
+  app.post("/api/drive/folders", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
+      const token = authHeader.substring(7);
+      
+      const { name } = req.body;
+      if (!name) return res.status(400).json({ error: "Missing folder name" });
+
+      const folder = await createDriveFolder(token, name);
+      res.json(folder);
+    } catch (err: any) {
+      sendServerError(res, err, "POST /api/drive/folders");
+    }
+  });
+
+  app.post("/api/drive/docs", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
+      const token = authHeader.substring(7);
+      
+      const { name, content } = req.body;
+      if (!name || !content) return res.status(400).json({ error: "Missing name or content" });
+
+      const doc = await createDriveDoc(token, name, content);
+      res.json(doc);
+    } catch (err: any) {
+      sendServerError(res, err, "POST /api/drive/docs");
+    }
+  });
+
+  app.post("/api/drive/upload-text", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
+      const token = authHeader.substring(7);
+      
+      const { name, content, mimeType } = req.body;
+      if (!name || !content) return res.status(400).json({ error: "Missing name or content" });
+
+      const file = await uploadDriveFile(token, name, content, mimeType || "text/plain");
+      res.json(file);
+    } catch (err: any) {
+      sendServerError(res, err, "POST /api/drive/upload-text");
     }
   });
 

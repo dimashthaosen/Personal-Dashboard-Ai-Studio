@@ -7,7 +7,7 @@ import { SEED_STUDENTS } from "../data/studentsData.js";
 import { generateContentText, generateLessonPlan as aiGenerateLessonPlan } from "./ai.js";
 import { db } from "./db.js";
 import { fetchGmailEmails } from "./gmail.js";
-import { fetchDriveFiles } from "./drive.js";
+import { fetchDriveFiles, getDriveFile, createDriveFolder, createDriveDoc, uploadDriveFile, getDriveFileContent } from "./drive.js";
 import { normalisePriority, normaliseCategory, normaliseStatus, normaliseMemoryCategory, buildReplyPrompt } from "./validators.js";
 import { Task, CalendarEvent, MemoryItem, StudentRecord, TimetableEntry } from "../types.js";
 
@@ -28,11 +28,11 @@ const app = getApps().length === 0
     })
   : getApps()[0];
 
-export const serverDb = getFirestore(app, "ai-studio-69501555-bf6b-4068-9633-66d8f6470c9f");
+export const serverDb = getFirestore(app, firebaseConfig.firestoreDatabaseId || "ai-studio-69501555-bf6b-4068-9633-66d8f6470c9f");
 
 // Helper to check if a tool is a write action that requires approval
 export function isWriteTool(name: string): boolean {
-  const writeTools = ["createTask", "updateTask", "createCalendarEvent", "saveMemory", "generateLessonPlan", "createEmailDraft"];
+  const writeTools = ["createTask", "updateTask", "createCalendarEvent", "saveMemory", "generateLessonPlan", "createEmailDraft", "createDriveFolder", "createDriveDoc", "saveTextToDrive"];
   return writeTools.includes(name);
 }
 
@@ -265,6 +265,75 @@ export const TOOL_DECLARATIONS = [
       properties: {
         day: { type: "STRING", description: "Optional day of the week to filter, e.g. 'Monday', 'Tuesday', etc." }
       }
+    }
+  },
+  {
+    name: "searchDriveFiles",
+    description: "Searches Google Drive for files matching a keyword. Use this to find existing lesson plans, notes, or documents.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: { type: "STRING", description: "Optional search query. Leave empty to get recent files." },
+        limit: { type: "INTEGER", description: "Max files to return. Defaults to 10." }
+      }
+    }
+  },
+  {
+    name: "getDriveFileMetadata",
+    description: "Retrieves metadata for a specific Google Drive file.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        fileId: { type: "STRING", description: "The ID of the file to retrieve" }
+      },
+      required: ["fileId"]
+    }
+  },
+  {
+    name: "summariseDriveFile",
+    description: "Retrieves and summarises the content of a Google Drive file (Docs, plain text, PDFs if small).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        fileId: { type: "STRING", description: "The ID of the file to summarise" }
+      },
+      required: ["fileId"]
+    }
+  },
+  {
+    name: "createDriveFolder",
+    description: "Creates a new folder in Google Drive. Example: 'Class 11 Sociology 2026-27'. Requires approval.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING", description: "The name of the folder" }
+      },
+      required: ["name"]
+    }
+  },
+  {
+    name: "createDriveDoc",
+    description: "Creates a new Google Doc from plain text or markdown content. Requires approval.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING", description: "The name of the new Google Doc" },
+        content: { type: "STRING", description: "The text content to populate the document" }
+      },
+      required: ["name", "content"]
+    }
+  },
+  {
+    name: "saveTextToDrive",
+    description: "Saves generated text (like lesson plans, notes, email drafts) as a plain text or markdown file in Google Drive. Requires approval.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING", description: "The name of the file, including extension (e.g. 'notes.txt', 'lesson.md')" },
+        content: { type: "STRING", description: "The text content of the file" },
+        mimeType: { type: "STRING", description: "Optional mime type. Defaults to text/plain" }
+      },
+      required: ["name", "content"]
     }
   }
 ];
@@ -821,6 +890,63 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
             reviewReason: e.reviewReason || ""
           }))
         };
+      }
+
+      case "searchDriveFiles": {
+        if (!accessToken) throw new Error("Google Drive access token required to search files");
+        const query = args.query || "";
+        const limit = args.limit || 10;
+        const files = await fetchDriveFiles(accessToken, query, limit);
+        return { files };
+      }
+
+      case "getDriveFileMetadata": {
+        if (!accessToken) throw new Error("Google Drive access token required to get file metadata");
+        const fileId = args.fileId;
+        const file = await getDriveFile(accessToken, fileId);
+        return { file };
+      }
+
+      case "summariseDriveFile": {
+        if (!accessToken) throw new Error("Google Drive access token required to summarise file");
+        const fileId = args.fileId;
+        const file = await getDriveFile(accessToken, fileId);
+        // Only attempt to read docs, text, or small pdfs
+        const content = await getDriveFileContent(accessToken, fileId, file.mimeType);
+        
+        // Truncate content if too large for simple AI summarisation pass
+        const truncated = content.substring(0, 10000); 
+        const isTruncated = content.length > 10000;
+        
+        return { 
+          fileInfo: file,
+          content: truncated,
+          isTruncated
+        };
+      }
+
+      case "createDriveFolder": {
+        if (!accessToken) throw new Error("Google Drive access token required to create folder");
+        const name = args.name;
+        const folder = await createDriveFolder(accessToken, name);
+        return { success: true, folder, message: `Created folder "${name}" successfully.` };
+      }
+
+      case "createDriveDoc": {
+        if (!accessToken) throw new Error("Google Drive access token required to create document");
+        const name = args.name;
+        const content = args.content;
+        const doc = await createDriveDoc(accessToken, name, content);
+        return { success: true, doc, message: `Created document "${name}" successfully.` };
+      }
+
+      case "saveTextToDrive": {
+        if (!accessToken) throw new Error("Google Drive access token required to save text file");
+        const name = args.name;
+        const content = args.content;
+        const mimeType = args.mimeType || "text/plain";
+        const file = await uploadDriveFile(accessToken, name, content, mimeType);
+        return { success: true, file, message: `Saved file "${name}" to Drive successfully.` };
       }
 
       default:

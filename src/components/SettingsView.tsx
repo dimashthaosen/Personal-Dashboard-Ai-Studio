@@ -17,9 +17,9 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
       type: "active",
     },
     {
-      name: "Google Workspace API",
-      description: "Calendar and Drive integrations strictly follow the active signed-in Google account.",
-      status: "Connected",
+      name: "Google Drive & Workspace APIs",
+      description: `Drive files shown, created folders, and saved notes strictly belong to the currently active signed-in Google account (${currentUser.email}).`,
+      status: "Connected (Verified)",
       type: "active",
     },
     {
