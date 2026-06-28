@@ -142,13 +142,17 @@ async function startServer() {
       const files = await fetchDriveFiles(token, query, limit);
       
       // Mirror to Firestore: users/{userId}/driveFiles
-      const batch = serverDb.batch();
-      const driveRef = serverDb.collection(`users/${userId}/driveFiles`);
-      
-      files.forEach(file => {
-        batch.set(driveRef.doc(file.id), file, { merge: true });
-      });
-      await batch.commit();
+      try {
+        const batch = serverDb.batch();
+        const driveRef = serverDb.collection(`users/${userId}/driveFiles`);
+        
+        files.forEach(file => {
+          batch.set(driveRef.doc(file.id), file, { merge: true });
+        });
+        await batch.commit();
+      } catch (err: any) {
+        console.warn("Skipping Firestore mirror for drive files due to error:", err.message);
+      }
 
       res.json(files);
     } catch (err: any) {
@@ -377,22 +381,26 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
             const googleEvents = await fetchCalendarEvents(token, timeMin, timeMax, userId);
 
             // Upsert each event into users/{userId}/calendarEvents keyed by googleEventId
-            const collectionRef = getUserCollection(userId, "calendarEvents");
-            const batch = serverDb.batch();
-            for (const ev of googleEvents) {
-              const docRef = collectionRef.doc(ev.googleEventId!);
-              batch.set(docRef, {
-                title: ev.title,
-                start: ev.start,
-                end: ev.end,
-                location: ev.location || "",
-                description: ev.description || "",
-                googleEventId: ev.googleEventId,
-                taskId: ev.taskId || null,
-                createdAt: new Date().toISOString()
-              }, { merge: true });
+            try {
+              const collectionRef = getUserCollection(userId, "calendarEvents");
+              const batch = serverDb.batch();
+              for (const ev of googleEvents) {
+                const docRef = collectionRef.doc(ev.googleEventId!);
+                batch.set(docRef, {
+                  title: ev.title,
+                  start: ev.start,
+                  end: ev.end,
+                  location: ev.location || "",
+                  description: ev.description || "",
+                  googleEventId: ev.googleEventId,
+                  taskId: ev.taskId || null,
+                  createdAt: new Date().toISOString()
+                }, { merge: true });
+              }
+              await batch.commit();
+            } catch (err: any) {
+              console.warn("Skipping Firestore mirror for calendar events due to error:", err.message);
             }
-            await batch.commit();
 
             return res.json(googleEvents);
           } catch (err: any) {
