@@ -23,6 +23,10 @@ provider.setCustomParameters({
 
 let cachedAccessToken: string | null = null;
 
+export async function getIdToken(): Promise<string | null> {
+  return auth.currentUser ? auth.currentUser.getIdToken() : null;
+}
+
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void

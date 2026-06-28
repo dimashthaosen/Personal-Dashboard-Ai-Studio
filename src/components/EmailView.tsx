@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect } from "react";
 import { Email, TeacherUser } from "../types";
 import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw, ClipboardList, X, HardDrive } from "lucide-react";
@@ -125,7 +126,7 @@ export default function EmailView({
     setShowTaskModal(true);
     setSuggestedTasks([]);
     try {
-      const res = await fetch("/api/emails/suggest-tasks", {
+      const res = await apiFetch("/api/emails/suggest-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
@@ -144,24 +145,17 @@ export default function EmailView({
     if (!userId) return;
     setTaskCreating(index.toString());
     try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          userId,
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          category: task.category,
-          deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        })
+      const { db } = await import("../lib/firebase");
+      const { collection, addDoc } = await import("firebase/firestore");
+      await addDoc(collection(db, `users/${userId}/tasks`), {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        category: task.category,
+        deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: "todo",
+        createdAt: new Date().toISOString()
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to create task");
-      }
 
       setTaskCreatedMap(prev => ({ ...prev, [`${selectedEmail?.id}-${index}`]: true }));
     } catch (err) {
@@ -246,7 +240,7 @@ export default function EmailView({
       if (googleToken) {
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
-      const res = await fetch(`/api/emails?type=${activeTab}`, { headers });
+      const res = await apiFetch(`/api/emails?type=${activeTab}`, { headers });
       if (!res.ok) throw new Error("API failed");
       const text = await res.text();
       let data = [];
@@ -279,7 +273,7 @@ export default function EmailView({
     setSummarising(true);
     setSummaryOutput("");
     try {
-      const res = await fetch(`/api/emails/${id}/summarise`, { method: "POST" });
+      const res = await apiFetch(`/api/emails/${id}/summarise`, { method: "POST" });
       if (!res.ok) throw new Error("API failed");
       const text = await res.text();
       const data = JSON.parse(text);
@@ -296,7 +290,7 @@ export default function EmailView({
     setDraftingReply(true);
     setReplyDraft("");
     try {
-      const res = await fetch(`/api/emails/${id}/reply`, { 
+      const res = await apiFetch(`/api/emails/${id}/reply`, { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId })
@@ -325,7 +319,7 @@ export default function EmailView({
     setDraftSuccess(false);
     
     try {
-      const res = await fetch("/api/emails/draft", {
+      const res = await apiFetch("/api/emails/draft", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -367,7 +361,7 @@ export default function EmailView({
     }
     try {
       const name = `Email Draft - ${selectedEmail?.subject || "Reply"}.txt`;
-      const res = await fetch("/api/drive/upload-text", {
+      const res = await apiFetch("/api/drive/upload-text", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

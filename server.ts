@@ -7,7 +7,7 @@ import { fetchGmailEmails, createGmailDraft, sendGmailEmail } from "./src/server
 import { fetchCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./src/server/calendar";
 import { fetchDriveFiles, getDriveFile, createDriveFolder, createDriveDoc, uploadDriveFile, getDriveFileContent } from "./src/server/drive";
 import { runAssistantAgent } from "./src/server/agentRunner";
-import { executeTool, serverDb } from "./src/server/agentTools";
+import { executeTool, serverDb, serverAuth } from "./src/server/agentTools";
 
 import { SEED_STUDENTS } from "./src/data/studentsData";
 import { EXTRACTED_TIMETABLE } from "./src/data/extractedTimetable";
@@ -38,6 +38,45 @@ async function startServer() {
 
   // === 1. API ROUTES FIRST ===
 
+  // API Routes Middleware
+  app.use(async (req, res, next) => {
+    // Skip auth for health/cron
+    if (req.path === "/api/health" || req.path.startsWith("/api/cron")) {
+      return next();
+    }
+    
+    // Only check ID token for /api/ routes
+    if (req.path.startsWith("/api/")) {
+      const idToken = req.headers["x-id-token"];
+      if (typeof idToken === "string" && idToken) {
+        try {
+          const decoded = await serverAuth.verifyIdToken(idToken);
+          (req as any).authUid = decoded.uid;
+        } catch (_e) { void _e;
+          // ignore verification errors here, handled by resolveUid
+        }
+      }
+    }
+    next();
+  });
+
+  const resolveUid = (req: express.Request, res: express.Response) => {
+    const authUid = (req as any).authUid;
+    if (!authUid) {
+      res.status(401).json({ error: "auth_required" });
+      return null;
+    }
+    
+    // Verify it matches if client sent one
+    const clientUid = req.query.userId || req.body.userId;
+    if (clientUid && clientUid !== authUid) {
+      res.status(403).json({ error: "uid_mismatch" });
+      return null;
+    }
+    
+    return authUid;
+  };
+
   // Health and connection info
   app.get("/api/health", (req, res) => {
     res.json({
@@ -49,8 +88,8 @@ async function startServer() {
   // Tasks API
   app.get("/api/tasks", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const snap = await getUserCollection(userId, "tasks").get();
       let list = docsToArray(snap);
       
@@ -66,10 +105,10 @@ async function startServer() {
 
   app.post("/api/tasks", async (req, res) => {
     try {
-      const missing = requireFields(req.body, ["title", "userId"]);
-      if (missing.length > 0) return res.status(400).json({ error: `${missing[0]} is required` });
-      
-      const { userId, title, description, deadline, priority, category, status } = req.body;
+      const userId = resolveUid(req, res);
+      if (!userId) return;
+      const { title, description, deadline, priority, category, status } = req.body;
+      if (!title) return res.status(400).json({ error: "title is required" });
       const newTask = {
         title,
         description: description || "",
@@ -90,8 +129,8 @@ async function startServer() {
 
   app.put("/api/tasks/:id", async (req, res) => {
     try {
-      const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       
       const docRef = getUserCollection(userId, "tasks").doc(req.params.id);
       const doc = await docRef.get();
@@ -112,8 +151,8 @@ async function startServer() {
 
   app.delete("/api/tasks/:id", async (req, res) => {
     try {
-      const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       await getUserCollection(userId, "tasks").doc(req.params.id).delete();
       res.json({ success: true });
     } catch (err: any) {
@@ -125,7 +164,8 @@ async function startServer() {
   app.get("/api/drive", async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
-      const userId = req.query.userId as string;
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       
       if (!userId) {
         return res.status(400).json({ error: "userId required" });
@@ -165,6 +205,8 @@ async function startServer() {
 
   app.get("/api/drive/:id", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader.includes("undefined") || authHeader.includes("null")) {
         return res.status(401).json({ error: "Google sign in required" });
@@ -182,6 +224,8 @@ async function startServer() {
 
   app.get("/api/drive/:id/content", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
       const token = authHeader.substring(7);
@@ -197,6 +241,8 @@ async function startServer() {
 
   app.post("/api/drive/folders", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
       const token = authHeader.substring(7);
@@ -213,6 +259,8 @@ async function startServer() {
 
   app.post("/api/drive/docs", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
       const token = authHeader.substring(7);
@@ -229,6 +277,8 @@ async function startServer() {
 
   app.post("/api/drive/upload-text", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ error: "Missing authorization" });
       const token = authHeader.substring(7);
@@ -245,6 +295,8 @@ async function startServer() {
 
   // Emails API
   app.get("/api/emails", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const type = (req.query.type as "inbox" | "sent") || "inbox";
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -262,6 +314,8 @@ async function startServer() {
   });
 
   app.post("/api/emails/draft", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
       return res.status(401).json({ error: "Google sign-in required to compose mail" });
@@ -314,6 +368,8 @@ async function startServer() {
 
   app.post("/api/emails/suggest-tasks", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const { email } = req.body;
       if (!email) {
         return res.status(400).json({ error: "Missing email" });
@@ -353,6 +409,8 @@ Body Snippet: ${email.snippet}
   });
 
   app.post("/api/emails/send", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
       return res.status(401).json({ error: "Google sign-in required to send mail" });
@@ -381,6 +439,8 @@ Body Snippet: ${email.snippet}
   });
 
   app.post("/api/emails/:id/summarise", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const email = db.getEmailById(req.params.id);
     if (!email) {
       return res.status(404).json({ error: "Email not found" });
@@ -399,12 +459,13 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
   });
 
   app.post("/api/emails/:id/reply", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const email = db.getEmailById(req.params.id);
     if (!email) {
       return res.status(404).json({ error: "Email not found" });
     }
 
-    const { userId } = req.body;
     let memories: MemoryItem[];
     if (userId) {
       try {
@@ -428,57 +489,28 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
   // Calendar API
   app.get("/api/calendar", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
-
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
         if (token && token !== "undefined" && token !== "null") {
           try {
-            // Fetch 30 days back, 90 days forward
             const now = new Date();
             const timeMin = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
             const timeMax = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
 
             const googleEvents = await fetchCalendarEvents(token, timeMin, timeMax, userId);
-
-            // Upsert each event into users/{userId}/calendarEvents keyed by googleEventId
-            try {
-              const collectionRef = getUserCollection(userId, "calendarEvents");
-              const batch = serverDb.batch();
-              for (const ev of googleEvents) {
-                const docRef = collectionRef.doc(ev.googleEventId!);
-                batch.set(docRef, {
-                  title: ev.title,
-                  start: ev.start,
-                  end: ev.end,
-                  location: ev.location || "",
-                  description: ev.description || "",
-                  googleEventId: ev.googleEventId,
-                  taskId: ev.taskId || null,
-                  createdAt: new Date().toISOString()
-                }, { merge: true });
-              }
-              await batch.commit();
-            } catch (err: any) {
-              console.warn("Skipping Firestore mirror for calendar events due to error:", err.message);
-            }
-
             return res.json(googleEvents);
           } catch (err: any) {
             console.error("Failed to sync Google Calendar events:", err);
             if (err.message && err.message.includes("403")) {
               return res.status(403).json({ error: "reauth_required" });
             }
-            // If it fails (e.g. invalid token), fall back to reading the mirror
           }
         }
       }
-
-      // Read-only mirror fallback if no token or sync failed
-      const snap = await getUserCollection(userId, "calendarEvents").get();
-      res.json(docsToArray(snap));
+      return res.json([]);
     } catch (err: any) {
       sendServerError(res, err, "GET /api/calendar");
     }
@@ -486,10 +518,12 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.post("/api/calendar", async (req, res) => {
     try {
-      const missing = requireFields(req.body, ["title", "start", "end", "userId"]);
+      const userId = resolveUid(req, res);
+      if (!userId) return;
+      const missing = requireFields(req.body, ["title", "start", "end"]);
       if (missing.length > 0) return res.status(400).json({ error: `${missing[0]} is required` });
 
-      const { userId, title, start, end, location, description, taskId } = req.body;
+      const { title, start, end, location, description, taskId } = req.body;
       const authHeader = req.headers.authorization;
 
       if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -506,22 +540,7 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
               taskId
             });
 
-            const googleEventId = createdGoogleEvent.id;
-
-            // Mirror to Firestore
-            const mirroredEvent = {
-              title,
-              start,
-              end,
-              location: location || "",
-              description: description || "",
-              googleEventId,
-              taskId: taskId || null,
-              createdAt: new Date().toISOString()
-            };
-
-            await getUserCollection(userId, "calendarEvents").doc(googleEventId).set(mirroredEvent);
-            return res.json({ id: googleEventId, ...mirroredEvent });
+            return res.json({ id: createdGoogleEvent.id, ...createdGoogleEvent });
           } catch (err: any) {
             console.error("Failed to create Google Calendar event:", err);
             if (err.message && err.message.includes("403")) {
@@ -531,21 +550,7 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
           }
         }
       }
-
-      // Offline/fallback write to Firestore only
-      const mockGoogleId = "offline_" + Math.random().toString(36).substring(2, 11);
-      const offlineEvent = {
-        title,
-        start,
-        end,
-        location: location || "",
-        description: description || "",
-        googleEventId: mockGoogleId,
-        taskId: taskId || null,
-        createdAt: new Date().toISOString()
-      };
-      await getUserCollection(userId, "calendarEvents").doc(mockGoogleId).set(offlineEvent);
-      res.json({ id: mockGoogleId, ...offlineEvent });
+      return res.status(401).json({ error: "Google token required for server operation" });
     } catch (err: any) {
       sendServerError(res, err, "POST /api/calendar");
     }
@@ -554,7 +559,9 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
   app.put("/api/calendar/:googleEventId", async (req, res) => {
     try {
       const { googleEventId } = req.params;
-      const { userId, title, start, end, location, description, taskId } = req.body;
+      const userId = resolveUid(req, res);
+      if (!userId) return;
+      const { title, start, end, location, description, taskId } = req.body;
       if (!userId) return res.status(400).json({ error: "userId is required" });
 
       const authHeader = req.headers.authorization;
@@ -571,20 +578,7 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
               description,
               taskId
             });
-
-            // Mirror to Firestore
-            const updatedFields: any = {
-              updatedAt: new Date().toISOString()
-            };
-            if (title !== undefined) updatedFields.title = title;
-            if (start !== undefined) updatedFields.start = start;
-            if (end !== undefined) updatedFields.end = end;
-            if (location !== undefined) updatedFields.location = location;
-            if (description !== undefined) updatedFields.description = description;
-            if (taskId !== undefined) updatedFields.taskId = taskId || null;
-
-            await getUserCollection(userId, "calendarEvents").doc(googleEventId).update(updatedFields);
-            return res.json({ id: googleEventId, ...updatedFields });
+            return res.json({ success: true, id: googleEventId });
           } catch (err: any) {
             console.error("Failed to update Google Calendar event:", err);
             if (err.message && err.message.includes("403")) {
@@ -594,20 +588,7 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
           }
         }
       }
-
-      // Offline fallback
-      const updatedFields: any = {
-        updatedAt: new Date().toISOString()
-      };
-      if (title !== undefined) updatedFields.title = title;
-      if (start !== undefined) updatedFields.start = start;
-      if (end !== undefined) updatedFields.end = end;
-      if (location !== undefined) updatedFields.location = location;
-      if (description !== undefined) updatedFields.description = description;
-      if (taskId !== undefined) updatedFields.taskId = taskId || null;
-
-      await getUserCollection(userId, "calendarEvents").doc(googleEventId).update(updatedFields);
-      res.json({ id: googleEventId, ...updatedFields });
+      return res.status(401).json({ error: "Google token required for server operation" });
     } catch (err: any) {
       sendServerError(res, err, "PUT /api/calendar");
     }
@@ -616,20 +597,15 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
   app.delete("/api/calendar/:googleEventId", async (req, res) => {
     try {
       const { googleEventId } = req.params;
-      const { userId } = req.body;
-      const actualUserId = userId || (req.query.userId as string);
-      if (!actualUserId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
 
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
         if (token && token !== "undefined" && token !== "null") {
           try {
-            // Delete from Google
             await deleteCalendarEvent(token, googleEventId);
-
-            // Delete from mirror
-            await getUserCollection(actualUserId, "calendarEvents").doc(googleEventId).delete();
             return res.json({ success: true });
           } catch (err: any) {
             console.error("Failed to delete Google Calendar event:", err);
@@ -640,10 +616,7 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
           }
         }
       }
-
-      // Offline fallback
-      await getUserCollection(actualUserId, "calendarEvents").doc(googleEventId).delete();
-      res.json({ success: true });
+      return res.status(401).json({ error: "Google token required for server operation" });
     } catch (err: any) {
       sendServerError(res, err, "DELETE /api/calendar");
     }
@@ -652,8 +625,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
   // Memory API
   app.get("/api/memory", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const snap = await getUserCollection(userId, "memoryItems").get();
       res.json(docsToArray(snap));
     } catch (err: any) {
@@ -663,10 +636,12 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.post("/api/memory", async (req, res) => {
     try {
-      const missing = requireFields(req.body, ["key", "value", "userId"]);
+      const userId = resolveUid(req, res);
+      if (!userId) return;
+      const missing = requireFields(req.body, ["key", "value"]);
       if (missing.length > 0) return res.status(400).json({ error: `${missing[0]} is required` });
 
-      const { userId, key, value, category } = req.body;
+      const { key, value, category } = req.body;
       const newItem = {
         key,
         value,
@@ -684,8 +659,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.put("/api/memory/:id", async (req, res) => {
     try {
-      const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
 
       const docRef = getUserCollection(userId, "memoryItems").doc(req.params.id);
       const doc = await docRef.get();
@@ -704,8 +679,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.delete("/api/memory/:id", async (req, res) => {
     try {
-      const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       await getUserCollection(userId, "memoryItems").doc(req.params.id).delete();
       res.json({ success: true });
     } catch (err: any) {
@@ -716,8 +691,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
   // Student Database API
   app.get("/api/students", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required for student database queries" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const snap = await getUserCollection(userId, "students").orderBy("fullName", "asc").get();
       res.json(docsToArray(snap));
     } catch (err: any) {
@@ -727,8 +702,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.get("/api/students/:id", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const doc = await getUserCollection(userId, "students").doc(req.params.id).get();
       if (!doc.exists) return res.status(404).json({ error: "Student not found" });
       res.json({ id: doc.id, ...doc.data() });
@@ -739,6 +714,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.post("/api/students/import-preview", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const currentRecords = req.body.currentRecords || [];
       const currentNames = new Set(currentRecords.map((r: StudentRecord) => r.fullName.toLowerCase()));
 
@@ -758,7 +735,9 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.post("/api/students/import-confirm", async (req, res) => {
     try {
-      const { userId, records } = req.body;
+      const userId = resolveUid(req, res);
+      if (!userId) return;
+      const { records } = req.body;
       if (!userId) return res.status(400).json({ error: "userId is required for writing records" });
       if (!records || !Array.isArray(records)) return res.status(400).json({ error: "No records list provided for import" });
 
@@ -810,7 +789,9 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.post("/api/students", async (req, res) => {
     try {
-      const { userId, ...studentData } = req.body;
+      const userId = resolveUid(req, res);
+      if (!userId) return;
+      const { ...studentData } = req.body;
       if (!userId) return res.status(400).json({ error: "userId is required for creating a student" });
       
       const docRef = getUserCollection(userId, "students").doc();
@@ -829,7 +810,9 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.put("/api/students/:id", async (req, res) => {
     try {
-      const { userId, ...updates } = req.body;
+      const userId = resolveUid(req, res);
+      if (!userId) return;
+      const { ...updates } = req.body;
       if (!userId) return res.status(400).json({ error: "userId is required for updates" });
       
       const docRef = getUserCollection(userId, "students").doc(req.params.id);
@@ -845,8 +828,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.delete("/api/students/:id", async (req, res) => {
     try {
-      const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "userId is required for deletion" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       
       const docRef = getUserCollection(userId, "students").doc(req.params.id);
       await docRef.delete();
@@ -860,6 +843,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.post("/api/timetable/import-preview", async (req, res) => {
     try {
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const currentRecords = req.body.currentRecords || [];
       const currentKeys = new Set(
         currentRecords.map((r: TimetableEntry) =>
@@ -886,7 +871,9 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
   });
 
   app.post("/api/timetable/import-confirm", async (req, res) => {
-    const { userId, records } = req.body;
+    const userId = resolveUid(req, res);
+      if (!userId) return;
+      const { records } = req.body;
     if (!userId) {
       return res.status(400).json({ error: "userId is required for writing records" });
     }
@@ -943,8 +930,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.get("/api/timetable", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const snap = await getUserCollection(userId, "timetableEntries").get();
       res.json(docsToArray(snap));
     } catch (err: any) {
@@ -954,8 +941,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.get("/api/timetable/today", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const snap = await getUserCollection(userId, "timetableEntries").get();
       const list = docsToArray(snap);
       const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -969,8 +956,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.get("/api/timetable/free-periods", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const snap = await getUserCollection(userId, "timetableEntries").get();
       const list = docsToArray(snap);
 
@@ -1009,8 +996,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   app.get("/api/timetable/conflicts", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
+      const userId = resolveUid(req, res);
+      if (!userId) return;
       const snap = await getUserCollection(userId, "timetableEntries").get();
       const list = docsToArray(snap);
 
@@ -1045,6 +1032,8 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
 
   // Daily Schedule & Planner Generator
   app.post("/api/plan", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const { contextData } = req.body;
 
     const data = contextData || { tasks: "", emails: "", calendar: "", memory: "" };
@@ -1141,11 +1130,9 @@ ${data.memory || "No memory preferences stored."}
   // Cloud Scheduler Public Cron Endpoint for Scheduled Morning Briefs
   app.post("/api/cron/daily-brief", async (req, res) => {
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const incomingSecret = req.headers["x-cron-secret"] || req.query.secret;
-      if (incomingSecret !== cronSecret) {
-        return res.status(401).json({ error: "Unauthorized cron access" });
-      }
+    const incomingSecret = req.headers["x-cron-secret"];
+    if (!cronSecret || incomingSecret !== cronSecret) {
+      return res.status(403).json({ error: "Unauthorized cron access" });
     }
 
     try {
@@ -1274,16 +1261,22 @@ ${formattedMemory || "No memory preferences stored."}
 
   // Chat/Assistant endpoint using Agentic Assistant Runner
   app.get("/api/chat", (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     res.json(db.getChatHistory());
   });
 
   app.post("/api/chat/clear", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     db.clearChatHistory();
     res.json({ success: true });
   });
 
   app.post("/api/chat", async (req, res) => {
-    const { message, contextData, userId, chatHistory, contents } = req.body;
+    const userId = resolveUid(req, res);
+    if (!userId) return;
+    const { message, contextData, chatHistory, contents } = req.body;
     if (!message && !contents) {
       return res.status(400).json({ error: "Message or contents is required" });
     }
@@ -1320,7 +1313,7 @@ ${formattedMemory || "No memory preferences stored."}
         message,
         contents: initialContents,
         contextData,
-        userId: userId || "default_teacher",
+        userId,
         accessToken,
         onEvent
       });
@@ -1333,9 +1326,11 @@ ${formattedMemory || "No memory preferences stored."}
   });
 
   app.post("/api/chat/approve", async (req, res) => {
-    const { contents, batch, userId, contextData, clientResults } = req.body;
-    if (!contents || !batch || !userId) {
-      return res.status(400).json({ error: "Missing contents, batch, or userId parameters" });
+    const userId = resolveUid(req, res);
+    if (!userId) return;
+    const { contents, batch, contextData, clientResults } = req.body;
+    if (!contents || !batch) {
+      return res.status(400).json({ error: "Missing contents or batch parameters" });
     }
 
     const authHeader = req.headers.authorization;
@@ -1400,6 +1395,8 @@ ${formattedMemory || "No memory preferences stored."}
 
   // Lesson Planner API
   app.post("/api/lessons/generate", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: "No prompt provided" });
 
@@ -1413,6 +1410,8 @@ ${formattedMemory || "No memory preferences stored."}
   });
 
   app.post("/api/lessons/pacing", async (req, res) => {
+    const userId = resolveUid(req, res);
+    if (!userId) return;
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: "No prompt provided" });
 

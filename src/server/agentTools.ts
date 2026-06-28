@@ -1,5 +1,6 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import fs from "fs";
 import path from "path";
 import { schoolEvents } from "../data/schoolEvents.js";
@@ -29,6 +30,7 @@ const app = getApps().length === 0
   : getApps()[0];
 
 export const serverDb = getFirestore(app, firebaseConfig.firestoreDatabaseId || "ai-studio-69501555-bf6b-4068-9633-66d8f6470c9f");
+export const serverAuth = getAuth(app);
 
 // Helper to check if a tool is a write action that requires approval
 export function isWriteTool(name: string): boolean {
@@ -165,17 +167,6 @@ export const TOOL_DECLARATIONS = [
       properties: {
         type: { type: "STRING", description: "Email box to search: inbox or sent", enum: ["inbox", "sent"] },
         limit: { type: "INTEGER", description: "Max number of emails to retrieve from inbox (default is 10)" }
-      }
-    }
-  },
-  {
-    name: "searchDriveFiles",
-    description: "Searches Google Drive for syllabus documents, slides, or grading sheets. (Read-only, executes automatically)",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        query: { type: "STRING", description: "Search term to match document names in Drive" },
-        limit: { type: "INTEGER", description: "Max number of files to return (default 10)" }
       }
     }
   },
@@ -581,25 +572,6 @@ export async function executeTool(userId: string, name: string, args: any, acces
         return { count: results.length, memories: results };
       }
 
-      case "searchDriveFiles": {
-        if (!accessToken) {
-          return { error: "Google Drive access token missing. Please sign in." };
-        }
-        
-        try {
-          const limit = args.limit || 10;
-          let query = "trashed = false";
-          if (args.query) {
-            query += ` and name contains '${args.query.replace(/'/g, "\\'")}'`;
-          }
-          
-          const files = await fetchDriveFiles(accessToken, query, limit);
-          return { count: files.length, files };
-        } catch (err: any) {
-          console.error("searchDriveFiles error:", err);
-          return { error: "Failed to search Google Drive." };
-        }
-      }
 
       case "summariseEmails": {
         const type = args.type || "inbox";

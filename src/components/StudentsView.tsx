@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import { useFirestoreStudents } from "../lib/hooks";
 import { StudentRecord, StudentImportPreview } from "../types";
@@ -235,7 +236,7 @@ export default function StudentsView({
     setStatusMessage(null);
     
     // Call server to generate preview
-    fetch("/api/students/import-preview", {
+    apiFetch("/api/students/import-preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ currentRecords: students })
@@ -363,7 +364,7 @@ export default function StudentsView({
     setIsImporting(true);
     setStatusMessage(null);
     
-    fetch("/api/students/import-preview", {
+    apiFetch("/api/students/import-preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ currentRecords: students })

@@ -29,7 +29,7 @@ export async function fetchDriveFiles(
       if (errData.error && errData.error.message) {
         errorMsg = errData.error.message;
       }
-    } catch (e) {}
+    } catch (_e) { void _e; }
     const error = new Error(errorMsg);
     (error as any).status = res.status;
     throw error;
@@ -57,7 +57,7 @@ export async function getDriveFile(
       if (errData.error && errData.error.message) {
         errorMsg = errData.error.message;
       }
-    } catch (e) {}
+    } catch (_e) { void _e; }
     const error = new Error(errorMsg);
     (error as any).status = res.status;
     throw error;
@@ -137,13 +137,9 @@ export async function uploadDriveFile(accessToken: string, name: string, content
 }
 
 export async function getDriveFileContent(accessToken: string, fileId: string, mimeType: string): Promise<string> {
-  let url = "";
-  
-  if (mimeType === "application/vnd.google-apps.document") {
-    url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`;
-  } else {
-    url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-  }
+  const url = mimeType === "application/vnd.google-apps.document"
+    ? `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`
+    : `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },

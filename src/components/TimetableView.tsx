@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect } from "react";
 import { useFirestoreTimetable } from "../lib/hooks";
 import { TimetableImportPreview } from "../types";
@@ -96,7 +97,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch("/api/timetable/import-preview", {
+      const res = await apiFetch("/api/timetable/import-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentRecords: timetable }),

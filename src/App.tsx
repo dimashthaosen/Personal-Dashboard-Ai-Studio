@@ -1,3 +1,4 @@
+import { apiFetch } from "./lib/api";
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { TeacherUser, Email } from "./types";
 import { useFirestoreTasks } from "./lib/hooks";
@@ -172,7 +173,7 @@ export default function App() {
         if (googleToken) {
           headers["Authorization"] = `Bearer ${googleToken}`;
         }
-        const res = await fetch("/api/emails", { headers });
+        const res = await apiFetch("/api/emails", { headers });
         if (res.ok) {
           const data = await res.json();
           setEmails(data);
@@ -186,7 +187,7 @@ export default function App() {
 
   useEffect(() => {
     // Detect server API status (AI-Enabled vs Demo mode)
-    fetch("/api/health")
+    apiFetch("/api/health")
       .then((res) => {
         if (!res.ok) throw new Error("Server error");
         return res.json();

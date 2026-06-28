@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import { BookOpen, ChevronDown, Check, Save, Copy, Loader2, Upload, Sparkles, FileText, Layout, HardDrive } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -153,7 +154,7 @@ export default function LessonPlannerView({ userId }: { userId?: string }) {
     setAppliedPacing(null);
     try {
       const token = await getAccessToken();
-      const res = await fetch("/api/lessons/pacing", {
+      const res = await apiFetch("/api/lessons/pacing", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -297,7 +298,7 @@ ${pedaMix}
 
     try {
       const token = await getAccessToken();
-      const res = await fetch("/api/lessons/generate", {
+      const res = await apiFetch("/api/lessons/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -329,7 +330,7 @@ ${pedaMix}
     }
     try {
       const name = `Lesson Plan - ${CURRICULUM[courseId]?.label || "Course"} Week ${week}.md`;
-      const res = await fetch("/api/drive/upload-text", {
+      const res = await apiFetch("/api/drive/upload-text", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

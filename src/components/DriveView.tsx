@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect } from "react";
 import { DriveFile } from "../types";
 import { HardDrive, Search, RefreshCw, AlertCircle, ExternalLink, FileText, FileSpreadsheet, File as FileIcon, Folder, Image as ImageIcon } from "lucide-react";
@@ -44,7 +45,7 @@ export default function DriveView({ userId, googleToken, onReauth }: DriveViewPr
         q += " and mimeType = 'application/pdf'";
       }
 
-      const res = await fetch(`/api/drive?userId=${userId}&q=${encodeURIComponent(q)}`, {
+      const res = await apiFetch(`/api/drive?userId=${userId}&q=${encodeURIComponent(q)}`, {
         headers: {
           Authorization: `Bearer ${googleToken}`
         }
@@ -94,7 +95,7 @@ export default function DriveView({ userId, googleToken, onReauth }: DriveViewPr
     if (!userId || !googleToken) return;
     setCreating(true);
     try {
-      const res = await fetch("/api/drive/folders", {
+      const res = await apiFetch("/api/drive/folders", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${googleToken}`,

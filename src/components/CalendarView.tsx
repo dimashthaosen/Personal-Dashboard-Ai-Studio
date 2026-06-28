@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect } from "react";
 import { CalendarEvent } from "../types";
 import { 
@@ -50,7 +51,7 @@ export default function CalendarView({
     setSyncStatus("syncing");
     setSyncError(null);
     try {
-      const res = await fetch(`/api/calendar?userId=${userId}`, {
+      const res = await apiFetch(`/api/calendar?userId=${userId}`, {
         headers: {
           "Authorization": `Bearer ${googleToken}`
         }
@@ -91,7 +92,7 @@ export default function CalendarView({
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
 
-      const res = await fetch(`/api/calendar/${targetId}`, {
+      const res = await apiFetch(`/api/calendar/${targetId}`, {
         method: "DELETE",
         headers,
         body: JSON.stringify({ userId })
@@ -238,7 +239,7 @@ export default function CalendarView({
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
 
-      const res = await fetch("/api/calendar", {
+      const res = await apiFetch("/api/calendar", {
         method: "POST",
         headers,
         body: JSON.stringify(payload)

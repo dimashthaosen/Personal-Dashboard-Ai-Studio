@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect } from "react";
 import { Email, DailyPlan } from "../types";
 import { AlertCircle, Clock, Sparkles, X, Mail } from "lucide-react";
@@ -72,7 +73,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
       if (googleToken) {
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
-      const res = await fetch("/api/emails?type=inbox", { headers });
+      const res = await apiFetch("/api/emails?type=inbox", { headers });
       if (!res.ok) throw new Error("API failed");
       const text = await res.text();
       try {
@@ -98,7 +99,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     };
 
     try {
-      const res = await fetch("/api/plan", { 
+      const res = await apiFetch("/api/plan", { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contextData })
@@ -138,7 +139,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
       if (googleToken) {
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
-      const res = await fetch("/api/emails/send", {
+      const res = await apiFetch("/api/emails/send", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -185,7 +186,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
 
-      const res = await fetch("/api/calendar", {
+      const res = await apiFetch("/api/calendar", {
         method: "POST",
         headers,
         body: JSON.stringify({

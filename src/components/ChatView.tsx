@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "../types";
 import { Sparkles, Trash2, ArrowUpCircle, Check, AlertTriangle, XCircle } from "lucide-react";
@@ -123,7 +124,7 @@ export default function ChatView({
       }
 
       // Tell the server-side runtime to clear its local in-memory logs
-      await fetch("/api/chat/clear", {
+      await apiFetch("/api/chat/clear", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId })
@@ -173,7 +174,7 @@ export default function ChatView({
         headers["Authorization"] = `Bearer ${googleToken}`;
       }
 
-      const response = await fetch("/api/chat", {
+      const response = await apiFetch("/api/chat", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -417,7 +418,7 @@ export default function ChatView({
         approveHeaders["Authorization"] = `Bearer ${googleToken}`;
       }
 
-      const response = await fetch("/api/chat/approve", {
+      const response = await apiFetch("/api/chat/approve", {
         method: "POST",
         headers: approveHeaders,
         body: JSON.stringify({
