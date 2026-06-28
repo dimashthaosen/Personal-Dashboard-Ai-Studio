@@ -12,6 +12,17 @@ export interface Task {
   recurrence?: "none" | "daily" | "weekly" | "monthly";
 }
 
+export interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string;
+  webViewLink?: string;
+  owners?: { displayName?: string, emailAddress?: string }[];
+  iconLink?: string;
+  size?: string;
+}
+
 export interface Email {
   id: string;
   subject: string;

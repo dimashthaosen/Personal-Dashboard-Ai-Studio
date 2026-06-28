@@ -15,6 +15,7 @@ const SettingsView = lazy(() => import("./components/SettingsView"));
 const CommandBar = lazy(() => import("./components/CommandBar"));
 const StudentsView = lazy(() => import("./components/StudentsView"));
 const TimetableView = lazy(() => import("./components/TimetableView"));
+const DriveView = lazy(() => import("./components/DriveView"));
 
 import { initAuth, googleSignIn, firebaseLogout } from "./lib/firebase";
 import {
@@ -33,6 +34,7 @@ import {
   Search,
   Check,
   AlertTriangle,
+  HardDrive
 } from "lucide-react";
 
 export default function App() {
@@ -288,6 +290,7 @@ export default function App() {
       items: [
         { id: "email", label: "Email", icon: <Mail className="w-4 h-4" /> },
         { id: "calendar", label: "Calendar", icon: <Calendar className="w-4 h-4" /> },
+        { id: "drive", label: "Drive", icon: <HardDrive className="w-4 h-4" /> },
       ],
     },
     {
@@ -476,6 +479,8 @@ export default function App() {
         );
       case "timetable":
         return <TimetableView userId={currentUser?.userId} />;
+      case "drive":
+        return <DriveView userId={currentUser?.userId} googleToken={googleToken} onReauth={handleLoginGoogle} />;
       case "students":
         return (
           <StudentsView 

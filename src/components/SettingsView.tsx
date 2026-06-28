@@ -17,6 +17,12 @@ export default function SettingsView({ currentUser, apiMode, onSwitchAccount }: 
       type: "active",
     },
     {
+      name: "Google Workspace API",
+      description: "Calendar and Drive integrations strictly follow the active signed-in Google account.",
+      status: "Connected",
+      type: "active",
+    },
+    {
       name: "Gemini 3.5 Flash Engine",
       description: "Powers chat streams, pointwise replies, and personalized schedulers.",
       status: apiMode === "AI-Enabled" ? "Active (Grounded)" : "Offline Simulator active",

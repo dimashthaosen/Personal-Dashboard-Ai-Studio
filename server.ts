@@ -2,9 +2,10 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { db } from "./src/server/db";
-import { generateContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION } from "./src/server/ai";
+import { generateContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION, getGemini } from "./src/server/ai";
 import { fetchGmailEmails, createGmailDraft, sendGmailEmail } from "./src/server/gmail";
 import { fetchCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./src/server/calendar";
+import { fetchDriveFiles, getDriveFile } from "./src/server/drive";
 import { runAssistantAgent } from "./src/server/agentRunner";
 import { executeTool, serverDb } from "./src/server/agentTools";
 
@@ -120,6 +121,61 @@ async function startServer() {
     }
   });
 
+  // Drive API
+  app.get("/api/drive", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const userId = req.query.userId as string;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "userId required" });
+      }
+
+      if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader.includes("undefined") || authHeader.includes("null")) {
+        return res.status(401).json({ error: "Google sign in required" });
+      }
+      
+      const token = authHeader.substring(7);
+      const query = req.query.q as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+      
+      const files = await fetchDriveFiles(token, query, limit);
+      
+      // Mirror to Firestore: users/{userId}/driveFiles
+      const batch = serverDb.batch();
+      const driveRef = serverDb.collection(`users/${userId}/driveFiles`);
+      
+      files.forEach(file => {
+        batch.set(driveRef.doc(file.id), file, { merge: true });
+      });
+      await batch.commit();
+
+      res.json(files);
+    } catch (err: any) {
+      if (err.status === 401 || err.status === 403) {
+        return res.status(401).json({ error: "reauth_required", details: err.message });
+      }
+      sendServerError(res, err, "GET /api/drive");
+    }
+  });
+
+  app.get("/api/drive/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader.includes("undefined") || authHeader.includes("null")) {
+        return res.status(401).json({ error: "Google sign in required" });
+      }
+      const token = authHeader.substring(7);
+      const file = await getDriveFile(token, req.params.id);
+      res.json(file);
+    } catch (err: any) {
+      if (err.status === 401 || err.status === 403) {
+        return res.status(401).json({ error: "reauth_required" });
+      }
+      sendServerError(res, err, "GET /api/drive/:id");
+    }
+  });
+
   // Emails API
   app.get("/api/emails", async (req, res) => {
     const type = (req.query.type as "inbox" | "sent") || "inbox";
@@ -186,6 +242,46 @@ async function startServer() {
         return res.status(403).json({ error: "reauth_required" });
       }
       sendServerError(res, err, "POST /api/emails/draft");
+    }
+  });
+
+  app.post("/api/emails/suggest-tasks", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Missing email" });
+      }
+
+      const prompt = `Analyze the following email and suggest exactly 3 specific, actionable tasks that the user (Dimash) should do as a follow up. 
+Return the output strictly as a JSON array of 3 objects. Do not include any markdown formatting or extra text.
+Each object must have exactly these keys:
+"title" (string, short actionable title),
+"description" (string, brief details or context based on the email),
+"priority" (string, one of: "low", "medium", "high", "urgent"),
+"category" (string, one of: "school", "grading", "admin", "planning", "personal")
+
+Email Subject: ${email.subject}
+From: ${email.from}
+Body Snippet: ${email.snippet}
+`;
+      const ai = getGemini();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: TEACHER_SYSTEM_INSTRUCTION,
+          temperature: 0.2
+        }
+      });
+
+      let text = response.text || "[]";
+      text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      let tasks = JSON.parse(text);
+      if (!Array.isArray(tasks)) tasks = [tasks];
+      
+      res.json({ tasks: tasks.slice(0, 3) });
+    } catch (err: any) {
+      sendServerError(res, err, "POST /api/emails/suggest-tasks");
     }
   });
 

@@ -7,6 +7,7 @@ import { SEED_STUDENTS } from "../data/studentsData.js";
 import { generateContentText, generateLessonPlan as aiGenerateLessonPlan } from "./ai.js";
 import { db } from "./db.js";
 import { fetchGmailEmails } from "./gmail.js";
+import { fetchDriveFiles } from "./drive.js";
 import { normalisePriority, normaliseCategory, normaliseStatus, normaliseMemoryCategory, buildReplyPrompt } from "./validators.js";
 import { Task, CalendarEvent, MemoryItem, StudentRecord, TimetableEntry } from "../types.js";
 
@@ -27,9 +28,7 @@ const app = getApps().length === 0
     })
   : getApps()[0];
 
-export const serverDb = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore();
+export const serverDb = getFirestore(app, "ai-studio-69501555-bf6b-4068-9633-66d8f6470c9f");
 
 // Helper to check if a tool is a write action that requires approval
 export function isWriteTool(name: string): boolean {
@@ -166,6 +165,17 @@ export const TOOL_DECLARATIONS = [
       properties: {
         type: { type: "STRING", description: "Email box to search: inbox or sent", enum: ["inbox", "sent"] },
         limit: { type: "INTEGER", description: "Max number of emails to retrieve from inbox (default is 10)" }
+      }
+    }
+  },
+  {
+    name: "searchDriveFiles",
+    description: "Searches Google Drive for syllabus documents, slides, or grading sheets. (Read-only, executes automatically)",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: { type: "STRING", description: "Search term to match document names in Drive" },
+        limit: { type: "INTEGER", description: "Max number of files to return (default 10)" }
       }
     }
   },
@@ -500,6 +510,26 @@ export async function executeTool(userId: string, name: string, args: any, acces
 
         const results = items.map(m => ({ key: m.key, value: m.value, category: m.category }));
         return { count: results.length, memories: results };
+      }
+
+      case "searchDriveFiles": {
+        if (!accessToken) {
+          return { error: "Google Drive access token missing. Please sign in." };
+        }
+        
+        try {
+          const limit = args.limit || 10;
+          let query = "trashed = false";
+          if (args.query) {
+            query += ` and name contains '${args.query.replace(/'/g, "\\'")}'`;
+          }
+          
+          const files = await fetchDriveFiles(accessToken, query, limit);
+          return { count: files.length, files };
+        } catch (err: any) {
+          console.error("searchDriveFiles error:", err);
+          return { error: "Failed to search Google Drive." };
+        }
       }
 
       case "summariseEmails": {

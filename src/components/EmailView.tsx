@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Email, TeacherUser } from "../types";
-import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw, ClipboardList } from "lucide-react";
+import { Mail, Sparkles, Send, Copy, Check, ChevronRight, Settings, Search, RefreshCw, ClipboardList, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -114,10 +114,35 @@ export default function EmailView({
   // Email to Task states
   const [taskCreating, setTaskCreating] = useState<string | null>(null);
   const [taskCreatedMap, setTaskCreatedMap] = useState<Record<string, boolean>>({});
+  
+  const [suggestedTasks, setSuggestedTasks] = useState<any[]>([]);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [suggestingTasks, setSuggestingTasks] = useState(false);
 
   const handleCreateTaskFromEmail = async (email: Email) => {
     if (!userId) return;
-    setTaskCreating(email.id);
+    setSuggestingTasks(true);
+    setShowTaskModal(true);
+    setSuggestedTasks([]);
+    try {
+      const res = await fetch("/api/emails/suggest-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      if (!res.ok) throw new Error("Failed to suggest tasks");
+      const data = await res.json();
+      setSuggestedTasks(data.tasks || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSuggestingTasks(false);
+    }
+  };
+
+  const handleCreateIndividualTask = async (task: any, index: number) => {
+    if (!userId) return;
+    setTaskCreating(index.toString());
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
@@ -126,9 +151,11 @@ export default function EmailView({
         },
         body: JSON.stringify({
           userId,
-          title: `Follow up: ${email.subject}`,
-          description: `Sender: ${email.fromName || email.fromEmail || email.from}\n\nSnippet:\n${email.snippet || ""}\n\nDate: ${new Date(email.date).toLocaleDateString("en-GB")}`,
-          dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default 1 day
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          category: task.category,
+          deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         })
       });
 
@@ -136,10 +163,10 @@ export default function EmailView({
         throw new Error("Failed to create task");
       }
 
-      setTaskCreatedMap(prev => ({ ...prev, [email.id]: true }));
+      setTaskCreatedMap(prev => ({ ...prev, [`${selectedEmail?.id}-${index}`]: true }));
     } catch (err) {
       console.error("Failed to create task from email:", err);
-      alert("Error creating task from this email.");
+      alert("Error creating task.");
     } finally {
       setTaskCreating(null);
     }
@@ -502,6 +529,78 @@ export default function EmailView({
           {selectedEmail ? (
             <div className="space-y-5">
               
+              {/* AI Suggested Tasks Inline output (Moved to top per user request) */}
+              {showTaskModal && (
+                <div className="bg-white border-2 border-[#2d5a4a] rounded-[14px] p-4 shadow-md animate-fade-up flex flex-col">
+                  <div className="flex items-center justify-between border-b border-[#ece6db] pb-2 mb-3">
+                    <h4 className="font-mono text-[13px] text-[#2d5a4a] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-[#2d5a4a]" />
+                      Suggested Tasks
+                    </h4>
+                    <button 
+                      onClick={() => setShowTaskModal(false)}
+                      className="font-mono text-[10px] text-[#8c8273] uppercase tracking-wider hover:text-[#4a4540]"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  
+                  <div className="overflow-y-auto max-h-[40vh]">
+                    {suggestedTasks.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-6 text-[#8c8273]">
+                        <div className="w-6 h-6 rounded-full border-2 border-[#2d5a4a]/20 border-t-[#2d5a4a] animate-spin mb-3"></div>
+                        <p className="font-sans text-xs">Analyzing email...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-[11px] font-sans text-[#4a4540] pb-1">
+                          Select tasks to add to your dashboard:
+                        </p>
+                        {suggestedTasks.map((task, idx) => (
+                          <div key={idx} className="bg-[#fcf9f3] border border-[#e1d8c6] p-3 rounded-lg flex flex-col gap-2">
+                            <div>
+                              <h4 className="font-sans text-sm font-semibold text-[#1a1612]">{task.title}</h4>
+                              <p className="font-sans text-xs text-[#8c8273] mt-1">{task.description}</p>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                                  task.priority === "urgent" || task.priority === "high" ? "bg-red-100 text-red-700" :
+                                  task.priority === "medium" ? "bg-amber-100 text-amber-700" :
+                                  "bg-green-100 text-green-700"
+                                }`}>
+                                  {task.priority || "Normal"}
+                                </span>
+                                <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                  {task.category || "General"}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => handleCreateIndividualTask(task, idx)}
+                                disabled={taskCreating === idx.toString() || taskCreatedMap[`${selectedEmail?.id}-${idx}`]}
+                                className={`font-mono text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${
+                                  taskCreatedMap[`${selectedEmail?.id}-${idx}`]
+                                  ? "bg-[#e8f0ec] text-[#2d5a4a] border border-[#d2e3da]"
+                                  : "bg-[#2d5a4a] text-white hover:bg-[#1f4236]"
+                                } disabled:opacity-50`}
+                              >
+                                {taskCreatedMap[`${selectedEmail?.id}-${idx}`] ? (
+                                  <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
+                                ) : taskCreating === idx.toString() ? (
+                                  "Adding..."
+                                ) : (
+                                  "Add Task"
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Mail Info */}
               <div className="border-b border-[#ece6db] pb-3">
                 <div className="flex justify-between items-start gap-4">
@@ -518,11 +617,6 @@ export default function EmailView({
                   <span>{activeTab === 'sent' ? 'TO' : 'FROM'}: {selectedEmail.from}</span>
                   <span>{new Date(selectedEmail.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long" })}</span>
                 </div>
-              </div>
-
-              {/* Mail Body */}
-              <div className="bg-[#f3ede2] p-5 rounded-[12px] border border-[#e1d8c6] text-xs text-[#4a4540] leading-relaxed font-sans whitespace-pre-wrap max-h-96 overflow-y-auto shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] selection:bg-[#2d5a4a]/10">
-                {formatEmailBody(selectedEmail.body || selectedEmail.snippet)}
               </div>
 
               {/* AI Actions Row */}
@@ -550,25 +644,17 @@ export default function EmailView({
                 <button
                   type="button"
                   onClick={() => handleCreateTaskFromEmail(selectedEmail)}
-                  disabled={taskCreating === selectedEmail.id}
-                  className={`font-mono text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 ${
-                    taskCreatedMap[selectedEmail.id]
-                      ? "text-[#2d5a4a] bg-[#e8f0ec] border border-[#d2e3da]"
-                      : "text-[#4a4540] bg-[#faf7f2] hover:bg-[#ece6db]/50 border border-[#e1d8c6]"
-                  }`}
+                  disabled={suggestingTasks}
+                  className="font-mono text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2d5a4a]/40 flex items-center gap-1.5 text-[#4a4540] bg-[#faf7f2] hover:bg-[#ece6db]/50 border border-[#e1d8c6] disabled:opacity-50"
                 >
-                  {taskCreatedMap[selectedEmail.id] ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-[#2d5a4a]" />
-                      Task Created
-                    </>
-                  ) : (
-                    <>
-                      <ClipboardList className="w-3.5 h-3.5" />
-                      {taskCreating === selectedEmail.id ? "Creating Task..." : "Create Task"}
-                    </>
-                  )}
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  {suggestingTasks ? "Analyzing..." : "Create Task"}
                 </button>
+              </div>
+
+              {/* Mail Body */}
+              <div className="bg-[#f3ede2] p-5 rounded-[12px] border border-[#e1d8c6] text-xs text-[#4a4540] leading-relaxed font-sans whitespace-pre-wrap max-h-96 overflow-y-auto shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] selection:bg-[#2d5a4a]/10">
+                {formatEmailBody(selectedEmail.body || selectedEmail.snippet)}
               </div>
 
               {/* AI Summary result */}
@@ -658,6 +744,9 @@ export default function EmailView({
         </div>
 
       </div>
+
+
+
     </div>
   );
 }
