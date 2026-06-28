@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "../types";
-import { Send, Sparkles, Trash2, ArrowUpCircle, Check, AlertTriangle, XCircle } from "lucide-react";
+import { Sparkles, Trash2, ArrowUpCircle, Check, AlertTriangle, XCircle } from "lucide-react";
 import { useFirestoreTasks, useFirestoreEvents, useFirestoreMemory, useFirestoreChat } from "../lib/hooks";
 import { collection, addDoc, query, getDocs, writeBatch, doc, updateDoc, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -292,13 +292,18 @@ export default function ChatView({
     try {
       // 1. Execute direct client-side Firestore writes to completely circumvent server container permission scopes
       const clientResults: Record<string, any> = {};
+      
       try {
         for (const item of batch) {
           const { tool, args } = item;
           if (tool === "createTask") {
-            const priority = (args.priority || "medium").toLowerCase();
-            const category = (args.category || "school").toLowerCase();
-            const title = String(args.title || "Untitled Task").substring(0, 200);
+            const title = String(args.title || "").trim().substring(0, 200);
+            if (!title) {
+              clientResults[tool] = { success: false, error: "Task title cannot be empty." };
+              continue;
+            }
+            const priority = ["low", "medium", "high", "urgent"].includes((args.priority || "").toLowerCase()) ? args.priority.toLowerCase() : "medium";
+            const category = ["school", "personal", "admin"].includes((args.category || "").toLowerCase()) ? args.category.toLowerCase() : "school";
 
             const docRef = await addDoc(collection(db, `users/${userId}/tasks`), {
               title,
@@ -316,30 +321,62 @@ export default function ChatView({
             const { taskId } = args;
             if (taskId) {
               const updateData: any = {};
-              if (args.title !== undefined) updateData.title = String(args.title).substring(0, 200);
+              if (args.title !== undefined) {
+                const trimmed = String(args.title).trim();
+                if (!trimmed) {
+                  clientResults[tool] = { success: false, error: "Task title cannot be empty." };
+                  continue;
+                }
+                updateData.title = trimmed.substring(0, 200);
+              }
               if (args.description !== undefined) updateData.description = String(args.description);
               if (args.deadline !== undefined) updateData.deadline = String(args.deadline);
-              if (args.priority !== undefined) updateData.priority = String(args.priority).toLowerCase();
-              if (args.category !== undefined) updateData.category = String(args.category).toLowerCase();
-              if (args.status !== undefined) updateData.status = String(args.status).toLowerCase();
+              if (args.priority !== undefined) {
+                 updateData.priority = ["low", "medium", "high", "urgent"].includes(String(args.priority).toLowerCase()) ? String(args.priority).toLowerCase() : "medium";
+              }
+              if (args.category !== undefined) {
+                 updateData.category = ["school", "personal", "admin"].includes(String(args.category).toLowerCase()) ? String(args.category).toLowerCase() : "school";
+              }
+              if (args.status !== undefined) {
+                 updateData.status = ["pending", "in-progress", "done"].includes(String(args.status).toLowerCase()) ? String(args.status).toLowerCase() : "pending";
+              }
               
               await updateDoc(doc(db, `users/${userId}/tasks`, taskId), updateData);
               clientResults[tool] = { success: true, taskId, message: `Task successfully updated.` };
+            } else {
+              clientResults[tool] = { success: false, error: "Task ID is missing." };
             }
           } else if (tool === "createCalendarEvent") {
-            const title = String(args.title || "Untitled Event").substring(0, 200);
+            const title = String(args.title || "").trim().substring(0, 200);
+            if (!title) {
+              clientResults[tool] = { success: false, error: "Event title cannot be empty." };
+              continue;
+            }
+            const start = String(args.start || new Date().toISOString()).substring(0, 100);
+            const end = String(args.end || new Date().toISOString()).substring(0, 100);
+            if (new Date(end) <= new Date(start)) {
+               clientResults[tool] = { success: false, error: "Event end time must be after start time." };
+               continue;
+            }
+
             const docRef = await addDoc(collection(db, `users/${userId}/calendarEvents`), {
               title,
               description: String(args.description || ""),
               location: args.location || "Vasant Valley School",
-              start: String(args.start || new Date().toISOString()).substring(0, 100),
-              end: String(args.end || new Date().toISOString()).substring(0, 100),
+              start,
+              end,
               createdAt: new Date().toISOString(),
               userId
             });
             clientResults[tool] = { success: true, eventId: docRef.id, message: `Calendar event "${title}" created successfully in Firestore.` };
           } else if (tool === "saveMemory") {
-            const key = String(args.key || "general").substring(0, 100);
+            const key = String(args.key || "").trim().substring(0, 100);
+            const value = String(args.value || "").trim().substring(0, 1000);
+            if (!key || !value) {
+              clientResults[tool] = { success: false, error: "Memory key and value cannot be empty." };
+              continue;
+            }
+
             const memoriesRef = collection(db, `users/${userId}/memoryItems`);
             const qMatches = query(memoriesRef, where("key", "==", key));
             const memSnap = await getDocs(qMatches);
@@ -347,7 +384,7 @@ export default function ChatView({
             if (!memSnap.empty) {
               const targetId = memSnap.docs[0].id;
               await updateDoc(doc(db, `users/${userId}/memoryItems`, targetId), {
-                value: String(args.value || "").substring(0, 1000),
+                value,
                 category: String(args.category || "general").toLowerCase(),
                 updatedAt: new Date().toISOString()
               });
@@ -355,7 +392,7 @@ export default function ChatView({
             } else {
               const docRef = await addDoc(memoriesRef, {
                 key,
-                value: String(args.value || "").substring(0, 1000),
+                value,
                 category: String(args.category || "general").toLowerCase(),
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),

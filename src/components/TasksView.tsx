@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Task } from "../types";
-import { Plus, Trash2, Calendar, AlertCircle, Check } from "lucide-react";
+import { Plus, Trash2, Calendar, Check } from "lucide-react";
 import { useFirestoreTasks } from "../lib/hooks";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";

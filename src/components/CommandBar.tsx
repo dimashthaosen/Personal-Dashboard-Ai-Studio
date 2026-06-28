@@ -9,7 +9,6 @@ import {
   MessageSquare, 
   CornerDownLeft,
   X,
-  Plus,
   Users
 } from "lucide-react";
 import { 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useFirestoreTimetable } from "../lib/hooks";
-import { TimetableEntry, TimetableImportPreview } from "../types";
+import { TimetableImportPreview } from "../types";
 import { db } from "../lib/firebase";
 import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 import {
@@ -9,12 +9,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Trash2,
-  Clock,
   BookOpen,
   Coffee,
-  Check,
-  ChevronRight,
-  HelpCircle,
+  Check
 } from "lucide-react";
 
 interface TimetableViewProps {
@@ -436,7 +433,7 @@ export default function TimetableView({ userId }: TimetableViewProps) {
 
                   {/* Grid body rows */}
                   <div className="divide-y divide-[#ece6db]">
-                    {standardPeriods.map((period, pIdx) => (
+                    {standardPeriods.map((period) => (
                       <div key={period.label} className="grid grid-cols-6 items-stretch">
                         {/* Left column: timing */}
                         <div className="p-3 border-r border-[#ece6db] bg-[#fcf9f3]/20 flex flex-col justify-center items-center text-center">

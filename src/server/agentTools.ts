@@ -8,7 +8,7 @@ import { generateContentText, generateLessonPlan as aiGenerateLessonPlan } from 
 import { db } from "./db.js";
 import { fetchGmailEmails } from "./gmail.js";
 import { normalisePriority, normaliseCategory, normaliseStatus, normaliseMemoryCategory, buildReplyPrompt } from "./validators.js";
-import { Task, CalendarEvent, MemoryItem, StudentRecord, TimetableEntry, Email } from "../types.js";
+import { Task, CalendarEvent, MemoryItem, StudentRecord, TimetableEntry } from "../types.js";
 
 // Load Firebase configuration
 const configPath = path.join(process.cwd(), "firebase-applet-config.json");
@@ -227,11 +227,12 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "getStudentProfile",
-    description: "Retrieves a specific student's detailed dashboard profile including contact, electives, sources, and conflicts.",
+    description: "Retrieves a specific student's detailed dashboard profile including electives, sources, and conflicts. Do NOT request contact details unless the user explicitly asks for them.",
     parameters: {
       type: "OBJECT",
       properties: {
-        fullName: { type: "STRING", description: "Full name of the student" }
+        fullName: { type: "STRING", description: "Full name of the student" },
+        includeContactDetails: { type: "BOOLEAN", description: "Set to true ONLY if the user explicitly asked for parent/contact details." }
       },
       required: ["fullName"]
     }
@@ -270,7 +271,7 @@ async function safeGetCollection(path: string) {
 }
 
 export async function executeTool(userId: string, name: string, args: any, accessToken?: string): Promise<any> {
-  console.log(`Executing tool server-side: ${name} for user ${userId} with args:`, args);
+  console.log(`Executing tool server-side: ${name} for user ${userId}`);
 
   try {
     switch (name) {
@@ -452,6 +453,11 @@ export async function executeTool(userId: string, name: string, args: any, acces
         const key = String(args.key || "general").substring(0, 100);
         const value = String(args.value || "").substring(0, 1000);
         const category = normaliseMemoryCategory(args.category);
+
+        const lowerVal = value.toLowerCase();
+        if (lowerVal.includes("student record") || lowerVal.includes("timetable entry") || lowerVal.includes("grade") || lowerVal.includes("parent email")) {
+           return { success: false, error: "Sensitive student or timetable data should not be saved into general memory." };
+        }
 
         // Deduplicate: check if a memory with same key already exists to prevent duplicate noise
         const memSnap = await memoriesRef.where("key", "==", key).get();
@@ -690,9 +696,26 @@ ${args.customSourceMaterial ? `Custom Source material details:\n${args.customSou
           return { success: false, error: `Student with name "${args.fullName}" not found.` };
         }
 
+        const safeStudent = {
+          id: student.id,
+          fullName: student.fullName,
+          classSection: student.classSection,
+          rollNumber: student.rollNumber,
+          subjects: student.subjects,
+          needsReview: student.needsReview,
+          sourceFiles: student.sourceFiles,
+        } as any;
+
+        if (args.includeContactDetails) {
+          safeStudent.email = student.email;
+          safeStudent.phone = student.phone;
+          safeStudent.parentName = student.parentName;
+          safeStudent.parentContact = student.parentContact;
+        }
+
         return {
           success: true,
-          studentDetails: student
+          studentDetails: safeStudent
         };
       }
 

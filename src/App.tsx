@@ -30,7 +30,6 @@ import {
   Database,
   LogOut,
   Cog,
-  CheckCircle2,
   Search,
   Check,
   AlertTriangle,

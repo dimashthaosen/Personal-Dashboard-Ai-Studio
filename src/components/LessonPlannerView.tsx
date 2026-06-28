@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { BookOpen, Calendar, ChevronDown, Check, Save, Copy, Loader2, Upload, Sparkles, FileText, Layout, FilePlus, ChevronRight } from "lucide-react";
+import { BookOpen, ChevronDown, Check, Save, Copy, Loader2, Upload, Sparkles, FileText, Layout } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CURRICULUM, getChapterForWeek, GP_EXAMPLES, SOCIOLOGY_EXAMPLES } from "../data/curriculum";
 import { getAccessToken, db } from "../lib/firebase";
 import { addDoc, collection, deleteDoc, doc } from "firebase/firestore";
 import { useFirestoreLessonPlans } from "../lib/hooks";
-import * as mammoth from "mammoth";
 
 interface ParsedLesson {
   number: number;
@@ -85,7 +84,7 @@ export default function LessonPlannerView({ userId }: { userId?: string }) {
   const [languageTone, setLanguageTone] = useState<string>("accessible");
   
   // Homework State
-  const [generateHomework, setGenerateHomework] = useState(false);
+  const [generateHomework] = useState(false);
   const [homeworkNature, setHomeworkNature] = useState<string>("academic");
   const [customHomeworkPrompt, setCustomHomeworkPrompt] = useState("");
 
@@ -130,6 +129,7 @@ export default function LessonPlannerView({ userId }: { userId?: string }) {
       reader.onload = async (event) => {
         const arrayBuffer = event.target?.result as ArrayBuffer;
         try {
+          const mammoth = await import("mammoth");
           const result = await mammoth.extractRawText({ arrayBuffer });
           setCustomSourceMaterial(prev => prev + "\n" + result.value);
         } catch (err) {
@@ -192,14 +192,14 @@ export default function LessonPlannerView({ userId }: { userId?: string }) {
     const course = CURRICULUM[courseId];
     const chapterData = getChapterForWeek(courseId, week);
     
-    let toneInstruction = "";
+    let toneInstruction: string;
     if (languageTone === "accessible") {
       toneInstruction = "REQUIRED EXPLANATORY TONE: HIGHLY ACCESSIBLE, CONCEPT-CLEAR, ENGAGING. Do NOT dump dense, un-unpacked academic jargon. Use active, student-centric, relatable terms - clear analogies, real-world examples (social media, youth subcultures, mobile phones), step-by-step unpacking. Make the Process feel like an interactive classroom for 16-18 year-olds; introduce, bold, and simply define correct sociological terms.";
     } else {
       toneInstruction = "REQUIRED EXPLANATORY TONE: ADVANCED ACADEMIC. Formal, rigorous, dense with exam-board terminology; university-prep discourse.";
     }
 
-    let pedaMix = "";
+    let pedaMix: string;
     if (pedagogicalMix === "progressive") {
       pedaMix = "PROGRESSIVE LEVEL CURVE - Lesson 1: FIRST PRINCIPLES (definitions, concept mapping, vocabulary; no premature debate). Lesson 2: FIELD CASEWORK / EMPIRICAL READINGS (text excerpts, statistics, case studies). Lesson 3: INTERACTIVE COLLABORATION (dialogue circles, fishbowl, roleplay, peer debate). Lesson 4+: APPLIED SYNTHESIS & WRITING (written arguments, prompt deconstruction, checking fallacies).";
     } else if (pedagogicalMix === "discussion") {
@@ -365,12 +365,15 @@ ${pedaMix}
       </div>
 
       {activeTab === "create" && (
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        <div className="flex-1 overflow-y-auto relative bg-paper-0">
           
-          {/* LEFT: Config Panel */}
-          <div className="w-full md:w-[380px] bg-paper-1 border-r border-paper-2 overflow-y-auto p-5 shrink-0 config-scroll">
-            
-            <div className="space-y-5 pb-6">
+          {/* TOP: Config Panel */}
+          <div className="w-full bg-paper-1 border-b border-paper-2 p-5 md:p-8 shrink-0 relative z-10">
+            <div className="max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                {/* Column 1 */}
+                <div className="space-y-5">
               {/* Course Selection */}
               <div>
                 <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Subject & Grade</label>
@@ -415,7 +418,10 @@ ${pedaMix}
                   </select>
                 </div>
               </div>
+            </div>
 
+            {/* Column 2 */}
+            <div className="space-y-5">
               {/* Lesson Format Settings */}
               <div>
                 <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-2 font-bold">Pedagogy & Pacing</label>
@@ -458,9 +464,12 @@ ${pedaMix}
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Custom Source material / Pacing Assistant */}
-              <div>
+            {/* Column 3 */}
+              <div className="space-y-5 lg:col-span-1 md:col-span-2">
+                {/* Custom Source material / Pacing Assistant */}
+                <div>
                 <label className="block font-mono text-[11px] text-ink-500 uppercase tracking-widest mb-1.5 font-bold">Custom Extracurricular Material (Optional)</label>
                 <p className="text-[11px] text-ink-400 mb-2 leading-tight">Paste a handout or article here, or upload a .docx/.txt to get AI lesson division recommendations.</p>
                 <textarea
@@ -550,25 +559,26 @@ ${pedaMix}
                 )}
               </div>
             </div>
-            
-            {/* Action Bar */}
-            <div className="sticky bottom-0 left-0 right-0 bg-paper-1 pt-2 pb-1 border-t border-paper-2 mt-auto">
-              <button 
-                onClick={handleGenerate}
-                disabled={generating}
-                className="w-full bg-[#2d5a4a] hover:bg-[#3a7560] disabled:bg-chalk-300 disabled:cursor-not-allowed text-white font-serif text-sm font-medium py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
-              >
-                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {generating ? 'Drafting Lesson...' : 'Generate Plan'}
-              </button>
             </div>
-
+              
+            {/* Action Bar */}
+              <div className="mt-8 pt-6 border-t border-paper-2 flex justify-end">
+                <button 
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  className="w-full md:w-auto px-8 bg-[#2d5a4a] hover:bg-[#3a7560] disabled:bg-chalk-300 disabled:cursor-not-allowed text-white font-serif text-sm font-medium py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                  {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {generating ? 'Drafting Lesson...' : 'Generate Plan'}
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* RIGHT: Output Panel */}
-          <div className="flex-1 overflow-y-auto bg-paper-0 p-5 md:p-10 relative">
+          {/* BOTTOM: Output Panel */}
+          <div className="p-5 md:p-10 relative flex-1 flex flex-col min-h-[500px]">
             {!generatedMarkdown && !generating && (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-40 select-none">
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 select-none py-20">
                 <BookOpen className="w-16 h-16 text-ink-300 mb-4" />
                 <h3 className="font-serif text-xl font-bold text-ink-900 mb-1">Canvas is empty</h3>
                 <p className="font-sans text-sm text-ink-500 max-w-[260px]">Configure your lesson details on the left and generate a structured scheme of work.</p>
@@ -576,7 +586,7 @@ ${pedaMix}
             )}
             
             {generating && (
-              <div className="h-full flex flex-col items-center justify-center text-center">
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-20">
                 <div className="w-12 h-12 rounded-full border-2 border-[#2d5a4a]/20 border-t-[#2d5a4a] animate-spin mb-6"></div>
                 <h3 className="font-serif animate-pulse text-lg text-ink-800">Synthesising syllabus documents...</h3>
                 <p className="font-mono text-[11px] uppercase tracking-widest text-ink-400 mt-2">Vasant Valley Faculty Server</p>
@@ -584,7 +594,7 @@ ${pedaMix}
             )}
 
             {generatedMarkdown && !generating && (
-              <div className="max-w-[700px] mx-auto animate-fade-up">
+              <div className="max-w-4xl mx-auto w-full animate-fade-up">
                 
                 <div className="flex items-center justify-between mb-8 pb-4 border-b border-paper-2">
                   <div>

@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { db } from "./src/server/db";
-import { generateContentText, streamContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION } from "./src/server/ai";
+import { generateContentText, generateLessonPlan, generateLessonPacing, TEACHER_SYSTEM_INSTRUCTION } from "./src/server/ai";
 import { fetchGmailEmails, createGmailDraft, sendGmailEmail } from "./src/server/gmail";
 import { fetchCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./src/server/calendar";
 import { runAssistantAgent } from "./src/server/agentRunner";
@@ -242,7 +242,7 @@ Provide a concise summary, highlight key deadlines/names/school events mentioned
     }
 
     const { userId } = req.body;
-    let memories: MemoryItem[] = [];
+    let memories: MemoryItem[];
     if (userId) {
       try {
         const { getUserCollection } = await import("./src/server/firestoreHelpers");
@@ -1089,7 +1089,7 @@ ${formattedMemory || "No memory preferences stored."}
         const responseText = await generateContentText(cronPrompt, TEACHER_SYSTEM_INSTRUCTION);
 
         // Send generated pointwise daily brief directly via Gmail send API helper
-        await sendGmailEmail(accessToken, {
+        await createGmailDraft(accessToken, {
           to: "me",
           subject: `[Scheduled Daily Brief] School Agenda - ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
           body: `Good morning, Dimash.\n\nHere is your custom scheduled daily school agenda and task list:\n\n${responseText}\n\nRegards,\nDimash Thaosen`,

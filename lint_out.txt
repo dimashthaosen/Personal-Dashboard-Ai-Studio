@@ -1,0 +1,254 @@
+
+/app/applet/server.ts
+     5:31  error    'streamContentText' is defined but never used                          @typescript-eslint/no-unused-vars
+    61:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+    85:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+    99:25  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   107:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   118:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   184:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   212:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   245:9   error    The value assigned to 'memories' is not used in subsequent statements  no-useless-assignment
+   302:25  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   315:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   358:25  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   382:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   409:34  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   421:25  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   432:28  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   444:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   467:25  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   480:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   492:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   513:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   527:25  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   533:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   544:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   556:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   568:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   587:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   639:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   658:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   674:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   687:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   716:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   772:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   783:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   798:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   838:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   850:24  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   873:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   998:23  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1103:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1136:29  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1138:26  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1139:17  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1161:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1186:29  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1188:26  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1189:17  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1195:28  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1199:21  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1227:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1242:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  1255:19  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+/app/applet/src/App.tsx
+   33:3   error    'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+  245:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/components/CalendarView.tsx
+     2:25  error    'Task' is defined but never used                         @typescript-eslint/no-unused-vars
+    10:3   error    'CalendarDays' is defined but never used                 @typescript-eslint/no-unused-vars
+    21:10  error    'collection' is defined but never used                   @typescript-eslint/no-unused-vars
+    21:22  error    'addDoc' is defined but never used                       @typescript-eslint/no-unused-vars
+    22:10  error    'db' is defined but never used                           @typescript-eslint/no-unused-vars
+    25:3   error    'STANDARD_SCHOOL_DAY_PERIODS' is defined but never used  @typescript-eslint/no-unused-vars
+    28:3   error    'isAllDayEvent' is defined but never used                @typescript-eslint/no-unused-vars
+    29:3   error    'isInvalidEvent' is defined but never used               @typescript-eslint/no-unused-vars
+    51:10  error    'syncStatus' is assigned a value but never used          @typescript-eslint/no-unused-vars
+    74:19  warning  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+   114:19  warning  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+   269:19  warning  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+   724:48  error    'idx' is defined but never used                          @typescript-eslint/no-unused-vars
+  1189:82  warning  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+
+/app/applet/src/components/ChatView.tsx
+   15:21  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   16:26  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   17:22  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   18:22  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   19:22  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   20:22  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   21:22  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   22:22  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   23:27  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   24:22  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   25:24  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  103:82  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  103:95  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  104:58  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  264:19  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  294:43  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  325:33  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  383:15  error    'hasClientSideWriteErrors' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  412:23  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  513:19  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  712:51  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+
+/app/applet/src/components/CommandBar.tsx
+  12:3  error  'Plus' is defined but never used  @typescript-eslint/no-unused-vars
+
+/app/applet/src/components/DashboardView.tsx
+   19:11  error    'students' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  170:60  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  173:39  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  262:14  error    'err' is defined but never used                @typescript-eslint/no-unused-vars
+  342:21  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  345:30  error    'i' is defined but never used                  @typescript-eslint/no-unused-vars
+
+/app/applet/src/components/EmailView.tsx
+  187:16  error    'e' is defined but never used                                   @typescript-eslint/no-unused-vars
+  187:19  error    Empty block statement                                           no-empty
+  226:15  error    'e' is defined but never used                                   @typescript-eslint/no-unused-vars
+  227:9   error    There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+  325:19  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+  583:31  error    'node' is defined but never used                                @typescript-eslint/no-unused-vars
+  583:49  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+  584:32  error    'node' is defined but never used                                @typescript-eslint/no-unused-vars
+  584:50  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+  585:32  error    'node' is defined but never used                                @typescript-eslint/no-unused-vars
+  585:50  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+  586:32  error    'node' is defined but never used                                @typescript-eslint/no-unused-vars
+  586:50  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+  587:36  error    'node' is defined but never used                                @typescript-eslint/no-unused-vars
+  587:54  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+  588:32  error    'node' is defined but never used                                @typescript-eslint/no-unused-vars
+  588:50  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+
+/app/applet/src/components/LessonPlannerView.tsx
+    2:20   error    'Calendar' is defined but never used                                          @typescript-eslint/no-unused-vars
+    2:107  error    'FilePlus' is defined but never used                                          @typescript-eslint/no-unused-vars
+    2:117  error    'ChevronRight' is defined but never used                                      @typescript-eslint/no-unused-vars
+   87:28   error    'setGenerateHomework' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+   93:54   warning  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  195:9    error    The value assigned to 'toneInstruction' is not used in subsequent statements  no-useless-assignment
+  202:9    error    The value assigned to 'pedaMix' is not used in subsequent statements          no-useless-assignment
+
+/app/applet/src/components/MemoryView.tsx
+    5:35  error  'updateDoc' is defined but never used                  @typescript-eslint/no-unused-vars
+  403:19  error  'isSystemTemplate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/app/applet/src/components/ProjectsView.tsx
+  2:10  error  'Task' is defined but never used  @typescript-eslint/no-unused-vars
+  3:10  error  'Plus' is defined but never used  @typescript-eslint/no-unused-vars
+
+/app/applet/src/components/StudentsView.tsx
+  159:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  309:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  330:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  353:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/components/TasksView.tsx
+  212:70  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  226:70  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  242:72  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  433:93  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/components/TimetableView.tsx
+   27:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   54:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:57  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   67:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  162:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  560:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/lib/firebase.ts
+  51:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:96  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/lib/hooks.ts
+  109:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/server/agentRunner.ts
+    9:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   12:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:77  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  192:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/server/agentTools.ts
+   15:21   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   18:15   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  267:17   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  273:71   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  273:107  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  306:27   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  396:25   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  503:21   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  565:77   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  565:122  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  587:65   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  587:91   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  704:14   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  794:17   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/server/ai.ts
+   90:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  164:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  208:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  229:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  235:69  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  277:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/server/calendar.ts
+   14:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:79  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   60:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/server/firestoreHelpers.ts
+  4:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/server/gmail.ts
+   16:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  184:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  322:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/server/validators.ts
+  48:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:81  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/app/applet/src/types.ts
+  117:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 205 problems (38 errors, 167 warnings)
+

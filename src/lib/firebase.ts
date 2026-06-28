@@ -18,7 +18,6 @@ provider.setCustomParameters({
   access_type: "offline"
 });
 
-let isSigningIn = false;
 let cachedAccessToken: string | null = null;
 
 export const initAuth = (
@@ -41,7 +40,6 @@ export const initAuth = (
 
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
   try {
-    isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     if (!credential?.accessToken) {
@@ -67,8 +65,6 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
   } catch (error: any) {
     console.error("Sign in error:", error);
     throw error;
-  } finally {
-    isSigningIn = false;
   }
 };
 

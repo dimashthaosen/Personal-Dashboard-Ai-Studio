@@ -181,7 +181,7 @@ export async function* streamContentText(prompt: string, customSystemInstruction
   }
 
   const ai = getGemini();
-  let resultStream: any = null;
+  let resultStream;
 
   try {
     resultStream = await fetchWithRetryAndFallback(async (modelName) => {
@@ -228,7 +228,7 @@ export async function generateLessonPlan(prompt: string): Promise<string> {
     return response.text || "No output generated.";
   } catch (error: any) {
     console.error("Gemini API error generating lesson plan:", error);
-    throw new Error(`Failed to generate lesson plan: ${error?.message}`);
+    throw new Error(`Failed to generate lesson plan: ${error?.message}`, { cause: error });
   }
 }
 
@@ -276,7 +276,7 @@ export async function generateLessonPacing(prompt: string): Promise<any> {
     return JSON.parse(response.text || "{}");
   } catch (error: any) {
     console.error("Gemini API error generating pacing:", error);
-    throw new Error(`Failed to generate lesson pacing: ${error?.message}`);
+    throw new Error(`Failed to generate lesson pacing: ${error?.message}`, { cause: error });
   }
 }
 

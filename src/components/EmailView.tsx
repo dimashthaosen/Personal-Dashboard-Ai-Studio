@@ -184,7 +184,9 @@ export default function EmailView({
       delete emailCache[cacheKey];
       try {
         localStorage.removeItem(`faculty_planner_emails_${cacheKey}`);
-      } catch (e) {}
+      } catch {
+        // Ignored
+      }
       setLoading(true);
     } else if (cached) {
       setEmails(cached.data);
@@ -223,8 +225,8 @@ export default function EmailView({
       let data = [];
       try {
         data = JSON.parse(text);
-      } catch(e) {
-        throw new Error("Invalid response");
+      } catch(e: any) {
+        throw new Error("Invalid response", { cause: e });
       }
 
       // Save to shared memory and localStorage cache
@@ -580,12 +582,12 @@ export default function EmailView({
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
-                        ul: ({ node, ...props }: any) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
-                        ol: ({ node, ...props }: any) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
-                        li: ({ node, ...props }: any) => <li className="pl-0.5" {...props} />,
-                        strong: ({ node, ...props }: any) => <strong className="font-bold text-[#1a1612] not-italic" {...props} />,
-                        em: ({ node, ...props }: any) => <em className="italic" {...props} />,
+                        p: ({ node: _n, ...props }: any) => { void _n; return <p className="mb-2 last:mb-0" {...props} />; },
+                        ul: ({ node: _n, ...props }: any) => { void _n; return <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />; },
+                        ol: ({ node: _n, ...props }: any) => { void _n; return <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />; },
+                        li: ({ node: _n, ...props }: any) => { void _n; return <li className="pl-0.5" {...props} />; },
+                        strong: ({ node: _n, ...props }: any) => { void _n; return <strong className="font-bold text-[#1a1612] not-italic" {...props} />; },
+                        em: ({ node: _n, ...props }: any) => { void _n; return <em className="italic" {...props} />; },
                       }}
                     >
                       {summaryOutput}

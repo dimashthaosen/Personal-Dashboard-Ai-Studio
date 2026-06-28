@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, where, orderBy } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "./firebase";
 import { Task, CalendarEvent, MemoryItem, ChatMessage, StudentRecord, TimetableEntry } from "../types";
 import { schoolEvents } from "../data/schoolEvents";

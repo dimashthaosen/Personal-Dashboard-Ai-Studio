@@ -1,4 +1,4 @@
-import { getGemini, TEACHER_SYSTEM_INSTRUCTION, fetchWithRetryAndFallback, streamContentText } from "./ai.js";
+import { getGemini, TEACHER_SYSTEM_INSTRUCTION, fetchWithRetryAndFallback } from "./ai.js";
 import { executeTool, isWriteTool, TOOL_DECLARATIONS } from "./agentTools.js";
 
 export interface AgentEvent {
@@ -137,7 +137,7 @@ ${contextStr}
       }
 
       // Case B: Model returned function call(s)
-      console.log(`Gemini returned function calls:`, functionCalls);
+      console.log(`Gemini returned function calls:`, functionCalls.map((fc: any) => fc.name));
 
       // Append Model's turn to conversation history
       if (response.candidates && response.candidates[0] && response.candidates[0].content) {

@@ -18,7 +18,7 @@ function getGmailMessageBody(payload: any): string {
   if (payload.body?.data) {
     try {
       return Buffer.from(payload.body.data, "base64").toString("utf-8");
-    } catch (e) {
+    } catch {
       return "";
     }
   }
@@ -27,7 +27,7 @@ function getGmailMessageBody(payload: any): string {
       if (part.mimeType === "text/plain" && part.body?.data) {
         try {
           return Buffer.from(part.body.data, "base64").toString("utf-8");
-        } catch (e) {}
+        } catch { /* ignore */ }
       }
     }
     for (const part of payload.parts) {
@@ -40,7 +40,7 @@ function getGmailMessageBody(payload: any): string {
       if (part.mimeType === "text/html" && part.body?.data) {
         try {
           return Buffer.from(part.body.data, "base64").toString("utf-8");
-        } catch (e) {}
+        } catch { /* ignore */ }
       }
     }
   }

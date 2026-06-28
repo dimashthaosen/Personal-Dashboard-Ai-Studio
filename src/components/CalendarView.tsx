@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CalendarEvent, Task } from "../types";
+import { CalendarEvent } from "../types";
 import { 
   Calendar, 
   Plus, 
@@ -7,7 +7,6 @@ import {
   MapPin, 
   ChevronLeft, 
   ChevronRight, 
-  CalendarDays, 
   Eye, 
   Info,
   Sparkles,
@@ -17,16 +16,11 @@ import {
   Activity,
   Trash2
 } from "lucide-react";
-import { useFirestoreEvents, useFirestoreTasks, useFirestoreTimetable } from "../lib/hooks";
-import { collection, addDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { useFirestoreEvents, useFirestoreTimetable, useFirestoreTasks } from "../lib/hooks";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  STANDARD_SCHOOL_DAY_PERIODS,
   calculateFreePeriods,
   detectConflicts,
-  isAllDayEvent,
-  isInvalidEvent,
   StandardPeriod
 } from "../lib/calendarHelpers";
 
@@ -48,7 +42,7 @@ export default function CalendarView({
   const { timetable } = useFirestoreTimetable(userId);
 
   // Sync state
-  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
+  const [, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const syncGoogleCalendar = async () => {
@@ -721,7 +715,7 @@ export default function CalendarView({
                   <div className="space-y-4" id="monthly-calendar-container">
                     {/* Days of the week header labels */}
                     <div className="grid grid-cols-7 gap-1 text-center border-b border-[#e1d8c6] pb-2">
-                      {weekdayLabels.map((lbl, idx) => (
+                      {weekdayLabels.map((lbl) => (
                         <div key={lbl} className="font-mono text-[11px] font-bold text-[#4a4540] uppercase tracking-wider">
                           {lbl}
                         </div>

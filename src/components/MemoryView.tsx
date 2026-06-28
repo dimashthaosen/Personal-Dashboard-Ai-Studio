@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { MemoryItem } from "../types";
 import { Brain, Plus, Trash2, Edit2, Check, X, Pin, MessageSquare, EyeOff } from "lucide-react";
 import { useFirestoreMemory } from "../lib/hooks";
-import { collection, addDoc, doc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, doc, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export default function MemoryView({ 
@@ -400,7 +400,6 @@ export default function MemoryView({
             const isEditing = editingId === mem.id;
             const isSystem = mem.id.startsWith("system");
             const isFirestoreMemory = memories.some(m => m.id === mem.id);
-            const isSystemTemplate = isSystem && !isFirestoreMemory;
             const isSystemOverridden = isSystem && isFirestoreMemory;
 
             const isSelected = mem.id === initialSelectedMemoryId;

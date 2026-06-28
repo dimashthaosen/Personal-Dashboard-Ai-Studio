@@ -1,4 +1,4 @@
-import { QuerySnapshot, DocumentSnapshot } from "firebase-admin/firestore";
+import { QuerySnapshot } from "firebase-admin/firestore";
 import { serverDb } from "./agentTools";
 
 export function docsToArray(snap: QuerySnapshot): any[] {

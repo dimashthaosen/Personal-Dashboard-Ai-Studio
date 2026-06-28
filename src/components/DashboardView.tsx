@@ -16,7 +16,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
   const { tasks, loading: loadingTasks } = useFirestoreTasks(userId);
   const { events } = useFirestoreEvents(userId);
   const { memoryItems } = useFirestoreMemory(userId);
-  const { students } = useFirestoreStudents(userId);
+  useFirestoreStudents(userId);
   const { timetable } = useFirestoreTimetable(userId);
 
   const [emails, setEmails] = useState<Email[]>(() => {
@@ -128,6 +128,7 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
 
   const handleEmailBrief = async () => {
     if (!dailyPlan) return;
+    if (!window.confirm("Are you sure you want to send this daily brief to your email?")) return;
     setSendingEmailBrief(true);
     setEmailBriefStatus("sending");
     try {
@@ -258,11 +259,10 @@ export default function DashboardView({ onNavigate, googleToken, userId }: Dashb
     try {
       const d = new Date(isoStr);
       return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-    } catch (err) {
+    } catch {
       return "00:00";
     }
   };
-
   const todayDayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayTimetable = timetable.filter(
     (e) => e.day.toLowerCase() === todayDayName.toLowerCase()
@@ -341,7 +341,7 @@ const parseTime = (timeStr: string) => {
   const finalSlots: any[] = [];
   let lastEnd = 480; // 8:00 AM
 
-  parsedSlots.forEach((slot, i) => {
+  parsedSlots.forEach((slot) => {
     const startMins = slot.startMins;
     
     if (startMins > lastEnd) {
